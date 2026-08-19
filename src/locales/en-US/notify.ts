@@ -1,0 +1,23 @@
+export default {
+  'notify.announcement.title': 'Announcement',
+  'notify.announcement.name': 'Title',
+  'notify.announcement.content': 'Content',
+  'notify.announcement.status': 'Status',
+  'notify.announcement.status.draft': 'Draft',
+  'notify.announcement.status.published': 'Published',
+  'notify.announcement.status.closed': 'Closed',
+  'notify.announcement.publish.time': 'Publish Time',
+  'notify.announcement.expire.time': 'Expire Time',
+  'notify.announcement.permanent': 'Permanent',
+  'notify.announcement.receiver.type': 'Receiver Type',
+  'notify.announcement.receiver.all': 'All Users',
+  'notify.announcement.receiver.role': 'By Role',
+  'notify.announcement.receiver.organization': 'By Organization',
+  'notify.announcement.receiver.user': 'By User',
+  'notify.announcement.notify.type': 'Notify Type',
+  'notify.announcement.notify.site': 'Site Notification',
+  'notify.announcement.notify.email': 'Email Notification',
+  'notify.announcement.publish.confirm':
+    'Confirm to publish this announcement?',
+  'notify.announcement.close.confirm': 'Confirm to close this announcement?',
+};

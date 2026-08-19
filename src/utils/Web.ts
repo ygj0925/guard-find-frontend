@@ -1,0 +1,183 @@
+import { history } from 'umi';
+import type {
+  SysDictData,
+  SysDictDataHash,
+  SysDictDataItem,
+} from '@/services/web/system/index.ts';
+import type { GLOBAL } from '@/typings';
+import type { ProjectSetting } from '../../config/defaultSettings';
+import settings from '../../config/defaultSettings';
+
+export const token_key = 'token';
+export const user_key = 'user';
+export const tenant_id_key = 'tenant_id';
+export const login_corp_key = 'login_corp';
+export const login_redirect_key = 'login_redirect';
+export const dict_data_key = 'dict_data';
+export const dict_hash_key = 'dict_hash';
+export const layout_setting_key = 'layout_setting';
+export const login_uri = '/user/login';
+
+export function getKey(key: string): string {
+  return `${settings.storageOptions?.namespace}${key}`;
+}
+
+export function get(key: string): string | null {
+  return localStorage.getItem(getKey(key));
+}
+
+export function set(key: string, val: any): void {
+  localStorage.setItem(getKey(key), val);
+}
+
+export function remove(key: string): void {
+  localStorage.removeItem(getKey(key));
+}
+
+export const Token = {
+  get: () => {
+    return get(token_key);
+  },
+  set: (val: any) => {
+    set(token_key, val);
+  },
+  clean: () => {
+    remove(token_key);
+  },
+};
+
+export const User = {
+  get: () => {
+    return get(user_key);
+  },
+  set: (val: any) => {
+    set(user_key, val);
+  },
+  clean: () => {
+    remove(user_key);
+  },
+};
+
+export const Tenant = {
+  get: () => get(tenant_id_key),
+  set: (val: string) => set(tenant_id_key, val),
+  clean: () => remove(tenant_id_key),
+};
+
+export const LoginCorp = {
+  get: () => get(login_corp_key),
+  set: (val: string) => set(login_corp_key, val),
+  clean: () => remove(login_corp_key),
+};
+
+export const LoginRedirect = {
+  get: () => get(login_redirect_key),
+  set: (val: string) => set(login_redirect_key, val),
+  clean: () => remove(login_redirect_key),
+};
+
+export function clearAuthStorage() {
+  Token.clean();
+  User.clean();
+  Tenant.clean();
+}
+
+export const Dict = {
+  getHashs: (): SysDictDataHash => {
+    const hashs = get(dict_hash_key);
+
+    return hashs ? JSON.parse(hashs) : {};
+  },
+  setHashs: (hashs: SysDictDataHash) => {
+    set(dict_hash_key, JSON.stringify(hashs));
+  },
+  getKey: (code: string) => {
+    return `${dict_data_key}_${code}`;
+  },
+  get: (code: string): SysDictData | undefined => {
+    const cache = get(Dict.getKey(code));
+    if (cache) {
+      return JSON.parse(cache);
+    }
+    return undefined;
+  },
+  set: (data: SysDictData) => {
+    set(Dict.getKey(data.dictCode), JSON.stringify(data));
+  },
+  del: (code: string) => {
+    remove(Dict.getKey(code));
+  },
+  toData: (data: SysDictData) => {
+    const items: SysDictDataItem[] = [];
+
+    (data.dictItems || []).forEach((item) => {
+      items.push({
+        ...item,
+        realVal: Dict.getRealValue(data.valueType, item.value),
+      });
+    });
+
+    return { ...data, dictItems: items };
+  },
+  getRealValue: (type: 1 | 2 | 3 | undefined, value: string): any => {
+    switch (type) {
+      case 3: {
+        if (!value) {
+          return false;
+        }
+        const lowerValue = value.toLowerCase();
+        if (['0', 'false', 'n', 'no'].includes(lowerValue)) {
+          return false;
+        }
+        if (['1', 'true', 'y', 'yes', 'ok'].includes(lowerValue)) {
+          return true;
+        }
+
+        const number = Number(lowerValue);
+        if (!Number.isNaN(number)) {
+          // 大于0 为 true
+          return number > 0;
+        }
+
+        return Boolean(value);
+      }
+      case 2:
+        // 字符串
+        return String(value);
+      default:
+        // 数字
+        return Number(value);
+    }
+  },
+};
+
+export const LayoutSetting = {
+  get: (): ProjectSetting => {
+    const ls = get(layout_setting_key);
+    if (ls) {
+      return JSON.parse(ls);
+    }
+    return { ...settings };
+  },
+  set: (ps: Partial<ProjectSetting>) => {
+    set(layout_setting_key, JSON.stringify(ps));
+  },
+};
+
+/**
+ * 判断当前是否已登录
+ * @param initialState  全局上下文内容
+ */
+export function isLogin(initialState?: GLOBAL.Is) {
+  // 当前在登录页, 未登录
+  if (history && history.location.pathname === login_uri) {
+    return false;
+  }
+
+  if (!initialState || !initialState?.user) {
+    return !!Token.get();
+  }
+
+  // 存在token 已登录
+  return !!initialState?.user && !!Token.get();
+}

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"D:\\\\code\\\\continew\\\\frontend-bck\")",
+      "Read(//d/code/continew/**)"
+    ]
+  }
+}

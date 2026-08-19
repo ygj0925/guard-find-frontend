@@ -1,0 +1,14 @@
+.icon-select-ul {
+  height: 250px;
+  padding: 0;
+  overflow-y: scroll;
+  list-style: none;
+}
+.icon-select-ul .icon-select-li {
+  display: inline-block;
+  margin: 3px 0;
+}
+.icon-select-ul .icon-select-li:hover,
+.icon-select-ul .icon-select-li.active {
+  cursor: pointer;
+}

@@ -1,0 +1,17 @@
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(git *)",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep"
+    ]
+  }
+}
