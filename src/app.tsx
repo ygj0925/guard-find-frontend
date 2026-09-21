@@ -4,11 +4,7 @@ import type { RequestConfig } from '@umijs/max';
 import { getUserInfo } from '@/services/web/login';
 import type { GLOBAL } from '@/typings';
 import { requestConfig } from '@/utils/RequestConfig';
-import {
-  buildClientRoutes,
-  fetchAndCacheRoutes,
-  getCachedMenuRoutes,
-} from '@/utils/RouteUtils';
+import { fetchAndCacheRoutes } from '@/utils/RouteUtils';
 import { LayoutSetting, Token, User } from '@/utils/Web';
 import settings from '../config/defaultSettings';
 
@@ -75,24 +71,6 @@ export function render(oldRender: () => void) {
       .catch(() => oldRender());
   } else {
     oldRender();
-  }
-}
-
-export function patchClientRoutes({ routes }: { routes: any[] }) {
-  const dynamicClientRoutes = buildClientRoutes(getCachedMenuRoutes());
-  if (dynamicClientRoutes.length === 0) return;
-
-  const layoutRoute = routes.find((r: any) => r.path === '/');
-  if (layoutRoute) {
-    if (!layoutRoute.children) layoutRoute.children = [];
-    const catchAllIndex = layoutRoute.children.findIndex(
-      (r: any) => r.path === '/*',
-    );
-    if (catchAllIndex >= 0) {
-      layoutRoute.children.splice(catchAllIndex, 0, ...dynamicClientRoutes);
-    } else {
-      layoutRoute.children.push(...dynamicClientRoutes);
-    }
   }
 }
 

@@ -1,25 +1,15 @@
 import { useModel } from '@umijs/max';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  fetchAndCacheRoutes,
   getCachedFirstPath,
   getCachedMenuRoutes,
 } from '@/utils/RouteUtils';
 import { isLogin } from '@/utils/Web';
 
-export default function dynamicRoute() {
+export default function useDynamicRoute() {
   const { initialState } = useModel('@@initialState');
   const [dynamicRoute, setDynamicRoute] = useState<any[]>([]);
   const [firstPath, setMenuFirst] = useState<string>();
-  const [load, setLoad] = useState(false);
-
-  const getDynamicRoute = useCallback(async () => {
-    await fetchAndCacheRoutes();
-    setDynamicRoute(getCachedMenuRoutes());
-    setMenuFirst(getCachedFirstPath());
-    setLoad(true);
-    window.location.reload();
-  }, []);
 
   useEffect(() => {
     if (initialState && isLogin(initialState)) {
@@ -27,10 +17,9 @@ export default function dynamicRoute() {
       if (cached.length > 0) {
         setDynamicRoute(cached);
         setMenuFirst(getCachedFirstPath());
-        setLoad(true);
       }
     }
   }, [initialState]);
 
-  return { dynamicRoute, firstPath, getDynamicRoute, load, setLoad };
+  return { dynamicRoute, firstPath };
 }

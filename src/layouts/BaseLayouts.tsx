@@ -1,16 +1,10 @@
 import {
   BellOutlined,
-  DashboardOutlined,
-  FormOutlined,
   GithubFilled,
   InfoCircleFilled,
   PlusCircleFilled,
   QuestionCircleFilled,
   SearchOutlined,
-  SmileOutlined,
-  TableOutlined,
-  UserOutlined,
-  WarningOutlined,
 } from '@ant-design/icons';
 import type {
   MenuDataItem,
@@ -27,7 +21,6 @@ import { Badge, Input, theme } from 'antd';
 import { useKeepAliveRef } from 'keepalive-for-react';
 import React, { type FC, useEffect, useMemo, useState } from 'react';
 import defaultSettings from '@/../config/defaultSettings';
-import routesConfig from '@/../config/routes';
 import ChatFloat from '@/components/ChatFloat';
 import { DictProvider } from '@/components/Dict';
 import Footer from '@/components/Footer';
@@ -37,49 +30,6 @@ import { getUnreadCount } from '@/services/web/user-message';
 import { redirectToLogin } from '@/utils/LoginRedirect';
 import Notify from '@/utils/NotifyUtils';
 import { isLogin, LayoutSetting } from '@/utils/Web';
-
-/**
- * icon 映射
- */
-
-const iconMap: Record<string, React.ReactNode> = {
-  dashboard: <DashboardOutlined />,
-  user: <UserOutlined />,
-  table: <TableOutlined />,
-  form: <FormOutlined />,
-  smile: <SmileOutlined />,
-  warning: <WarningOutlined />,
-};
-
-/**
- * 路由 -> 菜单转换
- */
-
-function transformRoutes(routes: any[]): MenuDataItem[] {
-  return routes
-    .filter((r) => {
-      if (r.layout === false) return false;
-      if (r.hideInMenu) return false;
-      if (!r.path) return false;
-      return true;
-    })
-    .map((route) => {
-      const item: MenuDataItem = {
-        path: route.path,
-        name: route.name,
-      };
-
-      if (route.icon && iconMap[route.icon]) {
-        item.icon = iconMap[route.icon];
-      }
-
-      if (route.routes) {
-        item.children = transformRoutes(route.routes);
-      }
-
-      return item;
-    });
-}
 
 /**
  * BaseLayout Props
@@ -94,6 +44,17 @@ export type BaseLayoutProps = {
   settings: Settings;
   breadcrumbNameMap: Record<string, MenuDataItem>;
 } & ProLayoutProps;
+
+/**
+ * 无布局页面（登录/企业选择/SSO 回调/密码过期），约定式路由无法声明 layout:false，
+ * 在布局内按路径判断直接渲染裸 Outlet
+ */
+const AUTH_PATHS = [
+  '/user/login',
+  '/corp-select',
+  '/social/callback',
+  '/pwdExpired',
+];
 
 const SearchInput = () => {
   const { token } = theme.useToken();
@@ -184,24 +145,10 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
   const { dynamicRoute, firstPath } = useModel('dynamicRoute');
 
   /**
-   * 静态菜单
+   * 菜单（后端下发）
    */
 
-  const staticMenus = useMemo(() => {
-    return transformRoutes(routesConfig);
-  }, []);
-
-  /**
-   * 合并菜单
-   */
-
-  const menuData = useMemo(() => {
-    if (!dynamicRoute?.length) {
-      return staticMenus;
-    }
-
-    return [...staticMenus, ...dynamicRoute];
-  }, [dynamicRoute, staticMenus]);
+  const menuData = useMemo(() => dynamicRoute ?? [], [dynamicRoute]);
 
   /**
    * 自动跳转首页
@@ -228,6 +175,10 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
       redirectToLogin(`${location.pathname}${location.search}`);
     }
   };
+
+  if (AUTH_PATHS.includes(location.pathname)) {
+    return <Outlet />;
+  }
 
   /**
    * Layout

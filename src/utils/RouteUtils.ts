@@ -1,8 +1,6 @@
 import type { Route } from '@ant-design/pro-layout/lib/typing';
-import React from 'react';
 import { router } from '@/services/web/login';
 import type { GLOBAL } from '@/typings';
-import pageMap from '@/utils/pageImports';
 
 export type ExpandRoute = {
   id?: string;
@@ -11,27 +9,11 @@ export type ExpandRoute = {
   exact?: boolean;
   children?: ExpandRoute[];
   routes?: ExpandRoute[];
-  component?: any;
 } & Route;
 
 let menuDict: Record<string, ExpandRoute> = {};
 let cachedMenuRoutes: ExpandRoute[] = [];
 let cachedFirstPath: string | undefined;
-
-const componentAliases: Record<string, string> = {
-  'dashboard/workplace/index': 'welcome/Welcome',
-  'system/user/index': 'system/user/SysUserPage',
-  'system/role/index': 'system/role/SysRolePage',
-  'system/menu/index': 'system/menu/SysMenuPage',
-  'system/dept/index': 'system/organization/SysOrganizationPage',
-  'system/dict/index': 'system/dict/SysDictPage',
-  'system/config/index': 'system/config/SysConfigPage',
-  'system/notice/index': 'notify/announcement/AnnouncementPage',
-  'monitor/log/login/index': 'log/login-log/LoginLogPage',
-  'monitor/log/operation/index': 'log/operation-log/OperationLogPage',
-  'monitor/log/access/index': 'log/access-log/AccessLogPage',
-  'system/i18n/index': 'i18n/I18nDataPage',
-};
 
 function getRedirectPath(menu: ExpandRoute): string {
   let redirectPath = menu.path;
@@ -101,7 +83,6 @@ export function serializationRemoteList(
         if (item.isExternal) {
           route.target = '_blank';
         } else {
-          route.component = item.component || item.uri;
           menuDict[fullPath] = route;
         }
       }
@@ -119,70 +100,6 @@ export async function fetchAndCacheRoutes(): Promise<void> {
   cachedFirstPath = getFirstUrl(cachedMenuRoutes);
 }
 
-function buildClientPageRoute(route: ExpandRoute): any {
-  let LazyComponent: React.LazyExoticComponent<any>;
-
-  if (route.component === '__inline__') {
-    LazyComponent = React.lazy(() => import('@/components/Inline'));
-  } else {
-    const uri = route.component
-      ? componentAliases[route.component] || route.component
-      : '';
-    const loader = pageMap[uri];
-    LazyComponent = React.lazy(loader ?? (() => import('@/pages/404')));
-  }
-
-  return {
-    path: route.path,
-    id: `dynamic-${route.id}`,
-    element: React.createElement(
-      React.Suspense,
-      { fallback: React.createElement('div') },
-      React.createElement(LazyComponent),
-    ),
-  };
-}
-
-function flattenClientPageRoutes(menuRoutes: ExpandRoute[]): any[] {
-  const pageRoutes: any[] = [];
-  const registeredPaths = new Set<string>();
-
-  const visit = (routes: ExpandRoute[]) => {
-    routes.forEach((route) => {
-      if (
-        route.exact &&
-        route.path &&
-        !route.target &&
-        !registeredPaths.has(route.path)
-      ) {
-        registeredPaths.add(route.path);
-        pageRoutes.push(buildClientPageRoute(route));
-      }
-
-      if (route.children?.length) {
-        visit(route.children);
-      }
-    });
-  };
-
-  visit(menuRoutes);
-  return pageRoutes;
-}
-
-export function buildClientRoutes(menuRoutes: ExpandRoute[]): any[] {
-  return [
-    ...flattenClientPageRoutes(menuRoutes),
-    {
-      path: '*',
-      element: React.createElement(
-        React.Suspense,
-        { fallback: React.createElement('div') },
-        React.createElement(React.lazy(() => import('@/pages/404'))),
-      ),
-    },
-  ];
-}
-
 export function getCachedMenuRoutes(): ExpandRoute[] {
   return cachedMenuRoutes;
 }
@@ -191,14 +108,7 @@ export function getCachedFirstPath(): string | undefined {
   return cachedFirstPath;
 }
 
-export function redirect(arg: string) {
-  const path = arg.startsWith('/') ? arg : `/${arg}`;
-  window.location.href = `${path}?redirect=${window.location.pathname}`;
-}
-
 const RouteUtils = {
-  getRedirectPath,
-  redirect,
   getMenuDict: () => {
     return menuDict;
   },

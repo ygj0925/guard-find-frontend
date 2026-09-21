@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { defineConfig } from '@umijs/max';
 import defaultSettings from './defaultSettings';
 import proxy from './proxy';
-import routes from './routes';
 
 const { REACT_APP_ENV = 'dev', NODE_ENV = 'development' } = process.env;
 
@@ -43,14 +42,28 @@ export default defineConfig({
   //   ie: 11,
   // },
   /**
-   * @name 路由的配置，不在路由中引入的文件不会编译
-   * @description 只支持 path，component，routes，redirect，wrappers，title 的配置
+   * @name 约定式路由
+   * @description 路由由 src/pages 文件结构生成，exclude 过滤非页面文件
    * @doc https://umijs.org/docs/guides/routes
    */
-  // umi routes: https://umijs.org/docs/routing
-  routes,
   // 启用约定式布局，使 src/layouts/index.tsx 生效
   conventionLayout: true,
+  conventionRoutes: {
+    exclude: [
+      /components\//,
+      /hooks\//,
+      /services\//,
+      /utils\//,
+      /types\//,
+      /_mock\.ts$/,
+      /\.md$/,
+      /\.mdx$/,
+      /\.vue$/,
+      /service\.ts$/,
+      /styles?\.ts$/,
+      /style\.style\.ts$/,
+    ],
+  },
   /**
    * @name 主题的配置
    * @description 虽然叫主题，但是其实只是 less 的变量设置

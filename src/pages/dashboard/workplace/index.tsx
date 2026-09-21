@@ -46,7 +46,7 @@ const shortcuts = [
   {
     title: '公告管理',
     icon: <NotificationOutlined />,
-    path: '/notify/announcement',
+    path: '/system/notice',
     permission: 'system:notice:list',
   },
   {

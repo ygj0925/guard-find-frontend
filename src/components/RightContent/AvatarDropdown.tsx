@@ -83,7 +83,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       loginOut();
       return;
     }
-    history.push(`/account/${key}`);
+    history.push('/user/profile');
   };
 
   const loading = (
