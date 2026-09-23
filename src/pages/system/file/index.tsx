@@ -55,6 +55,14 @@ const FilePage: React.FC = () => {
       title: '类型',
       dataIndex: 'type',
       width: 100,
+      valueEnum: {
+        0: { text: '目录' },
+        1: { text: '其他' },
+        2: { text: '图片' },
+        3: { text: '文档' },
+        4: { text: '视频' },
+        5: { text: '音频' },
+      },
     },
     {
       title: '扩展名',
@@ -64,7 +72,7 @@ const FilePage: React.FC = () => {
     },
     {
       title: '上传者',
-      dataIndex: 'createUser',
+      dataIndex: 'createUserString',
       width: 120,
       hideInSearch: true,
     },
@@ -118,7 +126,7 @@ const FilePage: React.FC = () => {
                     ...rest,
                   });
                   return {
-                    data: response.data?.records || [],
+                    data: response.data?.list || [],
                     total: response.data?.total || 0,
                     success: true,
                   };

@@ -3,7 +3,7 @@ import { request } from 'umi';
 import type { SysDictItem, SysDictItemQo, SysDictItemVo } from './typing';
 
 export async function query(body: QueryParam<SysDictItemQo>) {
-  return request<R<PageResult<SysDictItemVo>>>('system/dict/item/page', {
+  return request<R<PageResult<SysDictItemVo>>>('system/dict/item', {
     method: 'GET',
     params: body,
   });
@@ -23,14 +23,9 @@ export async function edit(body: SysDictItem) {
   });
 }
 
-export async function del(body: SysDictItem) {
-  return request<R<any>>(`system/dict/item/${body.id}`, {
+export async function del(id: number) {
+  return request<R<any>>('system/dict/item', {
     method: 'DELETE',
-  });
-}
-
-export async function updateStatus(id: number, status: number) {
-  return request<R<void>>(`/system/dict/item/${id}?status=${status}`, {
-    method: 'patch',
+    data: [id],
   });
 }

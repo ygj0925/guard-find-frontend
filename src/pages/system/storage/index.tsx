@@ -19,15 +19,12 @@ import {
   setDefault,
   toggleStatus,
 } from '@/services/web/storage';
-import type { StorageVo } from '@/services/web/storage/typings';
+import type { StorageQuery, StorageVo } from '@/services/web/storage/typings';
 import StorageForm from './components/StorageForm';
 
 const storageTypeMap: Record<number, string> = {
-  0: '本地',
-  1: 'S3',
-  2: 'OSS',
-  3: 'COS',
-  4: 'MinIO',
+  1: '本地存储',
+  2: '对象存储',
 };
 
 const StoragePage: React.FC = () => {
@@ -67,7 +64,7 @@ const StoragePage: React.FC = () => {
 
   const handleStatusChange = async (record: StorageVo, checked: boolean) => {
     try {
-      await toggleStatus(record.id, checked ? 1 : 0);
+      await toggleStatus(record.id, checked ? 1 : 2);
       message.success('状态更新成功');
       actionRef.current?.reload();
     } catch (error) {
@@ -96,11 +93,8 @@ const StoragePage: React.FC = () => {
       title: '类型',
       dataIndex: 'type',
       valueEnum: {
-        0: { text: '本地' },
-        1: { text: 'S3' },
-        2: { text: 'OSS' },
-        3: { text: 'COS' },
-        4: { text: 'MinIO' },
+        1: { text: '本地存储' },
+        2: { text: '对象存储' },
       },
       render: (_, record) => storageTypeMap[record.type] || '-',
     },
@@ -190,15 +184,12 @@ const StoragePage: React.FC = () => {
         rowKey="id"
         columns={columns}
         request={async (params) => {
-          const { current, pageSize, ...rest } = params;
-          const response = await queryStorages({
-            page: current as number,
-            size: pageSize as number,
-            ...rest,
-          });
+          const { name } = params as Partial<StorageQuery>;
+          const response = await queryStorages({ name });
+          const list = response.data || [];
           return {
-            data: response.data?.records || [],
-            total: response.data?.total || 0,
+            data: list,
+            total: list.length,
             success: true,
           };
         }}

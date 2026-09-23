@@ -1,8 +1,8 @@
 export interface AppVo {
   id: number;
   name: string;
-  appKey: string;
-  appSecret: string;
+  accessKey: string;
+  expireTime: string;
   status: number;
   description: string;
   createTime: string;
@@ -18,4 +18,9 @@ export interface AppDto {
 export interface AppQuery {
   name?: string;
   status?: number;
+}
+
+export interface AppSecret {
+  accessKey: string;
+  secretKey: string;
 }

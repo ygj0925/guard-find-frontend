@@ -47,7 +47,7 @@ const GrantModal: React.FC<GrantModalProps> = ({
     if (!userData) return;
     try {
       await user.putScope({
-        userId: userData.userId,
+        userId: userData.id,
         username: userData.username,
         roleCodes: values.roleCodes,
       });

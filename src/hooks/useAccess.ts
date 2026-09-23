@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { useModel } from 'umi';
 
+const ALL_PERMISSION = '*:*:*';
+
 export function useAccess() {
   const { initialState } = useModel('@@initialState');
   const currentUser = initialState?.user;
@@ -16,7 +18,9 @@ export function useAccess() {
   const hasPermission = useCallback(
     (permission: string) => {
       if (!permission) return true;
-      return permissions.includes(permission);
+      return (
+        permissions.includes(ALL_PERMISSION) || permissions.includes(permission)
+      );
     },
     [permissions],
   );

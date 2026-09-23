@@ -10,8 +10,9 @@ export async function querySmsLogs(body: QueryParam<SmsLogQuery>) {
 }
 
 export async function deleteSmsLog(id: number) {
-  return request<R<any>>(`system/sms/log/${id}`, {
+  return request<R<any>>('system/sms/log', {
     method: 'DELETE',
+    data: [id],
   });
 }
 

@@ -4,7 +4,7 @@ import type { SysMenuRoleGrateVo } from '..';
 import type { SysMenuDto, SysMenuQo, SysMenuVo } from './typings';
 
 export async function query(body: Partial<SysMenuQo>) {
-  return request<R<SysMenuVo[]>>('system/menu/list', {
+  return request<R<SysMenuVo[]>>('system/menu/tree', {
     method: 'GET',
     params: body,
   });

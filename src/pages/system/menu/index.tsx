@@ -21,24 +21,18 @@ const MenuPage: React.FC = () => {
   const [parentMenu, setParentMenu] = useState<SysMenuVo | null>(null);
 
   const typeMap: Record<number, { label: string; color: string }> = {
-    0: {
+    1: {
       label: intl.formatMessage({ id: 'system.menu.type.directory' }),
       color: 'blue',
     },
-    1: {
+    2: {
       label: intl.formatMessage({ id: 'system.menu.type.menu' }),
       color: 'green',
     },
-    2: {
+    3: {
       label: intl.formatMessage({ id: 'system.menu.type.button' }),
       color: 'orange',
     },
-  };
-
-  const targetTypeMap: Record<number, string> = {
-    1: intl.formatMessage({ id: 'system.menu.target.component' }),
-    2: intl.formatMessage({ id: 'system.menu.target.iframe' }),
-    3: intl.formatMessage({ id: 'system.menu.target.link' }),
   };
 
   const columns: ProColumns<SysMenuVo>[] = [
@@ -78,9 +72,12 @@ const MenuPage: React.FC = () => {
     },
     {
       title: intl.formatMessage({ id: 'system.menu.target.type' }),
-      dataIndex: 'targetType',
+      dataIndex: 'isExternal',
       width: 100,
-      render: (_, record) => targetTypeMap[record.targetType] || '-',
+      render: (_, record) =>
+        record.isExternal
+          ? intl.formatMessage({ id: 'common.operation.yes' })
+          : intl.formatMessage({ id: 'common.operation.no' }),
       hideInSearch: true,
     },
     {
@@ -94,7 +91,7 @@ const MenuPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          {record.type !== 2 && (
+          {record.type !== 3 && (
             <AccessControl permission="system:menu:add">
               <Button
                 type="link"

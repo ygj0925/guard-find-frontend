@@ -1,18 +1,24 @@
 export type AnnouncementVo = {
   id: number;
   title: string;
-  content: string;
-  status: number;
-  permanent: number;
-  expireTime: string;
+  type: string;
+  noticeScope: number;
+  noticeMethods: number[];
+  isTiming: boolean;
   publishTime: string;
+  isTop: boolean;
+  status: number;
+  isRead: boolean;
+  createUserString: string;
   createTime: string;
-  updateTime: string;
+};
+
+export type AnnouncementDetailVo = AnnouncementVo & {
+  content: string;
 };
 
 export type AnnouncementQo = {
   title: string;
-  status: number;
 };
 
 export type AnnouncementDto = {

@@ -5,8 +5,8 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
+import { Tag } from 'antd';
 import React, { useRef } from 'react';
-import DictTag from '@/components/Dict/DictTag';
 import { operationLog } from '@/services/web/log';
 import type { OperationLogVo } from '@/services/web/log/typings';
 
@@ -16,24 +16,26 @@ const OperationLogPage: React.FC = () => {
 
   const columns: ProColumns<OperationLogVo>[] = [
     {
-      title: intl.formatMessage({ id: 'log.operation.trace.id' }),
-      dataIndex: 'traceId',
-      ellipsis: true,
-      width: 200,
-      hideInSearch: true,
-    },
-    {
-      title: intl.formatMessage({ id: 'log.operation.message' }),
-      dataIndex: 'message',
+      title: intl.formatMessage({ id: 'log.operation.description' }),
+      dataIndex: 'description',
       ellipsis: true,
     },
     {
-      title: intl.formatMessage({ id: 'log.operation.type' }),
-      dataIndex: 'type',
-      render: (_, record) => (
-        <DictTag dictCode="operation_type" value={record.type} />
-      ),
+      title: intl.formatMessage({ id: 'log.operation.module' }),
+      dataIndex: 'module',
+      ellipsis: true,
+    },
+    {
+      title: intl.formatMessage({ id: 'log.operation.time' }),
+      dataIndex: 'timeTaken',
+      width: 90,
+      render: (_, record) => `${record.timeTaken}ms`,
       hideInSearch: true,
+    },
+    {
+      title: intl.formatMessage({ id: 'log.operation.operator' }),
+      dataIndex: 'createUserString',
+      ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.ip' }),
@@ -41,32 +43,34 @@ const OperationLogPage: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: intl.formatMessage({ id: 'log.operation.uri' }),
-      dataIndex: 'uri',
+      title: intl.formatMessage({ id: 'log.operation.address' }),
+      dataIndex: 'address',
       ellipsis: true,
-    },
-    {
-      title: intl.formatMessage({ id: 'log.operation.method' }),
-      dataIndex: 'method',
-      width: 80,
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'log.operation.time' }),
-      dataIndex: 'time',
-      width: 80,
+      title: intl.formatMessage({ id: 'log.operation.browser' }),
+      dataIndex: 'browser',
+      ellipsis: true,
       hideInSearch: true,
-      render: (_, record) => `${record.time}ms`,
     },
     {
-      title: intl.formatMessage({ id: 'log.operation.operator' }),
-      dataIndex: 'operator',
+      title: intl.formatMessage({ id: 'log.operation.os' }),
+      dataIndex: 'os',
       ellipsis: true,
+      hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.status' }),
       dataIndex: 'status',
       width: 80,
+      render: (_, record) => (
+        <Tag color={record.status === 1 ? 'green' : 'red'}>
+          {record.status === 1
+            ? intl.formatMessage({ id: 'common.status.success' })
+            : intl.formatMessage({ id: 'common.status.fail' })}
+        </Tag>
+      ),
       hideInSearch: true,
     },
     {
@@ -74,10 +78,10 @@ const OperationLogPage: React.FC = () => {
       dataIndex: 'createTime',
       width: 180,
       valueType: 'dateRange',
+      render: (_, record) => record.createTime || '-',
       search: {
         transform: (value) => ({
-          startTime: value[0],
-          endTime: value[1],
+          createTime: value.join(','),
         }),
       },
     },
@@ -87,15 +91,17 @@ const OperationLogPage: React.FC = () => {
     return (
       <div style={{ padding: 16 }}>
         <p>
-          <strong>{intl.formatMessage({ id: 'log.operation.params' })}:</strong>{' '}
-          {record.params || '-'}
-        </p>
-        <p>
           <strong>
             {intl.formatMessage({ id: 'log.operation.useragent' })}:
           </strong>{' '}
-          {record.userAgent || '-'}
+          {record.browser || '-'} / {record.os || '-'}
         </p>
+        {record.errorMsg && (
+          <p>
+            <strong>{intl.formatMessage({ id: 'log.access.error' })}:</strong>{' '}
+            {record.errorMsg}
+          </p>
+        )}
       </div>
     );
   };
@@ -109,16 +115,14 @@ const OperationLogPage: React.FC = () => {
         columns={columns}
         expandable={{ expandedRowRender }}
         request={async (params) => {
-          const { current, pageSize, startTime, endTime, ...rest } = params;
+          const { current, pageSize, ...rest } = params;
           const response = await operationLog.query({
             page: current as number,
             size: pageSize as number,
-            startTime: startTime as string,
-            endTime: endTime as string,
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

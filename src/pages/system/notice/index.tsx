@@ -17,7 +17,10 @@ import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import { announcement } from '@/services/web/notify';
-import type { AnnouncementVo } from '@/services/web/notify/typings';
+import type {
+  AnnouncementDetailVo,
+  AnnouncementVo,
+} from '@/services/web/notify/typings';
 import AnnouncementForm from './components/AnnouncementForm';
 import AnnouncementPreview from './components/AnnouncementPreview';
 
@@ -26,22 +29,22 @@ const AnnouncementPage: React.FC = () => {
   const intl = useIntl();
   const [formVisible, setFormVisible] = useState(false);
   const [currentAnnouncement, setCurrentAnnouncement] =
-    useState<AnnouncementVo | null>(null);
+    useState<AnnouncementDetailVo | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewContent, setPreviewContent] = useState('');
 
   const statusMap: Record<number, { label: string; color: string }> = {
-    0: {
-      label: intl.formatMessage({ id: 'notify.announcement.status.draft' }),
-      color: 'default',
-    },
     1: {
-      label: intl.formatMessage({ id: 'notify.announcement.status.published' }),
-      color: 'success',
+      label: intl.formatMessage({ id: 'notify.announcement.status.draft' }),
+      color: 'warning',
     },
     2: {
-      label: intl.formatMessage({ id: 'notify.announcement.status.closed' }),
-      color: 'error',
+      label: intl.formatMessage({ id: 'notify.announcement.status.pending' }),
+      color: 'processing',
+    },
+    3: {
+      label: intl.formatMessage({ id: 'notify.announcement.status.published' }),
+      color: 'success',
     },
   };
 
@@ -66,15 +69,6 @@ const AnnouncementPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'notify.announcement.expire.time' }),
-      dataIndex: 'expireTime',
-      render: (_, record) =>
-        record.permanent
-          ? intl.formatMessage({ id: 'notify.announcement.permanent' })
-          : record.expireTime,
-      hideInSearch: true,
-    },
-    {
       title: intl.formatMessage({ id: 'common.time.create' }),
       dataIndex: 'createTime',
       hideInSearch: true,
@@ -84,7 +78,7 @@ const AnnouncementPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          {record.status === 0 && (
+          {record.status === 1 && (
             <AccessControl permission="notify:announcement:edit">
               <Button
                 type="link"
@@ -102,7 +96,7 @@ const AnnouncementPage: React.FC = () => {
           >
             {intl.formatMessage({ id: 'common.operation.preview' })}
           </Button>
-          {record.status === 0 && (
+          {record.status === 1 && (
             <AccessControl permission="notify:announcement:publish">
               <Popconfirm
                 title={intl.formatMessage({
@@ -116,7 +110,7 @@ const AnnouncementPage: React.FC = () => {
               </Popconfirm>
             </AccessControl>
           )}
-          {record.status === 1 && (
+          {record.status === 3 && (
             <AccessControl permission="notify:announcement:publish">
               <Popconfirm
                 title={intl.formatMessage({
@@ -130,7 +124,7 @@ const AnnouncementPage: React.FC = () => {
               </Popconfirm>
             </AccessControl>
           )}
-          {record.status === 0 && (
+          {record.status === 1 && (
             <AccessControl permission="notify:announcement:del">
               <Popconfirm
                 title={intl.formatMessage({ id: 'common.delete.confirm' })}
@@ -152,14 +146,24 @@ const AnnouncementPage: React.FC = () => {
     setFormVisible(true);
   };
 
-  const handleEdit = (record: AnnouncementVo) => {
-    setCurrentAnnouncement(record);
-    setFormVisible(true);
+  const handleEdit = async (record: AnnouncementVo) => {
+    try {
+      const response = await announcement.detail(record.id);
+      setCurrentAnnouncement(response.data || null);
+      setFormVisible(true);
+    } catch (error) {
+      console.error('Load detail failed:', error);
+    }
   };
 
-  const handlePreview = (record: AnnouncementVo) => {
-    setPreviewContent(record.content);
-    setPreviewVisible(true);
+  const handlePreview = async (record: AnnouncementVo) => {
+    try {
+      const response = await announcement.detail(record.id);
+      setPreviewContent(response.data?.content || '');
+      setPreviewVisible(true);
+    } catch (error) {
+      console.error('Preview failed:', error);
+    }
   };
 
   const handlePublish = async (record: AnnouncementVo) => {
@@ -212,7 +216,7 @@ const AnnouncementPage: React.FC = () => {
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

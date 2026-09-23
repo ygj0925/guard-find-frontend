@@ -1,4 +1,8 @@
-import { ProForm, ProFormDigit, ProFormText } from '@ant-design/pro-components';
+import {
+  ProForm,
+  ProFormSwitch,
+  ProFormText,
+} from '@ant-design/pro-components';
 import { Modal, message, Spin } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getTableConfig, saveTableConfig } from '@/services/web/code/generator';
@@ -71,15 +75,9 @@ const TableConfig: React.FC<TableConfigProps> = ({
         <ProForm form={form} onFinish={handleSubmit}>
           <ProFormText name="tableName" label="表名" disabled />
           <ProFormText
-            name="tableComment"
+            name="comment"
             label="表注释"
             placeholder="请输入表注释"
-          />
-          <ProFormText
-            name="className"
-            label="类名"
-            placeholder="请输入类名"
-            rules={[{ required: true, message: '请输入类名' }]}
           />
           <ProFormText
             name="moduleName"
@@ -105,12 +103,12 @@ const TableConfig: React.FC<TableConfigProps> = ({
             placeholder="请输入作者"
             rules={[{ required: true, message: '请输入作者' }]}
           />
-          <ProFormDigit
-            name="parentMenuId"
-            label="父菜单ID"
-            placeholder="请输入父菜单ID"
-            fieldProps={{ precision: 0 }}
+          <ProFormText
+            name="tablePrefix"
+            label="表前缀"
+            placeholder="请输入表前缀"
           />
+          <ProFormSwitch name="isOverride" label="是否覆盖" />
         </ProForm>
       </Spin>
     </Modal>

@@ -40,6 +40,8 @@ export default {
   'common.status.disabled': 'Disabled',
   'common.status.normal': 'Normal',
   'common.status.frozen': 'Frozen',
+  'common.status.success': 'Success',
+  'common.status.fail': 'Fail',
   'common.field.status': 'Status',
   'common.field.remark': 'Remark',
   'common.field.sort': 'Sort',

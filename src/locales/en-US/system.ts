@@ -73,6 +73,7 @@ export default {
   'system.dict.code': 'Dictionary Code',
   'system.dict.name': 'Dictionary Name',
   'system.dict.value.type': 'Value Type',
+  'system.dict.system.builtin': 'System Built-in',
   'system.dict.items': 'Dictionary Items',
   'system.dict.item': 'Dictionary Items',
   'system.dict.item.title': 'Dictionary Item Management',

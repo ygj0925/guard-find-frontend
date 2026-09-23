@@ -39,7 +39,7 @@ export type QueryParam<T> = {
 
 export type PageResult<T> = {
   total: number;
-  records: T[];
+  list: T[];
 };
 
 export type SelectData<T> = {

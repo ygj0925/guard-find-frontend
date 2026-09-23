@@ -1,31 +1,37 @@
 import type { PageResult, QueryParam, R } from '@/typings';
 import { request } from 'umi';
-import type { AnnouncementDto, AnnouncementQo, AnnouncementVo } from './typings';
+import type {
+  AnnouncementDetailVo,
+  AnnouncementDto,
+  AnnouncementQo,
+  AnnouncementVo,
+} from './typings';
 
 export async function query(body: QueryParam<AnnouncementQo>) {
-  return request<R<PageResult<AnnouncementVo>>>('system/announcement/page', {
+  return request<R<PageResult<AnnouncementVo>>>('system/notice', {
     method: 'GET',
     params: body,
   });
 }
 
 export async function create(body: AnnouncementDto) {
-  return request<R<any>>('system/announcement', {
+  return request<R<any>>('system/notice', {
     method: 'POST',
     data: body,
   });
 }
 
 export async function edit(body: AnnouncementDto) {
-  return request<R<any>>('system/announcement', {
+  return request<R<any>>('system/notice', {
     method: 'PUT',
     data: body,
   });
 }
 
 export async function del(id: number) {
-  return request<R<any>>(`system/announcement/${id}`, {
+  return request<R<any>>('system/notice', {
     method: 'DELETE',
+    data: [id],
   });
 }
 
@@ -42,7 +48,7 @@ export async function close(id: number) {
 }
 
 export async function detail(id: number) {
-  return request<R<AnnouncementVo>>(`system/announcement/${id}`, {
+  return request<R<AnnouncementDetailVo>>(`system/notice/${id}`, {
     method: 'GET',
   });
 }

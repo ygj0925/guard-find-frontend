@@ -68,14 +68,14 @@ const SmsConfigPage: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: '平台',
-      dataIndex: 'platform',
+      title: '厂商',
+      dataIndex: 'supplier',
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '签名',
-      dataIndex: 'signName',
+      dataIndex: 'signature',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -160,7 +160,7 @@ const SmsConfigPage: React.FC = () => {
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

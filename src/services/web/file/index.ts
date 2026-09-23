@@ -20,8 +20,9 @@ export async function uploadFile(file: File) {
 }
 
 export async function deleteFile(id: number) {
-  return request<R<any>>(`system/file/${id}`, {
+  return request<R<any>>('system/file', {
     method: 'DELETE',
+    data: [id],
   });
 }
 

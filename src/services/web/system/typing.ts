@@ -1,53 +1,47 @@
 export type SysUserVo = {
   // 用户ID
-  userId: number;
+  id: number;
   // 登录账号
   username: string;
   // 昵称
   nickname: string;
   // 头像
   avatar: string;
-  // 性别(0-默认未知,1-男,2-女)
-  gender: 0 | 1 | 2;
+  // 性别(0-未知,1-男,2-女)
+  gender: number;
   // 电子邮件
   email: string;
-  // 电话
-  phoneNumber: string;
-  // 状态(1-正常, 0-冻结)
-  status: 1 | 0;
-  // 用户类型：1-系统用户，2-客户用户
-  type: 1 | 2;
-  // 组织机构ID
-  organizationId: number;
-  // 组织机构名称
-  organizationName: string;
+  // 电话（列表返回脱敏数据）
+  phone: string;
+  // 状态(1-启用, 2-禁用)
+  status: number;
+  // 是否内置用户
+  isSystem?: boolean;
+  // 描述
+  description?: string;
+  // 部门ID
+  deptId?: number;
+  // 部门名称
+  deptName?: string;
+  // 角色ID列表
+  roleIds?: number[];
+  // 角色名称列表
+  roleNames?: string[];
+  // 创建人
+  createUserString?: string;
   // 创建时间
-  createTime: string;
-  // 更新时间
-  updateTime: string;
+  createTime?: string;
 };
 
 export type SysUserQo = {
   // 登录账号
-  username: string;
+  username?: string;
   // 昵称
-  nickname: string;
-  // 性别(0-默认未知,1-男,2-女)
-  gender: 0 | 1 | 2;
-  // 电子邮件
-  email: string;
-  // 电话
-  phoneNumber: string;
-  // 状态(1-正常,2-冻结)
-  status: 1 | 0;
-  // organizationId
-  organizationId: number[];
-  // 用户类型:1:系统用户， 2：客户用户
-  type: number;
-  // 开始时间
-  startTime: string;
-  // 结束时间
-  endTime: string;
+  nickname?: string;
+  // 状态(1-启用,2-禁用)
+  status?: 1 | 2;
+  // 部门ID
+  deptId?: number;
 };
 
 export type SysUserDto = {

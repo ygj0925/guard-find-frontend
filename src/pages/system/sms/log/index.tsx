@@ -5,7 +5,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, message, Popconfirm, Space, Tag } from 'antd';
+import { Button, message, Popconfirm, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import {
@@ -70,14 +70,8 @@ const SmsLogPage: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: '内容',
-      dataIndex: 'content',
-      ellipsis: true,
-      hideInSearch: true,
-    },
-    {
-      title: '平台',
-      dataIndex: 'platform',
+      title: '参数配置',
+      dataIndex: 'params',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -85,8 +79,8 @@ const SmsLogPage: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       valueEnum: {
-        0: { text: '失败' },
         1: { text: '成功' },
+        2: { text: '失败' },
       },
       render: (_, record) =>
         record.status === 1 ? (
@@ -96,8 +90,8 @@ const SmsLogPage: React.FC = () => {
         ),
     },
     {
-      title: '响应',
-      dataIndex: 'response',
+      title: '返回数据',
+      dataIndex: 'resMsg',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -145,7 +139,7 @@ const SmsLogPage: React.FC = () => {
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

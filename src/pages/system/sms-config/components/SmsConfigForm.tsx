@@ -57,14 +57,18 @@ const SmsConfigForm: React.FC<SmsConfigFormProps> = ({
         rules={[{ required: true, message: '请输入名称' }]}
       />
       <ProFormSelect
-        name="platform"
-        label="平台"
-        placeholder="请选择平台"
-        rules={[{ required: true, message: '请选择平台' }]}
+        name="supplier"
+        label="厂商"
+        placeholder="请选择厂商"
+        rules={[{ required: true, message: '请选择厂商' }]}
         options={[
-          { label: '阿里云', value: '阿里云' },
-          { label: '腾讯云', value: '腾讯云' },
-          { label: '华为云', value: '华为云' },
+          { label: '阿里云', value: 'alibaba' },
+          { label: '腾讯云', value: 'tencent' },
+          { label: '华为云', value: 'huawei' },
+          { label: '容联云', value: 'cloopen' },
+          { label: '云片', value: 'yunpian' },
+          { label: '亿美', value: 'emay' },
+          { label: 'UniSMS', value: 'unisms' },
         ]}
       />
       <ProFormText
@@ -80,7 +84,7 @@ const SmsConfigForm: React.FC<SmsConfigFormProps> = ({
         rules={[{ required: true, message: '请输入SecretKey' }]}
       />
       <ProFormText
-        name="signName"
+        name="signature"
         label="签名"
         placeholder="请输入短信签名"
         rules={[{ required: true, message: '请输入短信签名' }]}

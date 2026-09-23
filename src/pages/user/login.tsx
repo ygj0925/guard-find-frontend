@@ -13,6 +13,7 @@ import {
   Divider,
   Form,
   Input,
+  Spin,
   Tabs,
   Typography,
 } from 'antd';
@@ -265,15 +266,23 @@ const AuthLogin: React.FC = () => {
                       suffix={
                         <Button
                           type="text"
-                          loading={captchaLoading}
-                          onClick={loadCaptcha}
+                          onClick={() => {
+                            if (!captchaLoading) void loadCaptcha();
+                          }}
                           className="captcha-button"
                         >
-                          {captcha.img ? (
-                            <img src={captcha.img} alt="验证码" />
-                          ) : (
-                            '刷新'
-                          )}
+                          <span className="captcha-image">
+                            {captcha.img ? (
+                              <img src={captcha.img} alt="验证码" />
+                            ) : (
+                              <span className="captcha-fallback">刷新</span>
+                            )}
+                            {captchaLoading && (
+                              <span className="captcha-mask">
+                                <Spin size="small" />
+                              </span>
+                            )}
+                          </span>
                         </Button>
                       }
                     />
@@ -341,7 +350,7 @@ const AuthLogin: React.FC = () => {
           </Form>
         </div>
       </section>
-      <style>{`.login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 20%,rgba(22,119,255,.18),transparent 32%),linear-gradient(145deg,#f4f8ff,#eef3fa)}.login-panel{width:min(920px,100%);min-height:520px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(380px,.85fr);overflow:hidden;border-radius:20px;background:#fff;box-shadow:0 24px 70px rgba(31,55,90,.16)}.login-brand{padding:56px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(145deg,#0958d9,#1677ff 62%,#69b1ff)}.login-brand .ant-typography{color:#fff}.login-brand p.ant-typography{color:rgba(255,255,255,.78);font-size:16px}.login-form-area{padding:48px;align-self:center}.captcha-button{height:34px;padding:0}.captcha-button img{width:104px;height:34px;object-fit:cover}@media(max-width:760px){.login-panel{grid-template-columns:1fr}.login-brand{display:none}.login-form-area{padding:40px 28px}}`}</style>
+      <style>{`.login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 20%,rgba(22,119,255,.18),transparent 32%),linear-gradient(145deg,#f4f8ff,#eef3fa)}.login-panel{width:min(920px,100%);min-height:520px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(380px,.85fr);overflow:hidden;border-radius:20px;background:#fff;box-shadow:0 24px 70px rgba(31,55,90,.16)}.login-brand{padding:56px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(145deg,#0958d9,#1677ff 62%,#69b1ff)}.login-brand .ant-typography{color:#fff}.login-brand p.ant-typography{color:rgba(255,255,255,.78);font-size:16px}.login-form-area{padding:48px;align-self:center}.captcha-button{height:34px;padding:0}.captcha-image{position:relative;display:inline-flex;width:104px;height:34px;border-radius:2px;overflow:hidden}.captcha-image img{width:100%;height:100%;object-fit:cover;display:block}.captcha-fallback{flex:1;text-align:center;color:rgba(0,0,0,.45);font-size:13px}.captcha-mask{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.72)}@media(max-width:760px){.login-panel{grid-template-columns:1fr}.login-brand{display:none}.login-form-area{padding:40px 28px}}`}</style>
     </main>
   );
 };

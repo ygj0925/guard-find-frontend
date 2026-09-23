@@ -1,9 +1,9 @@
-import type { PageResult, QueryParam, R } from '@/typings';
+import type { R } from '@/typings';
 import { request } from 'umi';
 import type { StorageDto, StorageQuery, StorageVo } from './typings';
 
-export async function queryStorages(body: QueryParam<StorageQuery>) {
-  return request<R<PageResult<StorageVo>>>('system/storage', {
+export async function queryStorages(body: Partial<StorageQuery>) {
+  return request<R<StorageVo[]>>('system/storage/list', {
     method: 'GET',
     params: body,
   });
@@ -24,8 +24,9 @@ export async function updateStorage(body: StorageDto) {
 }
 
 export async function deleteStorage(id: number) {
-  return request<R<any>>(`system/storage/${id}`, {
+  return request<R<any>>('system/storage', {
     method: 'DELETE',
+    data: [id],
   });
 }
 
@@ -35,9 +36,9 @@ export async function setDefault(id: number) {
   });
 }
 
-export async function toggleStatus(id: number, status: number) {
+export async function toggleStatus(id: number, status: 1 | 2) {
   return request<R<any>>(`system/storage/${id}/status`, {
     method: 'PUT',
-    params: { status },
+    data: { status },
   });
 }

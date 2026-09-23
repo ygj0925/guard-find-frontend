@@ -71,6 +71,7 @@ export default {
   'system.dict.code': '字典标识',
   'system.dict.name': '字典名称',
   'system.dict.value.type': '数据类型',
+  'system.dict.system.builtin': '系统内置',
   'system.dict.items': '字典项',
   'system.dict.item': '字典项',
   'system.dict.item.title': '字典项管理',

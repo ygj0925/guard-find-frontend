@@ -81,7 +81,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
           ]}
         />
         <ProFormText
-          name="confKey"
+          name="code"
           label={intl.formatMessage({ id: 'system.config.key' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
@@ -98,7 +98,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
           disabled={!!configData}
         />
         <ProFormText
-          name="confValue"
+          name="value"
           label={intl.formatMessage({ id: 'system.config.value' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
@@ -113,16 +113,8 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
             },
           ]}
         />
-        <ProFormText
-          name="category"
-          label={intl.formatMessage({ id: 'system.config.category' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-            intl.formatMessage({ id: 'system.config.category' })
-          }
-        />
         <ProFormTextArea
-          name="remarks"
+          name="description"
           label={intl.formatMessage({ id: 'common.field.remark' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +

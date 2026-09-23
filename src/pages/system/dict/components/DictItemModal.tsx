@@ -5,7 +5,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
-import { Button, Modal, message, Popconfirm, Space, Switch, Tag } from 'antd';
+import { Button, Modal, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysDictItemVo } from '@/services/web/system';
@@ -14,13 +14,13 @@ import DictItemForm from './DictItemForm';
 
 interface DictItemModalProps {
   visible: boolean;
-  dictCode: string;
+  dictId: number;
   onCancel: () => void;
 }
 
 const DictItemModal: React.FC<DictItemModalProps> = ({
   visible,
-  dictCode,
+  dictId,
   onCancel,
 }) => {
   const actionRef = useRef<ActionType>(null);
@@ -31,7 +31,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
   const columns: ProColumns<SysDictItemVo>[] = [
     {
       title: intl.formatMessage({ id: 'system.dict.item.name' }),
-      dataIndex: 'name',
+      dataIndex: 'label',
       ellipsis: true,
     },
     {
@@ -41,11 +41,9 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
     },
     {
       title: intl.formatMessage({ id: 'system.dict.item.tag.color' }),
-      dataIndex: ['attributes', 'tagColor'],
-      render: (_, record) => {
-        const color = record.attributes?.tagColor;
-        return color ? <Tag color={color}>{color}</Tag> : '-';
-      },
+      dataIndex: 'color',
+      render: (_, record) =>
+        record.color ? <Tag color={record.color}>{record.color}</Tag> : '-',
     },
     {
       title: intl.formatMessage({ id: 'system.dict.item.sort' }),
@@ -57,17 +55,16 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
       dataIndex: 'status',
       width: 100,
       render: (_, record) => (
-        <AccessControl permission="system:dict:edit">
-          <Switch
-            checked={record.status === 1}
-            onChange={(checked) => handleStatusChange(record, checked ? 1 : 0)}
-          />
-        </AccessControl>
+        <Tag color={record.status === 1 ? 'green' : 'red'}>
+          {record.status === 1
+            ? intl.formatMessage({ id: 'common.status.enabled' })
+            : intl.formatMessage({ id: 'common.status.disabled' })}
+        </Tag>
       ),
     },
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
-      dataIndex: 'remarks',
+      dataIndex: 'description',
       ellipsis: true,
     },
     {
@@ -111,21 +108,11 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
 
   const handleDelete = async (record: SysDictItemVo) => {
     try {
-      await dictItem.del(record);
+      await dictItem.del(record.id);
       message.success(intl.formatMessage({ id: 'common.delete.success' }));
       actionRef.current?.reload();
     } catch (error) {
       console.error('Delete failed:', error);
-    }
-  };
-
-  const handleStatusChange = async (record: SysDictItemVo, status: number) => {
-    try {
-      await dictItem.updateStatus(record.id, status);
-      message.success(intl.formatMessage({ id: 'common.operation.success' }));
-      actionRef.current?.reload();
-    } catch (error) {
-      console.error('Status update failed:', error);
     }
   };
 
@@ -149,16 +136,16 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
         rowKey="id"
         columns={columns}
         search={false}
-        params={{ dictCode }}
+        params={{ dictId }}
         request={async (params) => {
-          const { current, pageSize, dictCode: code } = params;
+          const { current, pageSize, dictId: id } = params;
           const response = await dictItem.query({
             page: current as number,
             size: pageSize as number,
-            dictCode: code as string,
+            dictId: id as number,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };
@@ -174,7 +161,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
 
       <DictItemForm
         visible={formVisible}
-        dictCode={dictCode}
+        dictId={dictId}
         item={currentItem}
         onCancel={() => setFormVisible(false)}
         onSuccess={handleFormSuccess}

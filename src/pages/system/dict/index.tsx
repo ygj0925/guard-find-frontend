@@ -9,7 +9,7 @@ import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
-import type { SysDictVo } from '@/services/web/system';
+import type { SysDictQo, SysDictVo } from '@/services/web/system';
 import { dict } from '@/services/web/system';
 import DictForm from './components/DictForm';
 import DictItemModal from './components/DictItemModal';
@@ -20,13 +20,7 @@ const DictPage: React.FC = () => {
   const [formVisible, setFormVisible] = useState(false);
   const [currentDict, setCurrentDict] = useState<SysDictVo | null>(null);
   const [dictItemVisible, setDictItemVisible] = useState(false);
-  const [currentDictCode, setCurrentDictCode] = useState('');
-
-  const valueTypeMap: Record<number, string> = {
-    1: 'Number',
-    2: 'String',
-    3: 'Boolean',
-  };
+  const [currentDictId, setCurrentDictId] = useState<number>(0);
 
   const columns: ProColumns<SysDictVo>[] = [
     {
@@ -36,31 +30,26 @@ const DictPage: React.FC = () => {
     },
     {
       title: intl.formatMessage({ id: 'system.dict.title' }),
-      dataIndex: 'title',
+      dataIndex: 'name',
       ellipsis: true,
-    },
-    {
-      title: intl.formatMessage({ id: 'system.dict.value.type' }),
-      dataIndex: 'valueType',
-      render: (_, record) => valueTypeMap[record.valueType] || '-',
-      hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
-      dataIndex: 'remarks',
+      dataIndex: 'description',
       ellipsis: true,
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.field.status' }),
-      dataIndex: 'status',
-      render: (_, record) => (
-        <Tag color={record.status === 1 ? 'green' : 'red'}>
-          {record.status === 1
-            ? intl.formatMessage({ id: 'common.status.enabled' })
-            : intl.formatMessage({ id: 'common.status.disabled' })}
-        </Tag>
-      ),
+      title: intl.formatMessage({ id: 'system.dict.system.builtin' }),
+      dataIndex: 'isSystem',
+      render: (_, record) =>
+        record.isSystem ? (
+          <Tag color="blue">
+            {intl.formatMessage({ id: 'common.operation.yes' })}
+          </Tag>
+        ) : (
+          <Tag>{intl.formatMessage({ id: 'common.operation.no' })}</Tag>
+        ),
       hideInSearch: true,
     },
     {
@@ -115,7 +104,7 @@ const DictPage: React.FC = () => {
 
   const handleDelete = async (record: SysDictVo) => {
     try {
-      await dict.del(record);
+      await dict.del(record.id);
       message.success(intl.formatMessage({ id: 'common.delete.success' }));
       actionRef.current?.reload();
     } catch (error) {
@@ -124,7 +113,7 @@ const DictPage: React.FC = () => {
   };
 
   const handleOpenDictItem = (record: SysDictVo) => {
-    setCurrentDictCode(record.code);
+    setCurrentDictId(record.id);
     setDictItemVisible(true);
   };
 
@@ -141,15 +130,12 @@ const DictPage: React.FC = () => {
         rowKey="id"
         columns={columns}
         request={async (params) => {
-          const { current, pageSize, ...rest } = params;
-          const response = await dict.query({
-            page: current as number,
-            size: pageSize as number,
-            ...rest,
-          });
+          const { name, code } = params as Partial<SysDictQo>;
+          const response = await dict.query({ name, code });
+          const list = response.data || [];
           return {
-            data: response.data?.records || [],
-            total: response.data?.total || 0,
+            data: list,
+            total: list.length,
             success: true,
           };
         }}
@@ -171,7 +157,7 @@ const DictPage: React.FC = () => {
 
       <DictItemModal
         visible={dictItemVisible}
-        dictCode={currentDictCode}
+        dictId={currentDictId}
         onCancel={() => setDictItemVisible(false)}
       />
     </PageContainer>

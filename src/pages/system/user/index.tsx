@@ -77,8 +77,9 @@ const UserPage: React.FC = () => {
     },
     {
       title: intl.formatMessage({ id: 'system.user.phone' }),
-      dataIndex: 'phoneNumber',
+      dataIndex: 'phone',
       ellipsis: true,
+      hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.email' }),
@@ -88,7 +89,7 @@ const UserPage: React.FC = () => {
     },
     {
       title: intl.formatMessage({ id: 'system.user.organization' }),
-      dataIndex: 'organizationName',
+      dataIndex: 'deptName',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -97,10 +98,10 @@ const UserPage: React.FC = () => {
       dataIndex: 'status',
       width: 100,
       render: (_, record) => (
-        <AccessControl permission="system:user:edit">
+        <AccessControl permission="system:user:update">
           <Switch
             checked={record.status === 1}
-            onChange={(checked) => handleStatusChange(record, checked ? 1 : 0)}
+            onChange={(checked) => handleStatusChange(record, checked ? 1 : 2)}
           />
         </AccessControl>
       ),
@@ -193,9 +194,9 @@ const UserPage: React.FC = () => {
     setAvatarVisible(true);
   };
 
-  const handleStatusChange = async (record: SysUserVo, status: 0 | 1) => {
+  const handleStatusChange = async (record: SysUserVo, status: 1 | 2) => {
     try {
-      await user.updateStatus([record.userId], status);
+      await user.updateStatus([record.id], status);
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       actionRef.current?.reload();
     } catch (error) {
@@ -213,7 +214,7 @@ const UserPage: React.FC = () => {
     }
     try {
       await user.updateStatus(
-        selectedRows.map((r: SysUserVo) => r.userId),
+        selectedRows.map((r: SysUserVo) => r.id),
         1,
       );
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
@@ -233,8 +234,8 @@ const UserPage: React.FC = () => {
     }
     try {
       await user.updateStatus(
-        selectedRows.map((r: SysUserVo) => r.userId),
-        0,
+        selectedRows.map((r: SysUserVo) => r.id),
+        2,
       );
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       actionRef.current?.reload();
@@ -292,22 +293,22 @@ const UserPage: React.FC = () => {
           <ProTable<SysUserVo>
             headerTitle={intl.formatMessage({ id: 'system.user.title' })}
             actionRef={actionRef}
-            rowKey="userId"
+            rowKey="id"
             columns={columns}
             rowSelection={{}}
             params={{
-              organizationId: selectedOrgId ? [selectedOrgId] : undefined,
+              deptId: selectedOrgId || undefined,
             }}
             request={async (params) => {
-              const { current, pageSize, organizationId, ...rest } = params;
+              const { current, pageSize, deptId, ...rest } = params;
               const response = await user.query({
                 page: current as number,
                 size: pageSize as number,
-                organizationId: organizationId as number[],
+                deptId: deptId as number,
                 ...rest,
               });
               return {
-                data: response.data?.records || [],
+                data: response.data?.list || [],
                 total: response.data?.total || 0,
                 success: true,
               };

@@ -1,25 +1,24 @@
 export interface FileVo {
   id: number;
   name: string;
+  originalName?: string;
   size: number;
   url: string;
   extension: string;
-  type: string;
+  type: number;
   storageName: string;
-  createUser: string;
+  createUserString: string;
   createTime: string;
 }
 
 export interface FileQuery {
   name?: string;
-  type?: string;
+  type?: number;
 }
 
 export interface FileStatsVo {
-  totalSize: number;
-  totalCount: number;
-  imageCount: number;
-  docCount: number;
-  videoCount: number;
-  otherCount: number;
+  type?: number | null;
+  size?: number | null;
+  number?: number | null;
+  data?: FileStatsVo[];
 }

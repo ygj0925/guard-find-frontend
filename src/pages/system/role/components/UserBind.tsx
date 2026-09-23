@@ -12,11 +12,11 @@ import { role } from '@/services/web/system';
 
 interface UserBindProps {
   visible: boolean;
-  roleCode: string;
+  roleId: number;
   onCancel: () => void;
 }
 
-const UserBind: React.FC<UserBindProps> = ({ visible, roleCode, onCancel }) => {
+const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
 
@@ -33,7 +33,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleCode, onCancel }) => {
     },
     {
       title: intl.formatMessage({ id: 'system.user.organization' }),
-      dataIndex: 'organizationName',
+      dataIndex: 'deptName',
       ellipsis: true,
     },
     {
@@ -56,7 +56,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleCode, onCancel }) => {
 
   const handleUnbind = async (record: SysRoleBindVo) => {
     try {
-      await role.unbindUser(record.userId, roleCode);
+      await role.unbindUser(record.id);
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       actionRef.current?.reload();
     } catch (error) {
@@ -76,19 +76,18 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleCode, onCancel }) => {
       <ProTable<SysRoleBindVo>
         headerTitle={false}
         actionRef={actionRef}
-        rowKey="userId"
+        rowKey="id"
         columns={columns}
         search={false}
-        params={{ roleCode }}
+        params={{ roleId }}
         request={async (params) => {
-          const { current, pageSize, roleCode: code } = params;
-          const response = await role.listRoleBindUser({
+          const { current, pageSize } = params;
+          const response = await role.listRoleBindUser(roleId, {
             page: current as number,
             size: pageSize as number,
-            roleCode: code as string,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

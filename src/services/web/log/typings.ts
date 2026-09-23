@@ -23,46 +23,36 @@ export type AccessLogQo = {
   endTime: string;
 };
 
-export type LoginLogVo = {
+export type LogVo = {
   id: number;
-  traceId: string;
-  username: string;
-  eventType: string;
+  description: string;
+  module: string;
+  timeTaken: number;
   ip: string;
+  address: string;
   browser: string;
   os: string;
-  message: string;
   status: number;
+  errorMsg: string;
+  createUserString: string;
   createTime: string;
 };
+
+export type LoginLogVo = LogVo;
 
 export type LoginLogQo = {
-  username: string;
-  ip: string;
-  startTime: string;
-  endTime: string;
+  description?: string;
+  ip?: string;
+  createUserString?: string;
+  createTime?: string;
 };
 
-export type OperationLogVo = {
-  id: number;
-  traceId: string;
-  message: string;
-  type: string;
-  ip: string;
-  uri: string;
-  method: string;
-  time: number;
-  operator: string;
-  status: number;
-  params: string;
-  userAgent: string;
-  createTime: string;
-};
+export type OperationLogVo = LogVo;
 
 export type OperationLogQo = {
-  operator: string;
-  ip: string;
-  uri: string;
-  startTime: string;
-  endTime: string;
+  description?: string;
+  module?: string;
+  ip?: string;
+  createUserString?: string;
+  createTime?: string;
 };

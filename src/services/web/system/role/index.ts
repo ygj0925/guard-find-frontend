@@ -4,7 +4,7 @@ import type { SysRole, SysRoleQo, SysRoleVo } from '../';
 import type { SysRoleBindQo, SysRoleBindVo } from './typings';
 
 export async function query(body: QueryParam<SysRoleQo>) {
-  return request<R<PageResult<SysRoleVo>>>('system/role/page', {
+  return request<R<SysRoleVo[]>>('system/role/list', {
     method: 'GET',
     params: body,
   });
@@ -53,19 +53,16 @@ export async function listSelectData() {
   return request<R<SelectData<SysRole>[]>>(`system/role/select`, { method: 'GET' });
 }
 
-export async function listRoleBindUser(body: QueryParam<SysRoleBindQo>) {
-  return request<R<PageResult<SysRoleBindVo>>>('system/role/user/page', {
+export async function listRoleBindUser(roleId: number, body: QueryParam<SysRoleBindQo>) {
+  return request<R<PageResult<SysRoleBindVo>>>(`system/role/${roleId}/user`, {
     method: 'GET',
     params: body,
   });
 }
 
-export async function unbindUser(userId: number, roleCode: string) {
+export async function unbindUser(userRoleId: number) {
   return request<R<any>>(`system/role/user`, {
     method: 'DELETE',
-    params: {
-      userId,
-      roleCode,
-    },
+    data: [userRoleId],
   });
 }

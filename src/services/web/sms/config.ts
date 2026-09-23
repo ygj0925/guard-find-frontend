@@ -24,8 +24,9 @@ export async function updateSmsConfig(body: SmsConfigDto) {
 }
 
 export async function deleteSmsConfig(id: number) {
-  return request<R<any>>(`system/sms/config/${id}`, {
+  return request<R<any>>('system/sms/config', {
     method: 'DELETE',
+    data: [id],
   });
 }
 

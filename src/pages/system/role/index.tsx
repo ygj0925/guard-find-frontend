@@ -15,8 +15,9 @@ import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
-import type { SysRoleVo } from '@/services/web/system';
+import type { SysRoleQo, SysRoleVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
+import type { QueryParam } from '@/typings';
 import MenuGrant from './components/MenuGrant';
 import RoleForm from './components/RoleForm';
 import UserBind from './components/UserBind';
@@ -29,12 +30,7 @@ const RolePage: React.FC = () => {
   const [grantVisible, setGrantVisible] = useState(false);
   const [grantRoleCode, setGrantRoleCode] = useState('');
   const [userBindVisible, setUserBindVisible] = useState(false);
-  const [userBindRoleCode, setUserBindRoleCode] = useState('');
-
-  const typeMap: Record<number, string> = {
-    1: intl.formatMessage({ id: 'system.role.type.system' }),
-    2: intl.formatMessage({ id: 'system.role.type.business' }),
-  };
+  const [userBindRoleId, setUserBindRoleId] = useState(0);
 
   const columns: ProColumns<SysRoleVo>[] = [
     {
@@ -49,17 +45,19 @@ const RolePage: React.FC = () => {
     },
     {
       title: intl.formatMessage({ id: 'system.role.type' }),
-      dataIndex: 'type',
+      dataIndex: 'isSystem',
       render: (_, record) => (
-        <Tag color={record.type === 1 ? 'blue' : 'green'}>
-          {typeMap[record.type] || '-'}
+        <Tag color={record.isSystem ? 'blue' : 'green'}>
+          {record.isSystem
+            ? intl.formatMessage({ id: 'system.role.type.system' })
+            : intl.formatMessage({ id: 'system.role.type.business' })}
         </Tag>
       ),
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
-      dataIndex: 'remarks',
+      dataIndex: 'description',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -141,7 +139,7 @@ const RolePage: React.FC = () => {
   };
 
   const handleUserBind = (record: SysRoleVo) => {
-    setUserBindRoleCode(record.code);
+    setUserBindRoleId(record.id);
     setUserBindVisible(true);
   };
 
@@ -159,14 +157,13 @@ const RolePage: React.FC = () => {
         columns={columns}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
-          const response = await role.query({
-            page: current as number,
-            size: pageSize as number,
-            ...rest,
-          });
+          void current;
+          void pageSize;
+          const response = await role.query(rest as QueryParam<SysRoleQo>);
+          const list = response.data || [];
           return {
-            data: response.data?.records || [],
-            total: response.data?.total || 0,
+            data: list,
+            total: list.length,
             success: true,
           };
         }}
@@ -194,7 +191,7 @@ const RolePage: React.FC = () => {
 
       <UserBind
         visible={userBindVisible}
-        roleCode={userBindRoleCode}
+        roleId={userBindRoleId}
         onCancel={() => setUserBindVisible(false)}
       />
     </PageContainer>

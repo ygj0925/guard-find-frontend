@@ -1,6 +1,5 @@
 import {
   ProForm,
-  ProFormSelect,
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-components';
@@ -64,11 +63,7 @@ const DictForm: React.FC<DictFormProps> = ({
       footer={null}
       destroyOnClose
     >
-      <ProForm
-        form={form}
-        onFinish={handleSubmit}
-        initialValues={{ valueType: 2 }}
-      >
+      <ProForm form={form} onFinish={handleSubmit}>
         <ProFormText
           name="code"
           label={intl.formatMessage({ id: 'system.dict.code' })}
@@ -87,7 +82,7 @@ const DictForm: React.FC<DictFormProps> = ({
           disabled={!!dictData}
         />
         <ProFormText
-          name="title"
+          name="name"
           label={intl.formatMessage({ id: 'system.dict.name' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
@@ -102,26 +97,8 @@ const DictForm: React.FC<DictFormProps> = ({
             },
           ]}
         />
-        <ProFormSelect
-          name="valueType"
-          label={intl.formatMessage({ id: 'system.dict.value.type' })}
-          options={[
-            { label: 'Number', value: 1 },
-            { label: 'String', value: 2 },
-            { label: 'Boolean', value: 3 },
-          ]}
-          rules={[
-            {
-              required: true,
-              message:
-                intl.formatMessage({ id: 'common.form.placeholder.select' }) +
-                intl.formatMessage({ id: 'system.dict.value.type' }),
-            },
-          ]}
-          disabled={!!dictData}
-        />
         <ProFormTextArea
-          name="remarks"
+          name="description"
           label={intl.formatMessage({ id: 'common.field.remark' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +

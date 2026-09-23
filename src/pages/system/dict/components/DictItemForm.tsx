@@ -9,16 +9,11 @@ import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
 import React, { useEffect } from 'react';
 import type { SysDictItemVo } from '@/services/web/system';
-import {
-  badgeDefaultColorArray,
-  badgeStatusArray,
-  dictItem,
-  tagDefaultColorArray,
-} from '@/services/web/system';
+import { dictItem, tagDefaultColorArray } from '@/services/web/system';
 
 interface DictItemFormProps {
   visible: boolean;
-  dictCode: string;
+  dictId: number;
   item: SysDictItemVo | null;
   onCancel: () => void;
   onSuccess: () => void;
@@ -26,7 +21,7 @@ interface DictItemFormProps {
 
 const DictItemForm: React.FC<DictItemFormProps> = ({
   visible,
-  dictCode,
+  dictId,
   item,
   onCancel,
   onSuccess,
@@ -37,13 +32,7 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
   useEffect(() => {
     if (visible) {
       if (item) {
-        form.setFieldsValue({
-          ...item,
-          tagColor: item.attributes?.tagColor,
-          textColor: item.attributes?.textColor,
-          badgeColor: item.attributes?.badgeColor,
-          badgeStatus: item.attributes?.badgeStatus,
-        });
+        form.setFieldsValue(item);
       } else {
         form.resetFields();
       }
@@ -51,28 +40,11 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
   }, [visible, item, form]);
 
   const handleSubmit = async (values: any) => {
-    const { tagColor, textColor, badgeColor, badgeStatus, ...rest } = values;
-    const attributes = {
-      tagColor,
-      textColor,
-      badgeColor,
-      badgeStatus,
-    };
-
     try {
       if (item) {
-        await dictItem.edit({
-          ...rest,
-          id: item.id,
-          dictCode,
-          attributes,
-        });
+        await dictItem.edit({ ...values, id: item.id, dictId });
       } else {
-        await dictItem.create({
-          ...rest,
-          dictCode,
-          attributes,
-        });
+        await dictItem.create({ ...values, dictId });
       }
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       onSuccess();
@@ -95,9 +67,9 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
       footer={null}
       destroyOnClose
     >
-      <ProForm form={form} onFinish={handleSubmit} initialValues={{ sort: 0 }}>
+      <ProForm form={form} onFinish={handleSubmit} initialValues={{ sort: 1 }}>
         <ProFormText
-          name="name"
+          name="label"
           label={intl.formatMessage({ id: 'system.dict.item.name' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
@@ -135,11 +107,11 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
             intl.formatMessage({ id: 'system.dict.item.sort' })
           }
-          min={0}
+          min={1}
           fieldProps={{ precision: 0 }}
         />
         <ProFormSelect
-          name="tagColor"
+          name="color"
           label={intl.formatMessage({ id: 'system.dict.item.tag.color' })}
           options={tagDefaultColorArray.map((color) => ({
             label: color,
@@ -147,34 +119,8 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
           }))}
           allowClear
         />
-        <ProFormText
-          name="textColor"
-          label={intl.formatMessage({ id: 'system.dict.item.text.color' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-            intl.formatMessage({ id: 'system.dict.item.text.color' })
-          }
-        />
-        <ProFormSelect
-          name="badgeColor"
-          label={intl.formatMessage({ id: 'system.dict.item.badge.color' })}
-          options={badgeDefaultColorArray.map((color) => ({
-            label: color,
-            value: color,
-          }))}
-          allowClear
-        />
-        <ProFormSelect
-          name="badgeStatus"
-          label={intl.formatMessage({ id: 'system.dict.item.badge.status' })}
-          options={badgeStatusArray.map((status) => ({
-            label: status,
-            value: status,
-          }))}
-          allowClear
-        />
         <ProFormTextArea
-          name="remarks"
+          name="description"
           label={intl.formatMessage({ id: 'common.field.remark' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +

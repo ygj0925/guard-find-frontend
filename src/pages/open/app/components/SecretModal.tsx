@@ -1,16 +1,8 @@
 import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
-import {
-  Button,
-  Modal,
-  message,
-  Popconfirm,
-  Space,
-  Spin,
-  Typography,
-} from 'antd';
+import { Button, Modal, message, Popconfirm, Spin, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getAppSecret, resetAppSecret } from '@/services/web/open/app';
-import type { AppVo } from '@/services/web/open/typings';
+import type { AppSecret, AppVo } from '@/services/web/open/typings';
 
 const { Paragraph } = Typography;
 
@@ -25,7 +17,7 @@ const SecretModal: React.FC<SecretModalProps> = ({
   app,
   onCancel,
 }) => {
-  const [secret, setSecret] = useState<string>('');
+  const [secret, setSecret] = useState<AppSecret | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchSecret = async () => {
@@ -33,7 +25,7 @@ const SecretModal: React.FC<SecretModalProps> = ({
     setLoading(true);
     try {
       const response = await getAppSecret(app.id);
-      setSecret(response.data || '');
+      setSecret(response.data || null);
     } catch (error) {
       console.error('Fetch secret failed:', error);
     } finally {
@@ -46,7 +38,7 @@ const SecretModal: React.FC<SecretModalProps> = ({
       fetchSecret();
     }
     if (!visible) {
-      setSecret('');
+      setSecret(null);
     }
   }, [visible, app]);
 
@@ -87,13 +79,22 @@ const SecretModal: React.FC<SecretModalProps> = ({
           <strong>应用名称：</strong>
           {app?.name}
         </div>
-        <div>
-          <strong>密钥：</strong>
+        <div style={{ marginBottom: 8 }}>
+          <strong>AccessKey：</strong>
           <Paragraph
             copyable={{ icon: <CopyOutlined /> }}
             style={{ display: 'inline', marginLeft: 8 }}
           >
-            {secret}
+            {secret?.accessKey}
+          </Paragraph>
+        </div>
+        <div>
+          <strong>SecretKey：</strong>
+          <Paragraph
+            copyable={{ icon: <CopyOutlined /> }}
+            style={{ display: 'inline', marginLeft: 8 }}
+          >
+            {secret?.secretKey}
           </Paragraph>
         </div>
       </Spin>

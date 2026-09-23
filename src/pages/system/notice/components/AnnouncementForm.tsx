@@ -11,11 +11,11 @@ import { Modal, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import Editor from '@/components/Editor';
 import { announcement as announcementApi } from '@/services/web/notify';
-import type { AnnouncementVo } from '@/services/web/notify/typings';
+import type { AnnouncementDetailVo } from '@/services/web/notify/typings';
 
 interface AnnouncementFormProps {
   visible: boolean;
-  announcement: AnnouncementVo | null;
+  announcement: AnnouncementDetailVo | null;
   onCancel: () => void;
   onSuccess: () => void;
 }

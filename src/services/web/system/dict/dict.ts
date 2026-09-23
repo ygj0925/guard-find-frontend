@@ -1,9 +1,9 @@
-import type { PageResult, QueryParam, R } from '@/typings';
+import type { R } from '@/typings';
 import { request } from 'umi';
 import type { SysDict, SysDictData, SysDictDataHash, SysDictQo, SysDictVo } from './typing';
 
-export async function query(body: QueryParam<SysDictQo>) {
-  return request<R<PageResult<SysDictVo>>>('system/dict/page', {
+export async function query(body: Partial<SysDictQo>) {
+  return request<R<SysDictVo[]>>('system/dict/list', {
     method: 'GET',
     params: body,
   });
@@ -23,9 +23,10 @@ export async function edit(body: SysDict) {
   });
 }
 
-export async function del(body: SysDict) {
-  return request<R<any>>(`system/dict/${body.id}`, {
+export async function del(id: number) {
+  return request<R<any>>('system/dict', {
     method: 'DELETE',
+    data: [id],
   });
 }
 

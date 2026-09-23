@@ -82,7 +82,7 @@ const OnlinePage: React.FC = () => {
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

@@ -39,7 +39,7 @@ const UserForm: React.FC<UserFormProps> = ({
   const handleSubmit = async (values: any) => {
     try {
       if (userData) {
-        await user.edit({ ...values, userId: userData.userId });
+        await user.edit({ ...values, userId: userData.id });
       } else {
         await user.create(values);
       }

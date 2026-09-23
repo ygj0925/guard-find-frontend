@@ -11,7 +11,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
-import { Button, message, Popconfirm, Space } from 'antd';
+import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysOrganizationVo } from '@/services/web/system';
@@ -38,8 +38,21 @@ const OrganizationPage: React.FC = () => {
       hideInSearch: true,
     },
     {
+      title: intl.formatMessage({ id: 'common.field.status' }),
+      dataIndex: 'status',
+      width: 80,
+      render: (_, record) => (
+        <Tag color={record.status === 1 ? 'green' : 'red'}>
+          {record.status === 1
+            ? intl.formatMessage({ id: 'common.status.normal' })
+            : intl.formatMessage({ id: 'common.status.frozen' })}
+        </Tag>
+      ),
+      hideInSearch: true,
+    },
+    {
       title: intl.formatMessage({ id: 'common.field.remark' }),
-      dataIndex: 'remarks',
+      dataIndex: 'description',
       ellipsis: true,
       hideInSearch: true,
     },

@@ -11,7 +11,7 @@ import type { PageResult, QueryParam, R } from '@/typings';
 import type { UploadFile } from 'antd/lib/upload/interface';
 
 export async function query(body: QueryParam<SysUserQo>) {
-  return request<R<PageResult<SysUserVo>>>('system/user/page', {
+  return request<R<PageResult<SysUserVo>>>('system/user', {
     method: 'GET',
     params: body,
   });
@@ -32,13 +32,13 @@ export async function edit(body: SysUserDto) {
 }
 
 export async function del(body: SysUserVo) {
-  return request<R<any>>(`system/user/${body.userId}`, {
+  return request<R<any>>(`system/user/${body.id}`, {
     method: 'DELETE',
   });
 }
 
 export function getScope(body: SysUserVo) {
-  return request<R<SysUserScopeVo>>(`system/user/scope/${body.userId}`, {
+  return request<R<SysUserScopeVo>>(`system/user/scope/${body.id}`, {
     method: 'get',
   });
 }
@@ -57,7 +57,7 @@ export function changePassword(body: SysUserPassDto) {
   });
 }
 
-export function updateStatus(uIds: any[], status: 1 | 0) {
+export function updateStatus(uIds: any[], status: 1 | 2) {
   return request(`system/user/status`, {
     method: 'put',
     params: { status },
@@ -68,7 +68,7 @@ export function updateStatus(uIds: any[], status: 1 | 0) {
 export function updateAvatar(user: SysUserVo, b: Blob, file: UploadFile) {
   const formData = new FormData();
   formData.append('file', b, file.name);
-  formData.append('userId', `${user.userId}`);
+  formData.append('userId', `${user.id}`);
   return request(`/system/user/avatar`, {
     method: 'POST',
     body: formData,

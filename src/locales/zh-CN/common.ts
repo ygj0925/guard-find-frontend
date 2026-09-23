@@ -40,6 +40,8 @@ export default {
   'common.status.disabled': '禁用',
   'common.status.normal': '正常',
   'common.status.frozen': '冻结',
+  'common.status.success': '成功',
+  'common.status.fail': '失败',
   'common.field.status': '状态',
   'common.field.remark': '备注',
   'common.field.sort': '排序',

@@ -4,6 +4,7 @@ export default {
   'notify.announcement.content': 'Content',
   'notify.announcement.status': 'Status',
   'notify.announcement.status.draft': 'Draft',
+  'notify.announcement.status.pending': 'Pending',
   'notify.announcement.status.published': 'Published',
   'notify.announcement.status.closed': 'Closed',
   'notify.announcement.publish.time': 'Publish Time',

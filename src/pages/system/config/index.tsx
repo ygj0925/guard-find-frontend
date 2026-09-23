@@ -9,7 +9,7 @@ import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tabs } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
-import type { SysConfigVo } from '@/services/web/system';
+import type { SysConfigQo, SysConfigVo } from '@/services/web/system';
 import { config } from '@/services/web/system';
 import ClientConfig from './components/ClientConfig';
 import ConfigForm from './components/ConfigForm';
@@ -34,29 +34,19 @@ const ConfigPage: React.FC = () => {
     },
     {
       title: intl.formatMessage({ id: 'system.config.key' }),
-      dataIndex: 'confKey',
+      dataIndex: 'code',
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.config.value' }),
-      dataIndex: 'confValue',
+      dataIndex: 'value',
       ellipsis: true,
       hideInSearch: true,
-    },
-    {
-      title: intl.formatMessage({ id: 'system.config.category' }),
-      dataIndex: 'category',
-      ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
-      dataIndex: 'remarks',
+      dataIndex: 'description',
       ellipsis: true,
-      hideInSearch: true,
-    },
-    {
-      title: intl.formatMessage({ id: 'common.time.create' }),
-      dataIndex: 'createTime',
       hideInSearch: true,
     },
     {
@@ -130,15 +120,12 @@ const ConfigPage: React.FC = () => {
                   rowKey="id"
                   columns={columns}
                   request={async (params) => {
-                    const { current, pageSize, ...rest } = params;
-                    const response = await config.query({
-                      page: current as number,
-                      size: pageSize as number,
-                      ...rest,
-                    });
+                    const { name, code } = params as Partial<SysConfigQo>;
+                    const response = await config.query({ name, code });
+                    const list = response.data || [];
                     return {
-                      data: response.data?.records || [],
-                      total: response.data?.total || 0,
+                      data: list,
+                      total: list.length,
                       success: true,
                     };
                   }}

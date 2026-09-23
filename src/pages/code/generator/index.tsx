@@ -9,7 +9,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, message, Space, Tag } from 'antd';
+import { Button, message, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import {
@@ -38,13 +38,13 @@ const GeneratorPage: React.FC = () => {
     },
     {
       title: '表注释',
-      dataIndex: 'tableComment',
+      dataIndex: 'comment',
       ellipsis: true,
       hideInSearch: true,
     },
     {
-      title: '类名',
-      dataIndex: 'className',
+      title: '类名前缀',
+      dataIndex: 'classNamePrefix',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -53,16 +53,6 @@ const GeneratorPage: React.FC = () => {
       dataIndex: 'moduleName',
       ellipsis: true,
       hideInSearch: true,
-    },
-    {
-      title: '配置状态',
-      dataIndex: 'isConfigured',
-      hideInSearch: true,
-      render: (_, record) => (
-        <Tag color={record.isConfigured ? 'green' : 'default'}>
-          {record.isConfigured ? '已配置' : '未配置'}
-        </Tag>
-      ),
     },
     {
       title: '创建时间',
@@ -161,11 +151,6 @@ const GeneratorPage: React.FC = () => {
     actionRef.current?.reload();
   };
 
-  const handleOpenFieldConfig = () => {
-    setTableConfigVisible(false);
-    setFieldConfigVisible(true);
-  };
-
   const handleFieldConfigSuccess = () => {
     setFieldConfigVisible(false);
     setCurrentTableName(null);
@@ -191,7 +176,7 @@ const GeneratorPage: React.FC = () => {
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

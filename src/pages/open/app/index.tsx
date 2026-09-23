@@ -33,8 +33,8 @@ const AppPage: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: 'AppKey',
-      dataIndex: 'appKey',
+      title: 'AccessKey',
+      dataIndex: 'accessKey',
       ellipsis: true,
       hideInSearch: true,
     },
@@ -42,8 +42,8 @@ const AppPage: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       valueEnum: {
-        0: { text: '禁用', status: 'Default' },
         1: { text: '启用', status: 'Success' },
+        2: { text: '禁用', status: 'Default' },
       },
       render: (_, record) => (
         <Tag color={record.status === 1 ? 'green' : 'default'}>
@@ -162,7 +162,7 @@ const AppPage: React.FC = () => {
             ...rest,
           });
           return {
-            data: response.data?.records || [],
+            data: response.data?.list || [],
             total: response.data?.total || 0,
             success: true,
           };

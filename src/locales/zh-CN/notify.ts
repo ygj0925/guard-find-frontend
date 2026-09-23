@@ -4,6 +4,7 @@ export default {
   'notify.announcement.content': '公告内容',
   'notify.announcement.status': '状态',
   'notify.announcement.status.draft': '草稿',
+  'notify.announcement.status.pending': '待发布',
   'notify.announcement.status.published': '已发布',
   'notify.announcement.status.closed': '已关闭',
   'notify.announcement.publish.time': '发布时间',

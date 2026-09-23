@@ -1,35 +1,39 @@
 export interface SmsConfigVo {
   id: number;
   name: string;
-  platform: string;
+  supplier: string;
   accessKey: string;
   secretKey: string;
-  signName: string;
+  signature: string;
   templateId: string;
+  weight?: number;
+  retryInterval?: number;
+  maxRetries?: number;
+  maximum?: number;
+  supplierConfig?: string;
   isDefault: boolean;
   status: number;
-  description: string;
   createTime: string;
 }
 
 export interface SmsConfigDto {
   id?: number;
   name: string;
-  platform: string;
+  supplier: string;
   accessKey: string;
   secretKey: string;
-  signName: string;
+  signature: string;
   templateId?: string;
   description?: string;
 }
 
 export interface SmsLogVo {
   id: number;
+  configId: number;
   phone: string;
-  content: string;
-  platform: string;
+  params: string;
   status: number;
-  response: string;
+  resMsg: string;
   createTime: string;
 }
 

@@ -36,6 +36,9 @@ const StorageStats: React.FC = () => {
       });
   }, []);
 
+  const countByType = (type: number) =>
+    stats?.data?.find((d) => d.type === type)?.number ?? 0;
+
   return (
     <Spin spinning={loading}>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
@@ -43,7 +46,7 @@ const StorageStats: React.FC = () => {
           <Card>
             <Statistic
               title="存储总量"
-              value={stats ? formatFileSize(stats.totalSize) : '-'}
+              value={stats?.size ? formatFileSize(stats.size) : '-'}
               prefix={<HddOutlined />}
             />
           </Card>
@@ -52,7 +55,7 @@ const StorageStats: React.FC = () => {
           <Card>
             <Statistic
               title="文件总数"
-              value={stats?.totalCount ?? 0}
+              value={stats?.number ?? 0}
               prefix={<NumberOutlined />}
             />
           </Card>
@@ -61,7 +64,7 @@ const StorageStats: React.FC = () => {
           <Card>
             <Statistic
               title="图片"
-              value={stats?.imageCount ?? 0}
+              value={countByType(2)}
               prefix={<FileImageOutlined />}
             />
           </Card>
@@ -70,7 +73,7 @@ const StorageStats: React.FC = () => {
           <Card>
             <Statistic
               title="文档"
-              value={stats?.docCount ?? 0}
+              value={countByType(3)}
               prefix={<FileTextOutlined />}
             />
           </Card>
@@ -79,7 +82,7 @@ const StorageStats: React.FC = () => {
           <Card>
             <Statistic
               title="视频"
-              value={stats?.videoCount ?? 0}
+              value={countByType(4)}
               prefix={<VideoCameraOutlined />}
             />
           </Card>
@@ -88,7 +91,7 @@ const StorageStats: React.FC = () => {
           <Card>
             <Statistic
               title="其他"
-              value={stats?.otherCount ?? 0}
+              value={countByType(1)}
               prefix={<FileOutlined />}
             />
           </Card>

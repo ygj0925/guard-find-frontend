@@ -1,6 +1,6 @@
 import type { PageResult, QueryParam, R } from '@/typings';
 import { request } from 'umi';
-import type { AppDto, AppQuery, AppVo } from './typings';
+import type { AppDto, AppQuery, AppSecret, AppVo } from './typings';
 
 export async function queryApps(body: QueryParam<AppQuery>) {
   return request<R<PageResult<AppVo>>>('open/app', {
@@ -24,20 +24,21 @@ export async function updateApp(data: AppDto) {
 }
 
 export async function deleteApp(id: number) {
-  return request<R<any>>(`open/app/${id}`, {
+  return request<R<any>>('open/app', {
     method: 'DELETE',
+    data: [id],
   });
 }
 
 export async function getAppSecret(id: number) {
-  return request<R<string>>(`open/app/${id}/secret`, {
+  return request<R<AppSecret>>(`open/app/${id}/secret`, {
     method: 'GET',
   });
 }
 
 export async function resetAppSecret(id: number) {
-  return request<R<any>>(`open/app/${id}/secret`, {
-    method: 'PUT',
+  return request<R<AppSecret>>(`open/app/${id}/secret`, {
+    method: 'PATCH',
   });
 }
 

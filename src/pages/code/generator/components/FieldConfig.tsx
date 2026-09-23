@@ -84,14 +84,14 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
     try {
       const data: GeneratorFieldDto[] = fields.map((field) => ({
         id: field.id,
-        columnComment: field.columnComment,
+        comment: field.comment,
         formType: field.formType,
         queryType: field.queryType,
         isRequired: field.isRequired,
-        isListVisible: field.isListVisible,
-        isFormVisible: field.isFormVisible,
-        isQueryVisible: field.isQueryVisible,
-        sort: field.sort,
+        showInList: field.showInList,
+        showInForm: field.showInForm,
+        showInQuery: field.showInQuery,
+        fieldSort: field.fieldSort,
       }));
       await saveFieldConfig(tableName, data);
       message.success('字段配置保存成功');
@@ -112,14 +112,12 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
     },
     {
       title: '字段注释',
-      dataIndex: 'columnComment',
+      dataIndex: 'comment',
       width: 140,
       render: (text, _, index) => (
         <input
           value={text}
-          onChange={(e) =>
-            handleFieldChange(index, 'columnComment', e.target.value)
-          }
+          onChange={(e) => handleFieldChange(index, 'comment', e.target.value)}
           style={{
             width: '100%',
             border: '1px solid #d9d9d9',
@@ -173,42 +171,42 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
     },
     {
       title: '列表',
-      dataIndex: 'isListVisible',
+      dataIndex: 'showInList',
       width: 60,
       align: 'center',
       render: (val, _, index) => (
         <Checkbox
           checked={val}
           onChange={(e) =>
-            handleFieldChange(index, 'isListVisible', e.target.checked)
+            handleFieldChange(index, 'showInList', e.target.checked)
           }
         />
       ),
     },
     {
       title: '表单',
-      dataIndex: 'isFormVisible',
+      dataIndex: 'showInForm',
       width: 60,
       align: 'center',
       render: (val, _, index) => (
         <Checkbox
           checked={val}
           onChange={(e) =>
-            handleFieldChange(index, 'isFormVisible', e.target.checked)
+            handleFieldChange(index, 'showInForm', e.target.checked)
           }
         />
       ),
     },
     {
       title: '查询',
-      dataIndex: 'isQueryVisible',
+      dataIndex: 'showInQuery',
       width: 60,
       align: 'center',
       render: (val, _, index) => (
         <Checkbox
           checked={val}
           onChange={(e) =>
-            handleFieldChange(index, 'isQueryVisible', e.target.checked)
+            handleFieldChange(index, 'showInQuery', e.target.checked)
           }
         />
       ),
