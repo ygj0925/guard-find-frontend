@@ -30,21 +30,36 @@ ul,
 ol {
   list-style: none;
 }
-@media (max-width: 768px) {
-  .ant-table {
-    width: 100%;
-    overflow-x: auto;
-  }
-  .ant-table-thead > tr > th,
-  .ant-table-tbody > tr > th,
-  .ant-table-thead > tr > td,
-  .ant-table-tbody > tr > td {
-    white-space: pre;
-  }
-  .ant-table-thead > tr > th > span,
-  .ant-table-tbody > tr > th > span,
-  .ant-table-thead > tr > td > span,
-  .ant-table-tbody > tr > td > span {
-    display: block;
-  }
+
+.ant-table-wrapper {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.ant-table-container,
+.ant-table-content {
+  max-width: 100%;
+}
+
+.ant-table-content {
+  overflow-x: auto !important;
+}
+
+.ant-table table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.ant-table-cell {
+  overflow-wrap: anywhere;
+}
+
+.ant-table-cell .ant-space {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ant-table-cell .ant-space-item {
+  margin-inline-end: 0 !important;
 }
