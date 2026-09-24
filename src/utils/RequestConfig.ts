@@ -28,6 +28,9 @@ const StatusCodeMessage: ICodeMessage = {
 interface ResponseStructure {
   success: boolean;
   data: any;
+  code?: number | string;
+  message?: string;
+  msg?: string;
   errorCode?: number;
   errorMessage?: string;
   showType?: ErrorShowType;
@@ -46,11 +49,27 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   errorCode?: number | string;
   errorMessage?: string;
+  message?: string;
   showType?: ErrorShowType;
 
   code?: number | string;
   msg?: string;
+  error?: string;
 }
+
+const getResponseMessage = (data: unknown): string | undefined => {
+  if (!data || typeof data !== 'object') return undefined;
+  const response = data as ApiResponse;
+  return [
+    response.message,
+    response.msg,
+    response.errorMessage,
+    response.error,
+  ].find(
+    (value): value is string =>
+      typeof value === 'string' && value.trim().length > 0,
+  );
+};
 
 export class BizError extends Error {
   name = 'BizError';
@@ -128,7 +147,8 @@ export const requestConfig: RequestConfig = {
 
       const res = data as ApiResponse;
 
-      const { success, code, msg, errorCode, errorMessage } = res;
+      const { success, code, errorCode, showType } = res;
+      const responseMessage = getResponseMessage(res);
 
       if (String(code) === '401') {
         Notify.logout();
@@ -151,7 +171,7 @@ export const requestConfig: RequestConfig = {
           Number(errorCode) !== 0);
 
       if (isBizError) {
-        throw new BizError(errorMessage || msg || '业务处理失败', res);
+        throw new BizError(responseMessage || '业务处理失败', res);
       }
 
       return response;
@@ -166,7 +186,9 @@ export const requestConfig: RequestConfig = {
       if (error.name === 'BizError') {
         const errorInfo: ResponseStructure | undefined = error.info;
         if (errorInfo) {
-          const { errorMessage, errorCode } = errorInfo;
+          const errorMessage =
+            getResponseMessage(errorInfo) || error.message || '业务处理失败';
+          const errorCode = errorInfo.errorCode || errorInfo.code;
           switch (errorInfo.showType) {
             case ErrorShowType.SILENT:
               // do nothing
@@ -195,7 +217,7 @@ export const requestConfig: RequestConfig = {
         // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
         const status = error.response?.status;
         const errorMsg =
-          error.response?.data?.error ||
+          getResponseMessage(error.response?.data) ||
           StatusCodeMessage[status] ||
           '服务器暂时未响应，请刷新页面并重试。若无法解决，请联系管理员';
         if (status === 401) {
@@ -204,9 +226,7 @@ export const requestConfig: RequestConfig = {
           message.error(errorMsg);
         }
       } else if (error.request) {
-        const status = error.response?.status;
         const errorMsg =
-          StatusCodeMessage[status] ||
           '服务器暂时未响应，请刷新页面并重试。若无法解决，请联系管理员';
         message.error(errorMsg);
       } else {
