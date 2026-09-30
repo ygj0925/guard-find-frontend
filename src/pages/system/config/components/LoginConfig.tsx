@@ -1,14 +1,11 @@
 import React from 'react';
 import OptionForm from './OptionForm';
 
+/** 登录设置：category=LOGIN */
 const LoginConfig: React.FC = () => (
   <OptionForm
-    category="login"
-    fields={[
-      { name: 'login_captcha_enabled', label: '启用验证码' },
-      { name: 'login_auto_lock_enabled', label: '启用自动锁定' },
-      { name: 'login_methods', label: '允许登录方式' },
-    ]}
+    category="LOGIN"
+    fields={[{ code: 'LOGIN_CAPTCHA_ENABLED', label: '是否启用验证码' }]}
   />
 );
 

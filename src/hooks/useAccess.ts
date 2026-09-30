@@ -1,61 +1,25 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useModel } from 'umi';
+import { createAccessChecker } from '@/utils/access';
 
-const ALL_PERMISSION = '*:*:*';
-
+/**
+ * 页面/组件用的权限判定。逻辑与 `src/access.ts` 同源（`@/utils/access`），
+ * 返回值保持历史字段名，避免大面积改调用点。
+ */
 export function useAccess() {
   const { initialState } = useModel('@@initialState');
   const currentUser = initialState?.user;
 
-  const permissions = useMemo(() => {
-    return currentUser?.permissions || [];
+  return useMemo(() => {
+    const access = createAccessChecker(currentUser);
+    return {
+      permissions: access.permissions,
+      roles: access.roles,
+      isAdmin: access.isAdmin,
+      hasPermission: access.hasPermission,
+      hasRole: access.hasRole,
+      hasAnyPermission: access.hasAnyPermission,
+      hasAllPermissions: access.hasAllPermissions,
+    };
   }, [currentUser]);
-
-  const roles = useMemo(() => {
-    return currentUser?.roles || [];
-  }, [currentUser]);
-
-  const hasPermission = useCallback(
-    (permission: string) => {
-      if (!permission) return true;
-      return (
-        permissions.includes(ALL_PERMISSION) || permissions.includes(permission)
-      );
-    },
-    [permissions],
-  );
-
-  const hasRole = useCallback(
-    (role: string) => {
-      if (!role) return true;
-      return roles.includes(role);
-    },
-    [roles],
-  );
-
-  const hasAnyPermission = useCallback(
-    (permissionList: string[]) => {
-      if (!permissionList || permissionList.length === 0) return true;
-      return permissionList.some((p) => permissions.includes(p));
-    },
-    [permissions],
-  );
-
-  const hasAllPermissions = useCallback(
-    (permissionList: string[]) => {
-      if (!permissionList || permissionList.length === 0) return true;
-      return permissionList.every((p) => permissions.includes(p));
-    },
-    [permissions],
-  );
-
-  return {
-    permissions,
-    roles,
-    hasPermission,
-    hasRole,
-    hasAnyPermission,
-    hasAllPermissions,
-    isAdmin: roles.includes('admin') || roles.includes('super_admin'),
-  };
 }

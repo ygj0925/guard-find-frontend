@@ -72,7 +72,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:dict:edit">
+          <AccessControl permission="system:dict:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -81,7 +81,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:dict:del">
+          <AccessControl permission="system:dict:delete">
             <Popconfirm
               title={intl.formatMessage({ id: 'common.delete.confirm' })}
               onConfirm={() => handleDelete(record)}
@@ -151,7 +151,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:dict:add">
+          <AccessControl key="add" permission="system:dict:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               {intl.formatMessage({ id: 'common.operation.add' })}
             </Button>

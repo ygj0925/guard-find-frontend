@@ -1,4 +1,9 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import {
   type ActionType,
   PageContainer,
@@ -62,7 +67,7 @@ const DictPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:dict:edit">
+          <AccessControl permission="system:dict:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -71,7 +76,16 @@ const DictPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:dict:del">
+          <AccessControl permission="system:dict:clearCache">
+            <Button
+              type="link"
+              icon={<ReloadOutlined />}
+              onClick={() => handleClearCache(record)}
+            >
+              清理缓存
+            </Button>
+          </AccessControl>
+          <AccessControl permission="system:dict:delete">
             <Popconfirm
               title={intl.formatMessage({ id: 'common.delete.confirm' })}
               description={intl.formatMessage({
@@ -112,6 +126,16 @@ const DictPage: React.FC = () => {
     }
   };
 
+  /** 清理该字典的服务端缓存：`DELETE /system/dict/cache/{code}` */
+  const handleClearCache = async (record: SysDictVo) => {
+    try {
+      await dict.clearCache(record.code);
+      message.success('缓存已清理');
+    } catch (error) {
+      console.error('Clear cache failed:', error);
+    }
+  };
+
   const handleOpenDictItem = (record: SysDictVo) => {
     setCurrentDictId(record.id);
     setDictItemVisible(true);
@@ -129,18 +153,18 @@ const DictPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        pagination={false}
         request={async (params) => {
           const { name, code } = params as Partial<SysDictQo>;
           const response = await dict.query({ name, code });
-          const list = response.data || [];
+          // 后端 `GET /system/dict/list` 不分页
           return {
-            data: list,
-            total: list.length,
+            data: response.data || [],
             success: true,
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:dict:add">
+          <AccessControl key="add" permission="system:dict:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               {intl.formatMessage({ id: 'common.operation.add' })}
             </Button>

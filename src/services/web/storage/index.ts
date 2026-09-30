@@ -17,16 +17,17 @@ export async function createStorage(body: StorageDto) {
 }
 
 export async function updateStorage(body: StorageDto) {
-  return request<R<any>>('system/storage', {
+  return request<R<any>>(`system/storage/${body.id}`, {
     method: 'PUT',
     data: body,
   });
 }
 
-export async function deleteStorage(id: number) {
+/** 删除：`DELETE /system/storage` + `{ids}` */
+export async function deleteStorage(id: number | number[]) {
   return request<R<any>>('system/storage', {
     method: 'DELETE',
-    data: [id],
+    data: { ids: Array.isArray(id) ? id : [id] },
   });
 }
 

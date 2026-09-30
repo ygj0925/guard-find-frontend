@@ -1,8 +1,8 @@
 import {
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   PlusOutlined,
-  ToolOutlined,
 } from '@ant-design/icons';
 import {
   type ActionType,
@@ -66,7 +66,7 @@ const OrganizationPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:organization:add">
+          <AccessControl permission="system:dept:create">
             <Button
               type="link"
               icon={<PlusOutlined />}
@@ -75,7 +75,7 @@ const OrganizationPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.add.child' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:organization:edit">
+          <AccessControl permission="system:dept:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -84,7 +84,7 @@ const OrganizationPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:organization:del">
+          <AccessControl permission="system:dept:delete">
             <Popconfirm
               title={intl.formatMessage({ id: 'common.delete.confirm' })}
               description={intl.formatMessage({
@@ -130,13 +130,12 @@ const OrganizationPage: React.FC = () => {
     }
   };
 
-  const handleRevised = async () => {
+  const handleExport = async () => {
     try {
-      await organization.revised();
+      await organization.exportDepts();
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
-      actionRef.current?.reload();
     } catch (error) {
-      console.error('Revised failed:', error);
+      console.error('Export failed:', error);
     }
   };
 
@@ -153,6 +152,7 @@ const OrganizationPage: React.FC = () => {
         rowKey="id"
         columns={columns}
         search={false}
+        pagination={false}
         request={async () => {
           const response = await organization.query();
           return {
@@ -161,14 +161,14 @@ const OrganizationPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:organization:add">
+          <AccessControl key="add" permission="system:dept:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               {intl.formatMessage({ id: 'common.operation.add' })}
             </Button>
           </AccessControl>,
-          <AccessControl key="revised" permission="system:organization:revised">
-            <Button icon={<ToolOutlined />} onClick={handleRevised}>
-              {intl.formatMessage({ id: 'system.organization.revised' })}
+          <AccessControl key="export" permission="system:dept:export">
+            <Button icon={<DownloadOutlined />} onClick={handleExport}>
+              {intl.formatMessage({ id: 'common.operation.export' })}
             </Button>
           </AccessControl>,
         ]}

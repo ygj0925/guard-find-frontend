@@ -9,14 +9,16 @@ export async function queryJobLogs(body: QueryParam<JobLogQuery>) {
   });
 }
 
+/** 停止执行中的任务：`POST /schedule/log/stop/{id}` */
 export async function stopJobLog(id: number) {
-  return request<R<any>>(`schedule/log/${id}/stop`, {
-    method: 'PUT',
+  return request<R<any>>(`schedule/log/stop/${id}`, {
+    method: 'POST',
   });
 }
 
+/** 重新执行：`POST /schedule/log/retry/{id}` */
 export async function retryJobLog(id: number) {
-  return request<R<any>>(`schedule/log/${id}/retry`, {
+  return request<R<any>>(`schedule/log/retry/${id}`, {
     method: 'POST',
   });
 }

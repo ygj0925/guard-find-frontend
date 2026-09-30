@@ -1,96 +1,81 @@
+/**
+ * 菜单（后端 `MenuController`，路径 `/system/menu`）。
+ * 字段名对齐 `MenuReq` / `MenuResp`；`type` 取值来自后端 `MenuTypeEnum`：
+ * 1 目录 / 2 菜单 / 3 按钮（不是 ballcat 的 0/1/2）。
+ */
+
+/** 查询条件 = 后端 `MenuQuery` */
 export type SysMenuQo = {
-  // 菜单名称
-  title: string;
+  // 菜单标题
+  title?: string;
   // 状态(1-启用, 2-禁用)
-  status: number;
+  status?: 1 | 2;
 };
 
+/** 树节点（`GET /system/menu/tree` → `MenuResp` + `children`） */
 export type SysMenuVo = {
-  // 菜单ID
   id: number;
-  // 父级ID
   parentId: number;
   // 菜单标题
   title: string;
-  // 菜单类型（1目录，2菜单，3按钮）
+  // 菜单类型：1目录 2菜单 3按钮
   type: number;
   // 路由地址
   path: string;
   // 组件名称
-  name: string;
-  // 组件路径
-  component: string;
+  name?: string;
+  // 组件路径（相对 src/pages，不含扩展名），如 system/user/index
+  component?: string;
   // 重定向地址
-  redirect: string;
+  redirect?: string;
   // 菜单图标
-  icon: string;
+  icon?: string;
   // 是否外链
-  isExternal: boolean;
+  isExternal?: boolean;
   // 是否缓存
-  isCache: boolean;
+  isCache?: boolean;
   // 是否隐藏
-  isHidden: boolean;
-  // 授权标识
-  permission: string;
+  isHidden?: boolean;
+  // 权限标识
+  permission?: string;
   // 显示排序
   sort: number;
   // 状态(1-启用, 2-禁用)
   status: number;
   // 创建时间
-  createTime: string;
+  createTime?: string;
   // 子级
-  children: SysMenuVo[];
+  children?: SysMenuVo[];
 };
 
+/** 新增/修改请求体 = 后端 `MenuReq`（编辑时主键走 `PUT /system/menu/{id}` 路径） */
 export type SysMenuDto = {
-  // 菜单ID
-  id: number;
-  // 父级ID
-  parentId: number;
-  // 菜单名称
-  title: string;
-  // 菜单图标
-  icon: string;
-  // 授权标识
-  permission: string;
-  // 路由地址
-  path: string;
-  // 打开方式 (1组件 2内链 3外链)
-  targetType: number;
-  // 定位标识 (打开方式为组件时其值为组件相对路径，其他为URL地址)
-  uri: string;
-  // 显示排序
-  sort: number;
-  // 组件缓存：0-开启，1-关闭
-  keepAlive: number;
-  // 隐藏菜单: 0-否，1-是
-  hidden: number;
-  // 菜单类型 （0目录，1菜单，2按钮）
+  id?: number;
+  parentId?: number;
+  // 菜单类型：1目录 2菜单 3按钮
   type: number;
-  // 备注信息
-  remarks: string;
-  // 菜单标题对应的国际化信息
-  i18nMessages: SysMenuI18n[];
-  // 原菜单ID
-  originalId: number;
-};
-
-export type SysMenuI18n = {
-  //  国际化标识
-  code: string;
-  // 消息
-  message: string;
-  // 地区语言标签
-  languageTag: string;
-};
-
-export type SysMenuRoleGrateVo = {
-  // 菜单ID
-  id: number;
-  // 父级ID
-  parentId: number;
-  // 菜单名称
+  // 菜单标题
   title: string;
-  // 菜单类型 （0目录，1菜单，2按钮）
-  type: 0 | 1 | 2;
+  // 图标
+  icon?: string;
+  // 排序
+  sort?: number;
+  // 权限标识（type=3 按钮时使用）
+  permission?: string;
+  // 路由地址
+  path?: string;
+  // 组件名称
+  name?: string;
+  // 组件路径
+  component?: string;
+  // 重定向地址
+  redirect?: string;
+  // 是否外链
+  isExternal?: boolean;
+  // 是否缓存
+  isCache?: boolean;
+  // 是否隐藏
+  isHidden?: boolean;
+  // 状态(1-启用, 2-禁用)
+  status?: number;
 };

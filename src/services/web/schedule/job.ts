@@ -17,7 +17,7 @@ export async function createJob(body: JobDto) {
 }
 
 export async function updateJob(body: JobDto) {
-  return request<R<any>>('schedule/job', {
+  return request<R<any>>(`schedule/job/${body.id}`, {
     method: 'PUT',
     data: body,
   });
@@ -29,15 +29,21 @@ export async function deleteJob(id: number) {
   });
 }
 
+/** 立即执行：`POST /schedule/job/trigger/{id}` */
 export async function triggerJob(id: number) {
-  return request<R<any>>(`schedule/job/${id}/trigger`, {
+  return request<R<any>>(`schedule/job/trigger/${id}`, {
     method: 'POST',
   });
 }
 
+/** 任务分组列表：`GET /schedule/job/group`（用于筛选下拉） */
+export async function listGroups() {
+  return request<R<string[]>>('schedule/job/group', { method: 'GET' });
+}
+/** 修改任务状态：`PATCH /schedule/job/{id}/status`，body `{ status }` */
 export async function toggleJobStatus(id: number, status: number) {
   return request<R<any>>(`schedule/job/${id}/status`, {
-    method: 'PUT',
-    params: { status },
+    method: 'PATCH',
+    data: { status },
   });
 }

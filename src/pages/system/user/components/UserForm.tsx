@@ -39,7 +39,9 @@ const UserForm: React.FC<UserFormProps> = ({
   const handleSubmit = async (values: any) => {
     try {
       if (userData) {
-        await user.edit({ ...values, userId: userData.id });
+        // 密码不参与编辑（后端 UserReq.password 仅新增校验），去掉无关字段
+        const { password: _pw, ...rest } = values;
+        await user.edit({ ...rest, id: userData.id });
       } else {
         await user.create(values);
       }
@@ -85,7 +87,7 @@ const UserForm: React.FC<UserFormProps> = ({
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ gender: 0, status: 1, type: 1 }}
+        initialValues={{ gender: 0, status: 1 }}
       >
         <ProFormText
           name="username"
@@ -106,7 +108,7 @@ const UserForm: React.FC<UserFormProps> = ({
         />
         {!userData && (
           <ProFormText.Password
-            name="pass"
+            name="password"
             label={intl.formatMessage({ id: 'system.user.password' })}
             placeholder={
               intl.formatMessage({ id: 'common.form.placeholder.input' }) +
@@ -163,7 +165,7 @@ const UserForm: React.FC<UserFormProps> = ({
           ]}
         />
         <ProFormText
-          name="phoneNumber"
+          name="phone"
           label={intl.formatMessage({ id: 'system.user.phone' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
@@ -179,7 +181,7 @@ const UserForm: React.FC<UserFormProps> = ({
           }
         />
         <ProFormTreeSelect
-          name="organizationId"
+          name="deptId"
           label={intl.formatMessage({ id: 'system.user.organization' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.select' }) +
@@ -191,7 +193,7 @@ const UserForm: React.FC<UserFormProps> = ({
           }}
         />
         <ProFormSelect
-          name="roleCodes"
+          name="roleIds"
           label={intl.formatMessage({ id: 'system.role.title' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.select' }) +
@@ -201,8 +203,8 @@ const UserForm: React.FC<UserFormProps> = ({
           request={async () => {
             const data = await loadRoles();
             return data.map((item: any) => ({
-              label: item.name,
-              value: item.value,
+              label: item.label ?? item.name,
+              value: item.value ?? item.id,
             }));
           }}
         />
@@ -215,8 +217,9 @@ const UserForm: React.FC<UserFormProps> = ({
               value: 1,
             },
             {
+              // 后端 DisEnableStatusEnum：1 启用 / 2 禁用（没有 0）
               label: intl.formatMessage({ id: 'common.status.frozen' }),
-              value: 0,
+              value: 2,
             },
           ]}
         />

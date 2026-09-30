@@ -1,0 +1,10 @@
+{
+  "$comment": "已登记下线的接口前缀：后端未实现、前端入口已隐藏，因此不计入契约失配门禁。恢复方式=后端补接口 + 从 scripts/check-api-contract.mjs 与本文件移除登记 + 摘掉 src/utils/RouteUtils.ts 的 OFFLINE_MENU_PATHS。",
+  "change": "align-backend-contract",
+  "entries": [
+    {
+      "prefix": "chat/",
+      "reason": "guard-find-backend 与 guard-find-server 均无 /chat 接口；pages/chat 与 ChatFloat 已随后端菜单过滤一并下线，代码保留待后端能力落地"
+    }
+  ]
+}

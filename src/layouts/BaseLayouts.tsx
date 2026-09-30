@@ -26,9 +26,13 @@ import { DictProvider } from '@/components/Dict';
 import Footer from '@/components/Footer';
 import KeepAliveOutlet from '@/components/KeepAliveOutlet';
 import MultiTab from '@/components/MultiTab';
-import { getUnreadCount } from '@/services/web/user-message';
+import {
+  getUnreadCount,
+  getUnreadNoticeCount,
+} from '@/services/web/user-message';
 import { redirectToLogin } from '@/utils/LoginRedirect';
 import Notify from '@/utils/NotifyUtils';
+import { isOfflinePath } from '@/utils/RouteUtils';
 import { isLogin, LayoutSetting } from '@/utils/Web';
 
 /**
@@ -127,15 +131,18 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
 
   useEffect(() => {
     if (!isLogin(initialState)) return;
-    getUnreadCount()
-      .then((res) => {
-        if (res?.data) {
-          setUnreadCount(
-            typeof res.data === 'number' ? res.data : res.data.total || 0,
-          );
-        }
-      })
-      .catch(() => {});
+    // 铃铛角标 = 未读消息 + 未读公告，两者都是"当前登录用户"视角接口
+    void Promise.allSettled([getUnreadCount(), getUnreadNoticeCount()]).then(
+      ([messages, notices]) => {
+        const pick = (
+          result: PromiseSettledResult<{ data?: { total?: number } }>,
+        ) =>
+          result.status === 'fulfilled'
+            ? Number(result.value.data?.total) || 0
+            : 0;
+        setUnreadCount(pick(messages) + pick(notices));
+      },
+    );
   }, [initialState, location.pathname]);
 
   /**
@@ -367,7 +374,9 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
           }}
         />
 
-        {isLogin(initialState) && <ChatFloat />}
+        {/* 智能助手：后端（guard-find-backend 与 guard-find-server）均无 /chat 接口，
+            随 OFFLINE_MENU_PATHS 一并下线；后端就绪后去掉此处判断即可恢复 */}
+        {isLogin(initialState) && !isOfflinePath('/chat') && <ChatFloat />}
       </ProLayout>
     </DictProvider>
   );

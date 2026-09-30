@@ -109,7 +109,7 @@ const SmsConfigPage: React.FC = () => {
       width: 220,
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:sms:config:edit">
+          <AccessControl permission="system:smsConfig:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -119,7 +119,7 @@ const SmsConfigPage: React.FC = () => {
             </Button>
           </AccessControl>
           {!record.isDefault && (
-            <AccessControl permission="system:sms:config:edit">
+            <AccessControl permission="system:smsConfig:update">
               <Popconfirm
                 title="确定设为默认短信配置吗？"
                 onConfirm={() => handleSetDefault(record)}
@@ -130,7 +130,7 @@ const SmsConfigPage: React.FC = () => {
               </Popconfirm>
             </AccessControl>
           )}
-          <AccessControl permission="system:sms:config:del">
+          <AccessControl permission="system:smsConfig:delete">
             <Popconfirm
               title="确定要删除吗？"
               onConfirm={() => handleDelete(record)}
@@ -166,7 +166,7 @@ const SmsConfigPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:sms:config:add">
+          <AccessControl key="add" permission="system:smsConfig:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新增
             </Button>

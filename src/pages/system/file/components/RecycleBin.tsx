@@ -1,4 +1,4 @@
-import { DeleteOutlined, UndoOutlined } from '@ant-design/icons';
+import { ClearOutlined, DeleteOutlined, UndoOutlined } from '@ant-design/icons';
 import {
   type ActionType,
   type ProColumns,
@@ -8,46 +8,41 @@ import { Button, message, Popconfirm, Space } from 'antd';
 import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
 import {
+  cleanRecycle,
   permanentDelete,
   queryRecycleFiles,
   restoreFile,
 } from '@/services/web/file';
 import type { FileVo } from '@/services/web/file/typings';
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / 1024 ** i).toFixed(2)} ${units[i]}`;
-}
+import { formatFileSize } from '@/utils/format';
 
 const RecycleBin: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
 
+  const reload = () => actionRef.current?.reload();
+
   const handleRestore = async (record: FileVo) => {
-    try {
-      await restoreFile(record.id);
-      message.success('恢复成功');
-      actionRef.current?.reload();
-    } catch (error) {
-      console.error('Restore failed:', error);
-    }
+    await restoreFile(record.id);
+    message.success('恢复成功');
+    reload();
   };
 
   const handlePermanentDelete = async (record: FileVo) => {
-    try {
-      await permanentDelete(record.id);
-      message.success('永久删除成功');
-      actionRef.current?.reload();
-    } catch (error) {
-      console.error('Permanent delete failed:', error);
-    }
+    await permanentDelete(record.id);
+    message.success('永久删除成功');
+    reload();
+  };
+
+  const handleClean = async () => {
+    await cleanRecycle();
+    message.success('回收站已清空');
+    reload();
   };
 
   const columns: ProColumns<FileVo>[] = [
     {
       title: '文件名',
-      dataIndex: 'name',
+      dataIndex: 'originalName',
       ellipsis: true,
     },
     {
@@ -56,6 +51,19 @@ const RecycleBin: React.FC = () => {
       width: 120,
       hideInSearch: true,
       render: (_, record) => formatFileSize(record.size),
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      width: 100,
+      valueEnum: {
+        0: { text: '目录' },
+        1: { text: '其他' },
+        2: { text: '图片' },
+        3: { text: '文档' },
+        4: { text: '视频' },
+        5: { text: '音频' },
+      },
     },
     {
       title: '删除时间',
@@ -69,7 +77,7 @@ const RecycleBin: React.FC = () => {
       width: 200,
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:file:restore">
+          <AccessControl permission="system:fileRecycle:restore">
             <Button
               type="link"
               size="small"
@@ -79,7 +87,9 @@ const RecycleBin: React.FC = () => {
               恢复
             </Button>
           </AccessControl>
-          <AccessControl permission="system:file:del">
+          {/* 回收站的永久删除是 `system:fileRecycle:delete`，
+              与文件列表"移入回收站"的 `system:file:delete` 是两个码 */}
+          <AccessControl permission="system:fileRecycle:delete">
             <Popconfirm
               title="确定要永久删除该文件吗？此操作不可恢复。"
               onConfirm={() => handlePermanentDelete(record)}
@@ -100,8 +110,8 @@ const RecycleBin: React.FC = () => {
       actionRef={actionRef}
       rowKey="id"
       columns={columns}
-      request={async (params) => {
-        const { current, pageSize, ...rest } = params;
+      pagination={{ defaultPageSize: 10 }}
+      request={async ({ current, pageSize, ...rest }) => {
         const response = await queryRecycleFiles({
           page: current as number,
           size: pageSize as number,
@@ -113,6 +123,23 @@ const RecycleBin: React.FC = () => {
           success: true,
         };
       }}
+      toolBarRender={() => [
+        <AccessControl
+          key="clean"
+          permission="system:fileRecycle:clean"
+          mode="disable"
+          disabledTip="没有清空回收站的权限"
+        >
+          <Popconfirm
+            title="清空后所有文件将不可恢复，确定继续？"
+            onConfirm={handleClean}
+          >
+            <Button danger icon={<ClearOutlined />}>
+              清空回收站
+            </Button>
+          </Popconfirm>
+        </AccessControl>,
+      ]}
     />
   );
 };

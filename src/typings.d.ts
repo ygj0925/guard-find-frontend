@@ -25,10 +25,19 @@ declare let ANT_DESIGN_PRO_ONLY_DO_NOT_USE_IN_YOUR_PRODUCTION:
 
 declare const REACT_APP_ENV: 'prod' | 'dev' | 'pre' | false;
 
+/**
+ * 后端统一响应信封（`top.continew.starter.web.model.R`）。
+ *
+ * 成功：`{ code: '0', msg: '操作成功', data, success: true, timestamp }`
+ * 失败：HTTP 状态码仍为 200，`code` 为 '400'/'401'/'403'/'404'/'405'/'500'/'1'，
+ * 提示文案在 `msg`（不是 `message`/`errorMessage`）。
+ */
 export type R<T> = {
-  code: number;
-  message: string;
+  code: string;
+  msg: string;
   data: T;
+  success: boolean;
+  timestamp: number;
 };
 
 export type QueryParam<T> = {
@@ -73,40 +82,35 @@ declare namespace GLOBAL {
     user?: GLOBAL.UserInfo;
   };
 
+  /**
+   * 动态路由项 = 后端 `RouteResp`（`GET /auth/user/route`）。
+   *
+   * 注意 `RouteResp` 带 `@JsonInclude(NON_EMPTY)`：`isExternal/isCache/isHidden`
+   * 为 `false`、`sort` 为 `0`、空字符串字段都会**整体不下发**，
+   * 因此除 `id/title/type/path` 外一律按可选处理并显式取默认值。
+   * 历史 ballcat 字段（`hidden`/`uri`/`targetType`/`keepAlive`/`remarks`/`status`）后端不存在，已删除。
+   */
   type Router = {
-    hidden: boolean;
-    icon: string;
     id: number | string;
-    keepAlive: boolean;
-    parentId: number | string;
-    path: string;
-    remarks: string;
-    /**
-     * 1 组件, 2 内链, 3 外链
-     */
-    targetType: 1 | 2 | 3;
+    parentId?: number | string;
     title: string;
-    /**
-     * 0: 目录 1: 菜单 2: 按钮
-     */
-    type: 0 | 1 | 2 | 3;
-    uri: string;
+    /** 菜单类型：1 目录 / 2 菜单 / 3 按钮（后端 MenuTypeEnum） */
+    type: 1 | 2 | 3;
+    path?: string;
+    /** 组件名称，如 User */
     name?: string;
+    /** 组件路径，如 /system/user/index */
     component?: string;
     redirect?: string;
+    icon?: string;
     isExternal?: boolean;
-    isHidden?: boolean;
     isCache?: boolean;
+    isHidden?: boolean;
     permission?: string;
-    roles?: string[];
     sort?: number;
-    status?: 0 | 1;
-    activeMenu?: string;
-    alwaysShow?: boolean;
-    breadcrumb?: boolean;
-    showInTabs?: boolean;
-    affix?: boolean;
     children?: Router[];
+    activeMenu?: string;
+    roles?: string[];
   };
 
   type UserInfo = {

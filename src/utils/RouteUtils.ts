@@ -15,6 +15,35 @@ let menuDict: Record<string, ExpandRoute> = {};
 let cachedMenuRoutes: ExpandRoute[] = [];
 let cachedFirstPath: string | undefined;
 
+/**
+ * 后端尚未实现的模块入口。
+ *
+ * 这些菜单行已经种进数据库（`sys_menu`：`/i18n`、`/monitor/log/access`、`/chat`），
+ * 但对应接口在 `guard-find-backend` / `guard-find-server` 中都不存在，点开只会得到
+ * `code:"404"`。这里在前端隐藏入口止血；后端补齐或发 Liquibase 清理菜单行后，
+ * 从这里摘掉即可恢复。登记见 openspec change `align-backend-contract`。
+ */
+export const OFFLINE_MENU_PATHS = ['/i18n', '/monitor/log/access', '/chat'];
+
+let offlineWarned = false;
+const offlineHit = new Set<string>();
+
+export function isOfflinePath(path: string): boolean {
+  const hit = OFFLINE_MENU_PATHS.some(
+    (offline) => path === offline || path.startsWith(`${offline}/`),
+  );
+  if (hit) {
+    offlineHit.add(path);
+    if (!offlineWarned && process.env.NODE_ENV !== 'production') {
+      offlineWarned = true;
+      console.warn(
+        `[offline] 已隐藏后端未实现的菜单入口：${OFFLINE_MENU_PATHS.join(' ')}（见 openspec change align-backend-contract）`,
+      );
+    }
+  }
+  return hit;
+}
+
 function getRedirectPath(menu: ExpandRoute): string {
   let redirectPath = menu.path;
 
@@ -49,7 +78,12 @@ export function serializationRemoteList(
   _parentPath = '',
 ): ExpandRoute[] {
   return [...list]
-    .filter((item) => item.status !== 0 && item.type !== 3)
+    .filter((item) => {
+      if (item.type === 3) return false;
+      const raw = item.path || '';
+      const normalized = raw.startsWith('/') ? raw : `/${raw}`;
+      return !isOfflinePath(normalized);
+    })
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     .map((item) => {
       const rawPath = item.path || '';
@@ -61,7 +95,9 @@ export function serializationRemoteList(
       const isPage = item.type === 2;
       const route: ExpandRoute = {
         id: String(item.id),
-        hideInMenu: item.isHidden ?? item.hidden,
+        // RouteResp 是 @JsonInclude(NON_EMPTY)：isHidden 为 false 时字段不下发，
+        // 所以必须显式比较 true，不能用 ?? 回落到已不存在的 ballcat 字段
+        hideInMenu: item.isHidden === true,
         icon: item.icon,
         locale: false,
         path: fullPath,

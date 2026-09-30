@@ -17,16 +17,17 @@ export async function createSmsConfig(body: SmsConfigDto) {
 }
 
 export async function updateSmsConfig(body: SmsConfigDto) {
-  return request<R<any>>('system/sms/config', {
+  return request<R<any>>(`system/sms/config/${body.id}`, {
     method: 'PUT',
     data: body,
   });
 }
 
-export async function deleteSmsConfig(id: number) {
+/** 删除：`DELETE /system/sms/config` + `{ids}` */
+export async function deleteSmsConfig(id: number | number[]) {
   return request<R<any>>('system/sms/config', {
     method: 'DELETE',
-    data: [id],
+    data: { ids: Array.isArray(id) ? id : [id] },
   });
 }
 

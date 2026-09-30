@@ -3,14 +3,12 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
-  PlusOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import {
   Avatar,
-  Button,
   Card,
   Col,
   Empty,
@@ -23,7 +21,6 @@ import {
   Typography,
 } from 'antd';
 import React from 'react';
-import AccessControl from '@/components/AccessControl';
 
 const metrics = [
   {
@@ -50,13 +47,6 @@ const CockpitPage: React.FC = () => {
     <PageContainer
       title={`你好，${user?.nickname || user?.username || '欢迎回来'}`}
       subTitle="这里是你的协同工作台"
-      extra={
-        <AccessControl permission="task:item:create">
-          <Button type="primary" icon={<PlusOutlined />}>
-            新建任务
-          </Button>
-        </AccessControl>
-      }
     >
       <Row gutter={[16, 16]}>
         {metrics.map((metric) => (
@@ -88,13 +78,7 @@ const CockpitPage: React.FC = () => {
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description="暂无任务数据"
-            >
-              <AccessControl permission="task:item:create">
-                <Button type="primary" icon={<PlusOutlined />}>
-                  创建第一个任务
-                </Button>
-              </AccessControl>
-            </Empty>
+            />
           </Card>
         </Col>
         <Col xs={24} xl={8}>

@@ -17,7 +17,7 @@ export async function createTenant(body: TenantDto) {
 }
 
 export async function updateTenant(body: TenantDto) {
-  return request<R<any>>('tenant/management', {
+  return request<R<any>>(`tenant/management/${body.id}`, {
     method: 'PUT',
     data: body,
   });
@@ -29,8 +29,13 @@ export async function deleteTenant(id: number) {
   });
 }
 
+/**
+ * 重置租户管理员密码：`PUT /tenant/management/{id}/admin/pwd`，
+ * body 为 `{ password }`，且必须是 RSA 加密后的密文
+ * （后端 `TenantController.updateAdminUserPwd` 用私钥解密）。
+ */
 export async function resetTenantPassword(id: number, password: string) {
-  return request<R<any>>(`tenant/management/${id}/password`, {
+  return request<R<any>>(`tenant/management/${id}/admin/pwd`, {
     method: 'PUT',
     data: { password },
   });

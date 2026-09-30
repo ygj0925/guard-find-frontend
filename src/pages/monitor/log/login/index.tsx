@@ -1,3 +1,4 @@
+import { DownloadOutlined } from '@ant-design/icons';
 import {
   type ActionType,
   PageContainer,
@@ -5,10 +6,12 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
-import { Tag } from 'antd';
+import { Button, message, Tag } from 'antd';
 import React, { useRef } from 'react';
+import AccessControl from '@/components/AccessControl';
 import { loginLog } from '@/services/web/log';
 import type { LoginLogVo } from '@/services/web/log/typings';
+import { toSearchDateRange } from '@/utils/params';
 
 const LoginLogPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -69,7 +72,8 @@ const LoginLogPage: React.FC = () => {
       render: (_, record) => record.createTime || '-',
       search: {
         transform: (value) => ({
-          createTime: value.join(','),
+          // 后端 List<LocalDateTime>，需要重复参数而非逗号串
+          createTime: toSearchDateRange(value),
         }),
       },
     },
@@ -95,6 +99,25 @@ const LoginLogPage: React.FC = () => {
             success: true,
           };
         }}
+        toolBarRender={() => [
+          <AccessControl key="export" permission="monitor:log:export">
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={async () => {
+                try {
+                  await loginLog.exportLogs();
+                  message.success(
+                    intl.formatMessage({ id: 'common.operation.success' }),
+                  );
+                } catch (error) {
+                  console.error('Export failed:', error);
+                }
+              }}
+            >
+              {intl.formatMessage({ id: 'common.operation.export' })}
+            </Button>
+          </AccessControl>,
+        ]}
       />
     </PageContainer>
   );

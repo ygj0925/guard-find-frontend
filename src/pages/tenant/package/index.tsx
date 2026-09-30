@@ -63,7 +63,7 @@ const PackagePage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="tenant:package:edit">
+          <AccessControl permission="tenant:package:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -72,7 +72,7 @@ const PackagePage: React.FC = () => {
               编辑
             </Button>
           </AccessControl>
-          <AccessControl permission="tenant:package:menu">
+          <AccessControl permission="tenant:package:update">
             <Button
               type="link"
               icon={<MenuOutlined />}
@@ -81,7 +81,7 @@ const PackagePage: React.FC = () => {
               分配菜单
             </Button>
           </AccessControl>
-          <AccessControl permission="tenant:package:del">
+          <AccessControl permission="tenant:package:delete">
             <Popconfirm
               title="确定要删除此套餐吗？"
               onConfirm={() => handleDelete(record)}
@@ -152,7 +152,7 @@ const PackagePage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="tenant:package:add">
+          <AccessControl key="add" permission="tenant:package:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新增
             </Button>

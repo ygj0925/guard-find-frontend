@@ -140,7 +140,7 @@ const StoragePage: React.FC = () => {
       width: 220,
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:storage:edit">
+          <AccessControl permission="system:storage:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -150,7 +150,7 @@ const StoragePage: React.FC = () => {
             </Button>
           </AccessControl>
           {!record.isDefault && (
-            <AccessControl permission="system:storage:edit">
+            <AccessControl permission="system:storage:update">
               <Popconfirm
                 title="确定设为默认存储吗？"
                 onConfirm={() => handleSetDefault(record)}
@@ -161,7 +161,7 @@ const StoragePage: React.FC = () => {
               </Popconfirm>
             </AccessControl>
           )}
-          <AccessControl permission="system:storage:del">
+          <AccessControl permission="system:storage:delete">
             <Popconfirm
               title="确定要删除吗？"
               onConfirm={() => handleDelete(record)}
@@ -183,18 +183,18 @@ const StoragePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        pagination={false}
         request={async (params) => {
           const { name } = params as Partial<StorageQuery>;
           const response = await queryStorages({ name });
-          const list = response.data || [];
+          // 后端 `GET /system/storage/list` 不分页
           return {
-            data: list,
-            total: list.length,
+            data: response.data || [],
             success: true,
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:storage:add">
+          <AccessControl key="add" permission="system:storage:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新增
             </Button>

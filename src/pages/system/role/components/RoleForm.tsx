@@ -1,5 +1,6 @@
 import {
   ProForm,
+  ProFormDigit,
   ProFormSelect,
   ProFormText,
   ProFormTextArea,
@@ -64,7 +65,11 @@ const RoleForm: React.FC<RoleFormProps> = ({
       footer={null}
       destroyOnClose
     >
-      <ProForm form={form} onFinish={handleSubmit} initialValues={{ type: 1 }}>
+      <ProForm
+        form={form}
+        onFinish={handleSubmit}
+        initialValues={{ sort: 0, dataScope: 1 }}
+      >
         <ProFormText
           name="name"
           label={intl.formatMessage({ id: 'system.role.name' })}
@@ -95,37 +100,54 @@ const RoleForm: React.FC<RoleFormProps> = ({
                 intl.formatMessage({ id: 'common.form.placeholder.input' }) +
                 intl.formatMessage({ id: 'system.role.code' }),
             },
-            {
-              pattern: /^ROLE_/,
-              message: intl.formatMessage({ id: 'system.role.code.rule' }),
-            },
           ]}
           disabled={!!roleData}
         />
         <ProFormSelect
-          name="type"
-          label={intl.formatMessage({ id: 'system.role.type' })}
+          name="dataScope"
+          label={intl.formatMessage({ id: 'system.role.data.scope' })}
           options={[
             {
-              label: intl.formatMessage({ id: 'system.role.type.system' }),
+              label: intl.formatMessage({
+                id: 'system.role.data.scope.all',
+              }),
               value: 1,
             },
             {
-              label: intl.formatMessage({ id: 'system.role.type.business' }),
+              label: intl.formatMessage({
+                id: 'system.role.data.scope.dept.and.child',
+              }),
               value: 2,
             },
-          ]}
-          rules={[
             {
-              required: true,
-              message:
-                intl.formatMessage({ id: 'common.form.placeholder.select' }) +
-                intl.formatMessage({ id: 'system.role.type' }),
+              label: intl.formatMessage({
+                id: 'system.role.data.scope.dept',
+              }),
+              value: 3,
+            },
+            {
+              label: intl.formatMessage({
+                id: 'system.role.data.scope.self',
+              }),
+              value: 4,
+            },
+            {
+              label: intl.formatMessage({
+                id: 'system.role.data.scope.custom',
+              }),
+              value: 5,
             },
           ]}
+          extra="后端 DataScopeEnum：1 全部 / 2 本部门及以下 / 3 本部门 / 4 仅本人 / 5 自定义"
+        />
+        <ProFormDigit
+          name="sort"
+          label={intl.formatMessage({ id: 'common.field.sort' })}
+          min={0}
+          fieldProps={{ precision: 0 }}
         />
         <ProFormTextArea
-          name="remarks"
+          name="description"
           label={intl.formatMessage({ id: 'common.field.remark' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +

@@ -31,6 +31,7 @@ import {
   resolveLoginRedirect,
 } from '@/utils/AuthSession';
 import { encryptByRsa } from '@/utils/Encrypt';
+import { CLIENT_ID } from '@/utils/env';
 import { isPasswordLoginEnabled, redirectToLogin } from '@/utils/LoginRedirect';
 import Settings from '../../../config/defaultSettings';
 
@@ -109,7 +110,7 @@ const AuthLogin: React.FC = () => {
           password: encryptByRsa(values.password || ''),
           captcha: values.captcha || '',
           uuid: captcha.uuid,
-          clientId: process.env.clientId,
+          clientId: CLIENT_ID,
         });
         await finishLogin(response.data.token, response.data.tenantId);
       } else if (mode === 'phone') {

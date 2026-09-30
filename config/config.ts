@@ -187,6 +187,10 @@ export default defineConfig({
   define: {
     'process.env.CI': process.env.CI,
     'process.env.loginMode': isProd ? 'sso' : 'password',
+    // 以下为可选覆盖项：未设置时由使用处回落到默认值（见 utils/Encrypt.ts、utils/Web.ts）
+    'process.env.rsaPublicKey': process.env.RSA_PUBLIC_KEY,
+    'process.env.clientId': process.env.CLIENT_ID,
+    'process.env.namespaceName': process.env.STORAGE_NAMESPACE,
   },
   tailwindcss: {},
 });

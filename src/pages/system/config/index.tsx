@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { EditOutlined } from '@ant-design/icons';
 import {
   type ActionType,
   PageContainer,
@@ -6,7 +6,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
-import { Button, message, Popconfirm, Space, Tabs } from 'antd';
+import { Button, Space, Tabs } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysConfigQo, SysConfigVo } from '@/services/web/system';
@@ -17,8 +17,6 @@ import LoginConfig from './components/LoginConfig';
 import MailConfig from './components/MailConfig';
 import SecurityConfig from './components/SecurityConfig';
 import SiteConfig from './components/SiteConfig';
-import SmsConfig from './components/SmsConfig';
-import StorageConfig from './components/StorageConfig';
 
 const ConfigPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -54,7 +52,7 @@ const ConfigPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:config:edit">
+          <AccessControl permission="system:siteConfig:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -63,39 +61,14 @@ const ConfigPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:config:del">
-            <Popconfirm
-              title={intl.formatMessage({ id: 'common.delete.confirm' })}
-              onConfirm={() => handleDelete(record)}
-            >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                {intl.formatMessage({ id: 'common.operation.delete' })}
-              </Button>
-            </Popconfirm>
-          </AccessControl>
         </Space>
       ),
     },
   ];
 
-  const handleAdd = () => {
-    setCurrentConfig(null);
-    setFormVisible(true);
-  };
-
   const handleEdit = (record: SysConfigVo) => {
     setCurrentConfig(record);
     setFormVisible(true);
-  };
-
-  const handleDelete = async (record: SysConfigVo) => {
-    try {
-      await config.del(record);
-      message.success(intl.formatMessage({ id: 'common.delete.success' }));
-      actionRef.current?.reload();
-    } catch (error) {
-      console.error('Delete failed:', error);
-    }
   };
 
   const handleFormSuccess = () => {
@@ -119,27 +92,17 @@ const ConfigPage: React.FC = () => {
                   actionRef={actionRef}
                   rowKey="id"
                   columns={columns}
+                  pagination={false}
                   request={async (params) => {
                     const { name, code } = params as Partial<SysConfigQo>;
                     const response = await config.query({ name, code });
-                    const list = response.data || [];
+                    // 后端 `GET /system/option` 返回全量参数，不分页
                     return {
-                      data: list,
-                      total: list.length,
+                      data: response.data || [],
                       success: true,
                     };
                   }}
-                  toolBarRender={() => [
-                    <AccessControl key="add" permission="system:config:edit">
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleAdd}
-                      >
-                        {intl.formatMessage({ id: 'common.operation.add' })}
-                      </Button>
-                    </AccessControl>,
-                  ]}
+                  toolBarRender={() => []}
                 />
                 <ConfigForm
                   visible={formVisible}
@@ -154,8 +117,10 @@ const ConfigPage: React.FC = () => {
           { key: 'security', label: '安全配置', children: <SecurityConfig /> },
           { key: 'mail', label: '邮件配置', children: <MailConfig /> },
           { key: 'login', label: '登录配置', children: <LoginConfig /> },
-          { key: 'storage', label: '存储配置', children: <StorageConfig /> },
-          { key: 'sms', label: '短信配置', children: <SmsConfig /> },
+          // 原先这里的"存储配置/短信配置"是伪装成 sys_option 的占位表单
+          // （category=storage/sms 不属于后端 OptionCategoryEnum，请求必然 400）；
+          // 真正的管理页已在各自路由：/system/storage、/system/sms-config。
+          // "客户端配置"属后端 /system/client，尚未接入，见 align-backend-contract 阶段 6.1。
           { key: 'client', label: '客户端配置', children: <ClientConfig /> },
         ]}
       />

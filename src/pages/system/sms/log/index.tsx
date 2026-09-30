@@ -15,6 +15,7 @@ import {
   querySmsLogs,
 } from '@/services/web/sms/log';
 import type { SmsLogVo } from '@/services/web/sms/typings';
+import { saveBlob } from '@/utils/download';
 
 const SmsLogPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -48,15 +49,7 @@ const SmsLogPage: React.FC = () => {
   const handleExport = async () => {
     try {
       const response = await exportSmsLogs({});
-      const blob = new Blob([response], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = '短信日志.xlsx';
-      link.click();
-      window.URL.revokeObjectURL(url);
+      saveBlob(response as Blob, '短信日志.xlsx');
       message.success('导出成功');
     } catch (error) {
       console.error('Export failed:', error);
@@ -106,7 +99,7 @@ const SmsLogPage: React.FC = () => {
       valueType: 'option',
       width: 100,
       render: (_, record) => (
-        <AccessControl permission="monitor:sms:log:del">
+        <AccessControl permission="system:smsLog:delete">
           <Popconfirm
             title="确定要删除吗？"
             onConfirm={() => handleDelete(record)}
@@ -145,7 +138,7 @@ const SmsLogPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="batchDel" permission="monitor:sms:log:del">
+          <AccessControl key="batchDel" permission="system:smsLog:delete">
             <Popconfirm
               title="确定要批量删除选中记录吗？"
               onConfirm={handleBatchDelete}
@@ -155,7 +148,7 @@ const SmsLogPage: React.FC = () => {
               </Button>
             </Popconfirm>
           </AccessControl>,
-          <AccessControl key="export" permission="monitor:sms:log:export">
+          <AccessControl key="export" permission="system:smsLog:export">
             <Button icon={<DownloadOutlined />} onClick={handleExport}>
               导出
             </Button>

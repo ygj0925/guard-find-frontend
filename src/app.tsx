@@ -5,6 +5,10 @@ import { getUserInfo } from '@/services/web/login';
 import type { GLOBAL } from '@/typings';
 import { requestConfig } from '@/utils/RequestConfig';
 import { fetchAndCacheRoutes } from '@/utils/RouteUtils';
+import {
+  applyCachedSiteSettings,
+  loadSiteSettings,
+} from '@/utils/siteSettings';
 import { LayoutSetting, Token, User } from '@/utils/Web';
 import settings from '../config/defaultSettings';
 
@@ -38,6 +42,9 @@ export async function getInitialState(): Promise<{
   const is: GLOBAL.Is = {
     settings: { ...settings, ...LayoutSetting.get() },
   };
+  // 站点标题/图标：先用上次缓存应用，再静默刷新（失败不影响启动）
+  applyCachedSiteSettings();
+  void loadSiteSettings();
   const cache = User.get();
 
   if (cache) {

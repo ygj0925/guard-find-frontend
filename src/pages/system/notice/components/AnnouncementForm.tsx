@@ -73,7 +73,13 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ permanent: 0, receiverType: 0, notifyType: [1] }}
+        initialValues={{
+          noticeScope: 1,
+          noticeMethods: [1],
+          isTiming: false,
+          isTop: false,
+          status: 1,
+        }}
       >
         <ProFormText
           name="title"
@@ -95,59 +101,66 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
           </div>
           <Editor value={content} onChange={setContent} height={200} />
         </div>
+        <ProFormText
+          name="type"
+          label={intl.formatMessage({ id: 'notify.announcement.category' })}
+          placeholder={
+            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
+            intl.formatMessage({ id: 'notify.announcement.category' })
+          }
+          extra="公告分类，取值来自字典 notice_type"
+          rules={[
+            {
+              required: true,
+              message: intl.formatMessage({ id: 'common.form.required' }),
+            },
+          ]}
+        />
         <ProFormSelect
-          name="receiverType"
-          label={intl.formatMessage({
-            id: 'notify.announcement.receiver.type',
-          })}
+          name="noticeScope"
+          label={intl.formatMessage({ id: 'notify.announcement.scope' })}
           options={[
             {
               label: intl.formatMessage({
-                id: 'notify.announcement.receiver.all',
-              }),
-              value: 0,
-            },
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.receiver.role',
+                id: 'notify.announcement.scope.all',
               }),
               value: 1,
             },
             {
               label: intl.formatMessage({
-                id: 'notify.announcement.receiver.organization',
+                id: 'notify.announcement.scope.user',
               }),
               value: 2,
             },
+          ]}
+          rules={[
             {
-              label: intl.formatMessage({
-                id: 'notify.announcement.receiver.user',
-              }),
-              value: 3,
+              required: true,
+              message: intl.formatMessage({ id: 'common.form.required' }),
             },
           ]}
         />
         <ProFormCheckbox.Group
-          name="notifyType"
-          label={intl.formatMessage({ id: 'notify.announcement.notify.type' })}
+          name="noticeMethods"
+          label={intl.formatMessage({ id: 'notify.announcement.methods' })}
           options={[
             {
               label: intl.formatMessage({
-                id: 'notify.announcement.notify.site',
+                id: 'notify.announcement.method.site',
               }),
               value: 1,
             },
             {
               label: intl.formatMessage({
-                id: 'notify.announcement.notify.email',
+                id: 'notify.announcement.method.popup',
               }),
               value: 2,
             },
           ]}
         />
         <ProFormSwitch
-          name="permanent"
-          label={intl.formatMessage({ id: 'notify.announcement.permanent' })}
+          name="isTiming"
+          label={intl.formatMessage({ id: 'notify.announcement.is.timing' })}
           fieldProps={{
             checkedChildren: intl.formatMessage({ id: 'common.operation.yes' }),
             unCheckedChildren: intl.formatMessage({
@@ -156,8 +169,43 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
           }}
         />
         <ProFormDateTimePicker
-          name="expireTime"
-          label={intl.formatMessage({ id: 'notify.announcement.expire.time' })}
+          name="publishTime"
+          label={intl.formatMessage({ id: 'notify.announcement.publish.time' })}
+          extra="仅在开启定时发布时必填（后端 SpelNotNull 校验）"
+        />
+        <ProFormSwitch
+          name="isTop"
+          label={intl.formatMessage({ id: 'notify.announcement.is.top' })}
+          fieldProps={{
+            checkedChildren: intl.formatMessage({ id: 'common.operation.yes' }),
+            unCheckedChildren: intl.formatMessage({
+              id: 'common.operation.no',
+            }),
+          }}
+        />
+        <ProFormSelect
+          name="status"
+          label={intl.formatMessage({ id: 'notify.announcement.status' })}
+          options={[
+            {
+              label: intl.formatMessage({
+                id: 'notify.announcement.status.draft',
+              }),
+              value: 1,
+            },
+            {
+              label: intl.formatMessage({
+                id: 'notify.announcement.status.pending',
+              }),
+              value: 2,
+            },
+            {
+              label: intl.formatMessage({
+                id: 'notify.announcement.status.published',
+              }),
+              value: 3,
+            },
+          ]}
         />
       </ProForm>
     </Modal>

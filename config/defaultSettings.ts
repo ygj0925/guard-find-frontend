@@ -51,7 +51,8 @@ const Settings: ProjectSetting & {
   waterMark: true,
   multiTab: true,
   storageOptions: {
-    namespace: process.env.namespaceName as string,
+    // 未注入 namespaceName 时给出可用默认值，避免 localStorage 键前缀变成字面量 "undefined"
+    namespace: (process.env.namespaceName as string) || 'guard-find-admin/',
     storage: 'local',
   },
   token: {

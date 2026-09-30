@@ -16,6 +16,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import { deleteApp, exportApps, queryApps } from '@/services/web/open/app';
 import type { AppVo } from '@/services/web/open/typings';
+import { saveBlob } from '@/utils/download';
 import AppForm from './components/AppForm';
 import SecretModal from './components/SecretModal';
 
@@ -67,7 +68,7 @@ const AppPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="open:app:edit">
+          <AccessControl permission="open:app:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -85,7 +86,7 @@ const AppPage: React.FC = () => {
               查看密钥
             </Button>
           </AccessControl>
-          <AccessControl permission="open:app:del">
+          <AccessControl permission="open:app:delete">
             <Popconfirm
               title="确认删除该应用吗？"
               onConfirm={() => handleDelete(record)}
@@ -128,14 +129,7 @@ const AppPage: React.FC = () => {
   const handleExport = async () => {
     try {
       const blob = await exportApps();
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'apps.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      saveBlob(blob as Blob, 'apps.xlsx');
       message.success('导出成功');
     } catch (error) {
       console.error('Export failed:', error);
@@ -168,7 +162,7 @@ const AppPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="open:app:add">
+          <AccessControl key="add" permission="open:app:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新增
             </Button>

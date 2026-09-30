@@ -17,7 +17,6 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysRoleQo, SysRoleVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
-import type { QueryParam } from '@/typings';
 import MenuGrant from './components/MenuGrant';
 import RoleForm from './components/RoleForm';
 import UserBind from './components/UserBind';
@@ -28,7 +27,7 @@ const RolePage: React.FC = () => {
   const [formVisible, setFormVisible] = useState(false);
   const [currentRole, setCurrentRole] = useState<SysRoleVo | null>(null);
   const [grantVisible, setGrantVisible] = useState(false);
-  const [grantRoleCode, setGrantRoleCode] = useState('');
+  const [grantRoleId, setGrantRoleId] = useState(0);
   const [userBindVisible, setUserBindVisible] = useState(false);
   const [userBindRoleId, setUserBindRoleId] = useState(0);
 
@@ -71,7 +70,7 @@ const RolePage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:role:edit">
+          <AccessControl permission="system:role:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -80,7 +79,7 @@ const RolePage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:role:grant">
+          <AccessControl permission="system:role:updatePermission">
             <Button
               type="link"
               icon={<SettingOutlined />}
@@ -89,7 +88,7 @@ const RolePage: React.FC = () => {
               {intl.formatMessage({ id: 'system.role.menu.grant' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:role:grant">
+          <AccessControl permission="system:role:updatePermission">
             <Button
               type="link"
               icon={<TeamOutlined />}
@@ -98,7 +97,7 @@ const RolePage: React.FC = () => {
               {intl.formatMessage({ id: 'system.role.user.bind' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:role:del">
+          <AccessControl permission="system:role:delete">
             <Popconfirm
               title={intl.formatMessage({ id: 'common.delete.confirm' })}
               onConfirm={() => handleDelete(record)}
@@ -134,7 +133,7 @@ const RolePage: React.FC = () => {
   };
 
   const handleGrant = (record: SysRoleVo) => {
-    setGrantRoleCode(record.code);
+    setGrantRoleId(record.id);
     setGrantVisible(true);
   };
 
@@ -155,20 +154,18 @@ const RolePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        pagination={false}
         request={async (params) => {
-          const { current, pageSize, ...rest } = params;
-          void current;
-          void pageSize;
-          const response = await role.query(rest as QueryParam<SysRoleQo>);
-          const list = response.data || [];
+          const { current: _c, pageSize: _p, ...rest } = params;
+          // 后端 `GET /system/role/list` 不分页，忽略 ProTable 的分页参数
+          const response = await role.query(rest as Partial<SysRoleQo>);
           return {
-            data: list,
-            total: list.length,
+            data: response.data || [],
             success: true,
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:role:add">
+          <AccessControl key="add" permission="system:role:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               {intl.formatMessage({ id: 'common.operation.add' })}
             </Button>
@@ -185,7 +182,7 @@ const RolePage: React.FC = () => {
 
       <MenuGrant
         visible={grantVisible}
-        roleCode={grantRoleCode}
+        roleId={grantRoleId}
         onCancel={() => setGrantVisible(false)}
       />
 

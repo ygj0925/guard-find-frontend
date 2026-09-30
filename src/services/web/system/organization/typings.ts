@@ -1,38 +1,16 @@
-export type SysOrganization = {
-  id: number;
-  // 组织名称
-  name: string;
-  // 父级ID
-  parentId: number;
-  // 层级信息，从根节点到当前节点的最短路径，使用-分割节点ID
-  hierarchy: string;
-  // 当前节点深度
-  depth: number;
-  // 备注
-  remarks: string;
-  // 排序字段，由小到大
-  sort: number;
-  // 创建者
-  createBy: string;
-  // 修改者
-  updateBy: string;
-  // 创建时间
-  createTime: string;
-  // 更新时间
-  updateTime: string;
-};
+/**
+ * 部门（后端 `DeptController`，路径为 `/system/dept`）。
+ * 字段名与后端 `DeptReq` / `DeptResp` 一致，不要沿用 ballcat 时代的 `remarks`/`hierarchy`。
+ */
 
-export type SysOrganizationQo = {
-  name: string;
-};
-
+/** 树节点（`GET /system/dept/tree` → `DeptResp` + `children`） */
 export type SysOrganizationVo = {
   id: number;
   // 部门名称
   name: string;
   // 父级ID
   parentId: number;
-  // 状态(1-启用, 2-禁用)
+  // 状态(1-启用, 2-禁用) DisEnableStatusEnum
   status: number;
   // 是否内置
   isSystem?: boolean;
@@ -48,14 +26,24 @@ export type SysOrganizationVo = {
   children: SysOrganizationVo[];
 };
 
+/** 新增/修改请求体 = 后端 `DeptReq`（编辑时主键走 `PUT /system/dept/{id}` 路径） */
 export type SysOrganizationDto = {
-  id: number;
-  // 组织名称
-  name: string;
+  id?: number;
   // 父级ID
-  parentId: number;
-  // 备注
-  remarks: string;
-  // 排序字段，由小到大
-  sort: number;
+  parentId?: number;
+  // 部门名称
+  name: string;
+  // 排序
+  sort?: number;
+  // 描述
+  description?: string;
+  // 状态(1-启用, 2-禁用)
+  status?: number;
+};
+
+/** 查询条件 = 后端 `DeptQuery`（继承 CommonQuery：name、description、status） */
+export type SysOrganizationQo = {
+  name?: string;
+  description?: string;
+  status?: 1 | 2;
 };

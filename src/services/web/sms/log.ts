@@ -9,17 +9,18 @@ export async function querySmsLogs(body: QueryParam<SmsLogQuery>) {
   });
 }
 
-export async function deleteSmsLog(id: number) {
+/** 删除：`DELETE /system/sms/log` + `{ids}` */
+export async function deleteSmsLog(id: number | number[]) {
   return request<R<any>>('system/sms/log', {
     method: 'DELETE',
-    data: [id],
+    data: { ids: Array.isArray(id) ? id : [id] },
   });
 }
 
 export async function batchDeleteSmsLogs(ids: number[]) {
   return request<R<any>>('system/sms/log', {
     method: 'DELETE',
-    data: ids,
+    data: { ids },
   });
 }
 

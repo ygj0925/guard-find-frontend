@@ -1,9 +1,11 @@
 import {
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   KeyOutlined,
   PlusOutlined,
   SafetyOutlined,
+  UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import {
@@ -16,11 +18,11 @@ import { useIntl } from '@umijs/max';
 import { Avatar, Button, message, Popconfirm, Space, Switch } from 'antd';
 import React, { useCallback, useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
-import AvatarCropper from '@/components/AvatarCropper';
 import OrganizationTree from '@/components/OrganizationTree';
 import type { SysUserVo } from '@/services/web/system';
 import { user } from '@/services/web/system';
 import Grant from './components/Grant';
+import ImportModal from './components/ImportModal';
 import Pass from './components/Pass';
 import UserForm from './components/UserForm';
 
@@ -33,9 +35,8 @@ const UserPage: React.FC = () => {
   const [grantUser, setGrantUser] = useState<SysUserVo | null>(null);
   const [passVisible, setPassVisible] = useState(false);
   const [passUser, setPassUser] = useState<SysUserVo | null>(null);
-  const [avatarVisible, setAvatarVisible] = useState(false);
-  const [avatarUser, setAvatarUser] = useState<SysUserVo | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<number | undefined>();
+  const [importVisible, setImportVisible] = useState(false);
 
   const genderMap: Record<number, string> = {
     0: intl.formatMessage({ id: 'common.gender.unknown' }),
@@ -49,12 +50,7 @@ const UserPage: React.FC = () => {
       dataIndex: 'avatar',
       width: 60,
       render: (_, record) => (
-        <Avatar
-          src={record.avatar}
-          icon={<UserOutlined />}
-          style={{ cursor: 'pointer' }}
-          onClick={() => handleAvatarUpload(record)}
-        />
+        <Avatar src={record.avatar} icon={<UserOutlined />} />
       ),
       hideInSearch: true,
     },
@@ -117,7 +113,7 @@ const UserPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="system:user:edit">
+          <AccessControl permission="system:user:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -126,7 +122,7 @@ const UserPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:user:grant">
+          <AccessControl permission="system:user:updateRole">
             <Button
               type="link"
               icon={<SafetyOutlined />}
@@ -135,7 +131,7 @@ const UserPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.grant' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:user:pass">
+          <AccessControl permission="system:user:resetPwd">
             <Button
               type="link"
               icon={<KeyOutlined />}
@@ -144,7 +140,7 @@ const UserPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.change.password' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:user:del">
+          <AccessControl permission="system:user:delete">
             <Popconfirm
               title={intl.formatMessage({ id: 'common.delete.confirm' })}
               onConfirm={() => handleDelete(record)}
@@ -187,11 +183,6 @@ const UserPage: React.FC = () => {
   const handlePass = (record: SysUserVo) => {
     setPassUser(record);
     setPassVisible(true);
-  };
-
-  const handleAvatarUpload = (record: SysUserVo) => {
-    setAvatarUser(record);
-    setAvatarVisible(true);
   };
 
   const handleStatusChange = async (record: SysUserVo, status: 1 | 2) => {
@@ -244,6 +235,17 @@ const UserPage: React.FC = () => {
     }
   };
 
+  const handleOpenImport = () => setImportVisible(true);
+
+  const handleExport = async () => {
+    try {
+      await user.exportUsers({ deptId: selectedOrgId });
+      message.success(intl.formatMessage({ id: 'common.operation.success' }));
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  };
+
   const handleFormSuccess = () => {
     setFormVisible(false);
     actionRef.current?.reload();
@@ -257,18 +259,6 @@ const UserPage: React.FC = () => {
   const handlePassSuccess = () => {
     setPassVisible(false);
     message.success(intl.formatMessage({ id: 'common.operation.success' }));
-  };
-
-  const handleAvatarUploadSuccess = async (file: Blob) => {
-    if (!avatarUser) return;
-    try {
-      await user.updateAvatar(avatarUser, file, { name: 'avatar.jpg' } as any);
-      message.success(intl.formatMessage({ id: 'common.operation.success' }));
-      setAvatarVisible(false);
-      actionRef.current?.reload();
-    } catch (error) {
-      console.error('Avatar upload failed:', error);
-    }
   };
 
   const handleOrgSelect = useCallback((org: any) => {
@@ -314,7 +304,7 @@ const UserPage: React.FC = () => {
               };
             }}
             toolBarRender={() => [
-              <AccessControl key="add" permission="system:user:add">
+              <AccessControl key="add" permission="system:user:create">
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
@@ -323,14 +313,24 @@ const UserPage: React.FC = () => {
                   {intl.formatMessage({ id: 'common.operation.add' })}
                 </Button>
               </AccessControl>,
-              <AccessControl key="batchEnable" permission="system:user:edit">
+              <AccessControl key="batchEnable" permission="system:user:update">
                 <Button onClick={handleBatchEnable}>
                   {intl.formatMessage({ id: 'system.user.batch.enable' })}
                 </Button>
               </AccessControl>,
-              <AccessControl key="batchDisable" permission="system:user:edit">
+              <AccessControl key="batchDisable" permission="system:user:update">
                 <Button onClick={handleBatchDisable}>
                   {intl.formatMessage({ id: 'system.user.batch.disable' })}
+                </Button>
+              </AccessControl>,
+              <AccessControl key="import" permission="system:user:import">
+                <Button icon={<UploadOutlined />} onClick={handleOpenImport}>
+                  {intl.formatMessage({ id: 'common.operation.import' })}
+                </Button>
+              </AccessControl>,
+              <AccessControl key="export" permission="system:user:export">
+                <Button icon={<DownloadOutlined />} onClick={handleExport}>
+                  {intl.formatMessage({ id: 'common.operation.export' })}
                 </Button>
               </AccessControl>,
             ]}
@@ -359,10 +359,10 @@ const UserPage: React.FC = () => {
         onSuccess={handlePassSuccess}
       />
 
-      <AvatarCropper
-        visible={avatarVisible}
-        onCancel={() => setAvatarVisible(false)}
-        onUpload={handleAvatarUploadSuccess}
+      <ImportModal
+        visible={importVisible}
+        onCancel={() => setImportVisible(false)}
+        onSuccess={() => actionRef.current?.reload()}
       />
     </PageContainer>
   );

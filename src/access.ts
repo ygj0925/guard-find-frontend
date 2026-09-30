@@ -1,20 +1,25 @@
 /**
  * @see https://umijs.org/docs/max/access#access
- * */
+ *
+ * 判定逻辑统一走 `@/utils/access`，与 `useAccess`/`AccessControl` 完全一致。
+ */
+
 import type { GLOBAL } from '@/typings';
+import { createAccessChecker } from '@/utils/access';
 
 export default function access(
   initialState: { user?: GLOBAL.UserInfo } | undefined,
 ) {
-  const currentUser = initialState?.user;
-  const permissions = currentUser?.permissions || [];
-  const roles = currentUser?.roles || [];
+  const access = createAccessChecker(initialState?.user);
 
   return {
-    canAdmin: roles.includes('admin') || roles.includes('super_admin'),
-    permissions,
-    roles,
-    hasPermission: (permission: string) => permissions.includes(permission),
-    hasRole: (role: string) => roles.includes(role),
+    /** 兼容旧命名 */
+    canAdmin: access.isAdmin,
+    permissions: access.permissions,
+    roles: access.roles,
+    hasPermission: access.hasPermission,
+    hasRole: access.hasRole,
+    hasAnyPermission: access.hasAnyPermission,
+    hasAllPermissions: access.hasAllPermissions,
   };
 }

@@ -26,7 +26,6 @@ const PassModal: React.FC<PassModalProps> = ({
     try {
       await user.changePassword({
         userId: userData.id,
-        username: userData.username,
         pass: values.pass,
       });
       message.success(intl.formatMessage({ id: 'common.operation.success' }));

@@ -17,16 +17,17 @@ export async function createApp(data: AppDto) {
 }
 
 export async function updateApp(data: AppDto) {
-  return request<R<any>>('open/app', {
+  return request<R<any>>(`open/app/${data.id}`, {
     method: 'PUT',
     data,
   });
 }
 
-export async function deleteApp(id: number) {
+/** 删除：`DELETE /open/app` + `{ids}` */
+export async function deleteApp(id: number | number[]) {
   return request<R<any>>('open/app', {
     method: 'DELETE',
-    data: [id],
+    data: { ids: Array.isArray(id) ? id : [id] },
   });
 }
 

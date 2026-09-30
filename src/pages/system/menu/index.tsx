@@ -1,4 +1,9 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import {
   type ActionType,
   PageContainer,
@@ -92,7 +97,7 @@ const MenuPage: React.FC = () => {
       render: (_, record) => (
         <Space>
           {record.type !== 3 && (
-            <AccessControl permission="system:menu:add">
+            <AccessControl permission="system:menu:create">
               <Button
                 type="link"
                 icon={<PlusOutlined />}
@@ -102,7 +107,7 @@ const MenuPage: React.FC = () => {
               </Button>
             </AccessControl>
           )}
-          <AccessControl permission="system:menu:edit">
+          <AccessControl permission="system:menu:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -111,7 +116,7 @@ const MenuPage: React.FC = () => {
               {intl.formatMessage({ id: 'common.operation.edit' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:menu:del">
+          <AccessControl permission="system:menu:delete">
             <Popconfirm
               title={intl.formatMessage({ id: 'common.delete.confirm' })}
               description={intl.formatMessage({
@@ -157,6 +162,16 @@ const MenuPage: React.FC = () => {
     }
   };
 
+  /** 清理菜单缓存：`DELETE /system/menu/cache`（改完菜单后让动态路由生效） */
+  const handleClearCache = async () => {
+    try {
+      await menu.clearCache();
+      message.success('菜单缓存已清理，重新登录后生效');
+    } catch (error) {
+      console.error('Clear cache failed:', error);
+    }
+  };
+
   const handleFormSuccess = () => {
     setFormVisible(false);
     actionRef.current?.reload();
@@ -170,6 +185,7 @@ const MenuPage: React.FC = () => {
         rowKey="id"
         columns={columns}
         search={false}
+        pagination={false}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await menu.query(rest as any);
@@ -179,9 +195,14 @@ const MenuPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="system:menu:add">
+          <AccessControl key="add" permission="system:menu:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               {intl.formatMessage({ id: 'common.operation.add' })}
+            </Button>
+          </AccessControl>,
+          <AccessControl key="clearCache" permission="system:menu:clearCache">
+            <Button icon={<ReloadOutlined />} onClick={handleClearCache}>
+              清理菜单缓存
             </Button>
           </AccessControl>,
         ]}

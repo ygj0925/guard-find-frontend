@@ -15,6 +15,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import {
   deleteJob,
+  listGroups,
   queryJobs,
   toggleJobStatus,
   triggerJob,
@@ -30,43 +31,63 @@ const JobPage: React.FC = () => {
   const columns: ProColumns<JobVo>[] = [
     {
       title: '任务名称',
-      dataIndex: 'name',
+      dataIndex: 'jobName',
       ellipsis: true,
     },
     {
       title: '任务分组',
-      dataIndex: 'jobGroup',
+      dataIndex: 'groupName',
       ellipsis: true,
+      valueType: 'select',
+      // 分组候选来自后端 `GET /schedule/job/group`，避免手输错拼
+      request: async () => {
+        try {
+          const response = await listGroups();
+          return (response.data || []).map((group) => ({
+            label: group,
+            value: group,
+          }));
+        } catch (error) {
+          console.error('Load groups failed:', error);
+          return [];
+        }
+      },
     },
     {
-      title: 'Cron表达式',
-      dataIndex: 'cronExpression',
+      title: '触发方式',
+      dataIndex: 'triggerType',
+      ellipsis: true,
+      hideInSearch: true,
+      valueEnum: {
+        1: { text: 'CRON' },
+        2: { text: '固定时间' },
+        3: { text: 'API' },
+      },
+    },
+    {
+      title: '触发表达式',
+      dataIndex: 'triggerInterval',
       ellipsis: true,
       hideInSearch: true,
     },
     {
-      title: '目标Bean',
-      dataIndex: 'targetBean',
-      ellipsis: true,
-      hideInSearch: true,
-    },
-    {
-      title: '目标方法',
-      dataIndex: 'targetMethod',
+      title: '执行器',
+      dataIndex: 'executorInfo',
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '状态',
-      dataIndex: 'status',
+      dataIndex: 'jobStatus',
       valueType: 'select',
+      // 后端 JobStatusEnum：0 禁用 / 1 启用（与 DisEnableStatusEnum 的 1/2 不同）
       valueEnum: {
-        0: { text: '暂停', status: 'Default' },
-        1: { text: '运行', status: 'Processing' },
+        0: { text: '禁用', status: 'Default' },
+        1: { text: '启用', status: 'Processing' },
       },
       render: (_, record) => (
         <Switch
-          checked={record.status === 1}
+          checked={record.jobStatus === 1}
           onChange={(checked) => handleToggleStatus(record, checked ? 1 : 0)}
         />
       ),
@@ -78,8 +99,13 @@ const JobPage: React.FC = () => {
       hideInSearch: true,
     },
     {
+      title: '下次触发时间',
+      dataIndex: 'nextTriggerAt',
+      hideInSearch: true,
+    },
+    {
       title: '创建时间',
-      dataIndex: 'createTime',
+      dataIndex: 'createDt',
       hideInSearch: true,
     },
     {
@@ -87,7 +113,7 @@ const JobPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="schedule:job:edit">
+          <AccessControl permission="schedule:job:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -105,7 +131,7 @@ const JobPage: React.FC = () => {
               执行
             </Button>
           </AccessControl>
-          <AccessControl permission="schedule:job:del">
+          <AccessControl permission="schedule:job:delete">
             <Popconfirm
               title="确定要删除此任务吗？"
               onConfirm={() => handleDelete(record)}
@@ -185,7 +211,7 @@ const JobPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="schedule:job:add">
+          <AccessControl key="add" permission="schedule:job:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新增
             </Button>

@@ -9,6 +9,7 @@ import type {
   PhoneLoginParams,
   SocialAuthorizeResponse,
 } from './typings';
+import { CLIENT_ID } from '@/utils/env';
 
 export * from './typings';
 
@@ -45,7 +46,7 @@ export async function getImageCaptcha() {
 export async function phoneLogin(body: PhoneLoginParams, tenantCode?: string) {
   return request<R<LoginResponse>>('/auth/login', {
     method: 'POST',
-    data: { ...body, clientId: process.env.clientId, authType: 'PHONE' },
+    data: { ...body, clientId: CLIENT_ID, authType: 'PHONE' },
     headers: tenantCode ? { 'X-Tenant-Code': tenantCode } : undefined,
   });
 }
@@ -53,7 +54,7 @@ export async function phoneLogin(body: PhoneLoginParams, tenantCode?: string) {
 export async function emailLogin(body: EmailLoginParams, tenantCode?: string) {
   return request<R<LoginResponse>>('/auth/login', {
     method: 'POST',
-    data: { ...body, clientId: process.env.clientId, authType: 'EMAIL' },
+    data: { ...body, clientId: CLIENT_ID, authType: 'EMAIL' },
     headers: tenantCode ? { 'X-Tenant-Code': tenantCode } : undefined,
   });
 }
@@ -76,7 +77,7 @@ export async function socialLogin(source: string, params: Record<string, string>
     data: {
       ...params,
       source,
-      clientId: process.env.clientId,
+      clientId: CLIENT_ID,
       authType: 'SOCIAL',
     },
   });

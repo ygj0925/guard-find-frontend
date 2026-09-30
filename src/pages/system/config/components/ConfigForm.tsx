@@ -36,12 +36,10 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   }, [visible, configData, form]);
 
   const handleSubmit = async (values: any) => {
+    if (!configData) return;
     try {
-      if (configData) {
-        await config.edit({ ...values, id: configData.id });
-      } else {
-        await config.create(values);
-      }
+      // 后端只提供 `PUT /system/option`（批量改值），参数项不支持界面新增
+      await config.edit({ ...values, id: configData.id });
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       onSuccess();
     } catch (error) {

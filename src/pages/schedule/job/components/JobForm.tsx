@@ -59,42 +59,44 @@ const JobForm: React.FC<JobFormProps> = ({
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ status: 1 }}
+        initialValues={{ jobStatus: 1, triggerType: 1, groupName: 'jgroup' }}
       >
         <ProFormText
-          name="name"
+          name="jobName"
           label="任务名称"
           placeholder="请输入任务名称"
           rules={[{ required: true, message: '请输入任务名称' }]}
         />
         <ProFormText
-          name="jobGroup"
+          name="groupName"
           label="任务分组"
           placeholder="请输入任务分组"
           rules={[{ required: true, message: '请输入任务分组' }]}
         />
-        <ProFormText
-          name="cronExpression"
-          label="Cron表达式"
-          placeholder="请输入Cron表达式"
-          rules={[{ required: true, message: '请输入Cron表达式' }]}
+        <ProFormRadio.Group
+          name="triggerType"
+          label="触发类型"
+          options={[
+            { label: 'CRON', value: 1 },
+            { label: '固定时间', value: 2 },
+            { label: 'API', value: 3 },
+          ]}
         />
         <ProFormText
-          name="targetBean"
-          label="目标Bean"
-          placeholder="请输入目标Bean"
-          rules={[{ required: true, message: '请输入目标Bean' }]}
+          name="triggerInterval"
+          label="触发表达式"
+          placeholder="CRON 表达式或固定间隔秒数"
+          rules={[{ required: true, message: '请输入触发表达式' }]}
         />
         <ProFormText
-          name="targetMethod"
-          label="目标方法"
-          placeholder="请输入目标方法"
-          rules={[{ required: true, message: '请输入目标方法' }]}
+          name="executorInfo"
+          label="执行器信息"
+          placeholder="如 Bean 名或方法签名"
         />
         <ProFormTextArea
-          name="targetParams"
-          label="目标参数"
-          placeholder="请输入目标参数"
+          name="argsStr"
+          label="任务参数"
+          placeholder="请输入任务参数"
         />
         <ProFormTextArea
           name="description"
@@ -102,11 +104,12 @@ const JobForm: React.FC<JobFormProps> = ({
           placeholder="请输入描述"
         />
         <ProFormRadio.Group
-          name="status"
+          name="jobStatus"
           label="状态"
+          extra="后端 JobStatusEnum：0 禁用 / 1 启用"
           options={[
-            { label: '暂停', value: 0 },
-            { label: '运行', value: 1 },
+            { label: '禁用', value: 0 },
+            { label: '启用', value: 1 },
           ]}
         />
       </ProForm>

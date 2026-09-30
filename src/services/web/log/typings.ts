@@ -40,19 +40,21 @@ export type LogVo = {
 
 export type LoginLogVo = LogVo;
 
+/** 登录日志查询 = 后端 `LogQuery`（`createTime` 为 `List<LocalDateTime>`，以重复参数提交） */
 export type LoginLogQo = {
   description?: string;
   ip?: string;
   createUserString?: string;
-  createTime?: string;
+  createTime?: string[];
 };
 
 export type OperationLogVo = LogVo;
 
+/** 操作日志查询 = 后端 `LogQuery` */
 export type OperationLogQo = {
   description?: string;
   module?: string;
   ip?: string;
   createUserString?: string;
-  createTime?: string;
+  createTime?: string[];
 };

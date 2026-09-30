@@ -32,12 +32,13 @@ const GrantModal: React.FC<GrantModalProps> = ({
     if (!userData) return;
     setLoading(true);
     try {
-      const response = await user.getScope(userData);
+      // 角色分配以用户详情为准：GET /system/user/{id} → roleIds
+      const response = await user.getUser(userData.id);
       if (response?.data) {
-        form.setFieldsValue({ roleCodes: response.data.roleCodes });
+        form.setFieldsValue({ roleIds: (response.data as any).roleIds || [] });
       }
     } catch (error) {
-      console.error('Failed to load user scope:', error);
+      console.error('Failed to load user roles:', error);
     } finally {
       setLoading(false);
     }
@@ -46,11 +47,7 @@ const GrantModal: React.FC<GrantModalProps> = ({
   const handleSubmit = async (values: any) => {
     if (!userData) return;
     try {
-      await user.putScope({
-        userId: userData.id,
-        username: userData.username,
-        roleCodes: values.roleCodes,
-      });
+      await user.assignRoles(userData.id, values.roleIds || []);
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       onSuccess();
     } catch (error) {
@@ -74,7 +71,7 @@ const GrantModal: React.FC<GrantModalProps> = ({
     >
       <ProForm form={form} onFinish={handleSubmit}>
         <ProFormSelect
-          name="roleCodes"
+          name="roleIds"
           label={intl.formatMessage({ id: 'system.role.title' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.select' }) +
@@ -84,8 +81,8 @@ const GrantModal: React.FC<GrantModalProps> = ({
           request={async () => {
             const data = await loadRoles();
             return data.map((item: any) => ({
-              label: item.name,
-              value: item.value,
+              label: item.label ?? item.name,
+              value: item.value ?? item.id,
             }));
           }}
           rules={[

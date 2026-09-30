@@ -10,13 +10,7 @@ import { Card, Col, Row, Spin, Statistic } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getStatistics } from '@/services/web/file';
 import type { FileStatsVo } from '@/services/web/file/typings';
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / 1024 ** i).toFixed(2)} ${units[i]}`;
-}
+import { formatFileSize } from '@/utils/format';
 
 const StorageStats: React.FC = () => {
   const [loading, setLoading] = useState(false);

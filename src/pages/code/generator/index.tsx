@@ -18,6 +18,7 @@ import {
   queryTables,
 } from '@/services/web/code/generator';
 import type { GeneratorTableVo } from '@/services/web/code/typings';
+import { saveBlob } from '@/utils/download';
 import CodePreview from './components/CodePreview';
 import FieldConfig from './components/FieldConfig';
 import TableConfig from './components/TableConfig';
@@ -82,7 +83,7 @@ const GeneratorPage: React.FC = () => {
               预览
             </Button>
           </AccessControl>
-          <AccessControl permission="code:generator:download">
+          <AccessControl permission="code:generator:generate">
             <Button
               type="link"
               icon={<DownloadOutlined />}
@@ -109,14 +110,7 @@ const GeneratorPage: React.FC = () => {
   const handleDownload = async (record: GeneratorTableVo) => {
     try {
       const blob = await downloadCode(record.tableName);
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${record.tableName}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      saveBlob(blob as Blob, `${record.tableName}.zip`);
       message.success('下载成功');
     } catch (error) {
       console.error('Download failed:', error);
@@ -130,14 +124,7 @@ const GeneratorPage: React.FC = () => {
     }
     try {
       const blob = await batchGenerate(selectedRowKeys as string[]);
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'batch-code.zip');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      saveBlob(blob as Blob, 'batch-code.zip');
       message.success('批量生成成功');
       setSelectedRowKeys([]);
     } catch (error) {
@@ -182,7 +169,7 @@ const GeneratorPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="batch" permission="code:generator:download">
+          <AccessControl key="batch" permission="code:generator:generate">
             <Button
               type="primary"
               icon={<DownloadOutlined />}

@@ -80,7 +80,7 @@ const TenantPage: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <AccessControl permission="tenant:management:edit">
+          <AccessControl permission="tenant:management:update">
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -89,7 +89,7 @@ const TenantPage: React.FC = () => {
               编辑
             </Button>
           </AccessControl>
-          <AccessControl permission="tenant:management:password">
+          <AccessControl permission="tenant:management:updateAdminUserPwd">
             <Button
               type="link"
               icon={<KeyOutlined />}
@@ -98,7 +98,7 @@ const TenantPage: React.FC = () => {
               重置密码
             </Button>
           </AccessControl>
-          <AccessControl permission="tenant:management:del">
+          <AccessControl permission="tenant:management:delete">
             <Popconfirm
               title="确定要删除此租户吗？"
               onConfirm={() => handleDelete(record)}
@@ -168,7 +168,7 @@ const TenantPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="tenant:management:add">
+          <AccessControl key="add" permission="tenant:management:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新增
             </Button>

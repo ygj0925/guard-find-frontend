@@ -79,7 +79,7 @@ const AnnouncementPage: React.FC = () => {
       render: (_, record) => (
         <Space>
           {record.status === 1 && (
-            <AccessControl permission="notify:announcement:edit">
+            <AccessControl permission="system:notice:update">
               <Button
                 type="link"
                 icon={<EditOutlined />}
@@ -97,7 +97,7 @@ const AnnouncementPage: React.FC = () => {
             {intl.formatMessage({ id: 'common.operation.preview' })}
           </Button>
           {record.status === 1 && (
-            <AccessControl permission="notify:announcement:publish">
+            <AccessControl permission="system:notice:update">
               <Popconfirm
                 title={intl.formatMessage({
                   id: 'notify.announcement.publish.confirm',
@@ -111,7 +111,7 @@ const AnnouncementPage: React.FC = () => {
             </AccessControl>
           )}
           {record.status === 3 && (
-            <AccessControl permission="notify:announcement:publish">
+            <AccessControl permission="system:notice:update">
               <Popconfirm
                 title={intl.formatMessage({
                   id: 'notify.announcement.close.confirm',
@@ -125,7 +125,7 @@ const AnnouncementPage: React.FC = () => {
             </AccessControl>
           )}
           {record.status === 1 && (
-            <AccessControl permission="notify:announcement:del">
+            <AccessControl permission="system:notice:delete">
               <Popconfirm
                 title={intl.formatMessage({ id: 'common.delete.confirm' })}
                 onConfirm={() => handleDelete(record)}
@@ -222,7 +222,7 @@ const AnnouncementPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
-          <AccessControl key="add" permission="notify:announcement:add">
+          <AccessControl key="add" permission="system:notice:create">
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               {intl.formatMessage({ id: 'common.operation.add' })}
             </Button>

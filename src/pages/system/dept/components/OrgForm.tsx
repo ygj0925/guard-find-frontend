@@ -1,6 +1,7 @@
 import {
   ProForm,
   ProFormDigit,
+  ProFormSelect,
   ProFormText,
   ProFormTextArea,
   ProFormTreeSelect,
@@ -126,12 +127,27 @@ const OrgForm: React.FC<OrgFormProps> = ({
           fieldProps={{ precision: 0 }}
         />
         <ProFormTextArea
-          name="remarks"
+          name="description"
           label={intl.formatMessage({ id: 'common.field.remark' })}
           placeholder={
             intl.formatMessage({ id: 'common.form.placeholder.input' }) +
             intl.formatMessage({ id: 'common.field.remark' })
           }
+        />
+        <ProFormSelect
+          name="status"
+          label={intl.formatMessage({ id: 'common.field.status' })}
+          options={[
+            {
+              label: intl.formatMessage({ id: 'common.status.normal' }),
+              value: 1,
+            },
+            {
+              // 后端 DisEnableStatusEnum：1 启用 / 2 禁用
+              label: intl.formatMessage({ id: 'common.status.frozen' }),
+              value: 2,
+            },
+          ]}
         />
       </ProForm>
     </Modal>

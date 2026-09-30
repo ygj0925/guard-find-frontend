@@ -1,15 +1,17 @@
 import React from 'react';
 import OptionForm from './OptionForm';
 
+/** 站点设置：category=SITE，code 取自后端 sys_option 种子数据 */
 const SiteConfig: React.FC = () => (
   <OptionForm
-    category="site"
+    category="SITE"
     fields={[
-      { name: 'site_name', label: '站点名称' },
-      { name: 'site_logo', label: 'Logo地址' },
-      { name: 'site_favicon', label: 'Favicon地址' },
-      { name: 'site_copyright', label: '版权信息' },
-      { name: 'site_icp', label: 'ICP备案号' },
+      { code: 'SITE_TITLE', label: '系统名称' },
+      { code: 'SITE_DESCRIPTION', label: '系统描述', type: 'textarea' },
+      { code: 'SITE_COPYRIGHT', label: '版权声明' },
+      { code: 'SITE_BEIAN', label: '备案号' },
+      { code: 'SITE_FAVICON', label: '系统图标' },
+      { code: 'SITE_LOGO', label: '系统LOGO' },
     ]}
   />
 );
