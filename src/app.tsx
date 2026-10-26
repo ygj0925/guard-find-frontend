@@ -1,35 +1,16 @@
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import '@ant-design/v5-patch-for-react-19';
 import type { RequestConfig } from '@umijs/max';
-import { getUserInfo } from '@/services/web/login';
 import type { GLOBAL } from '@/typings';
+import { getSessionIdentity, loadAuthorization } from '@/utils/AuthSession';
 import { requestConfig } from '@/utils/RequestConfig';
-import { fetchAndCacheRoutes } from '@/utils/RouteUtils';
+import { cacheRoutes } from '@/utils/RouteUtils';
 import {
   applyCachedSiteSettings,
   loadSiteSettings,
 } from '@/utils/siteSettings';
 import { LayoutSetting, Token, User } from '@/utils/Web';
 import settings from '../config/defaultSettings';
-
-let userInfoPromise: ReturnType<typeof getUserInfo> | undefined;
-let routesPromise: Promise<void> | undefined;
-
-function loadUserInfo() {
-  userInfoPromise ??= getUserInfo().catch((error) => {
-    userInfoPromise = undefined;
-    throw error;
-  });
-  return userInfoPromise;
-}
-
-function loadRoutes() {
-  routesPromise ??= fetchAndCacheRoutes().catch((error) => {
-    routesPromise = undefined;
-    throw error;
-  });
-  return routesPromise;
-}
 
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
@@ -45,40 +26,23 @@ export async function getInitialState(): Promise<{
   // 站点标题/图标：先用上次缓存应用，再静默刷新（失败不影响启动）
   applyCachedSiteSettings();
   void loadSiteSettings();
-  const cache = User.get();
-
-  if (cache) {
-    try {
-      is.user = JSON.parse(cache);
-    } catch {
-      User.clean();
-    }
-  }
-
   if (Token.get()) {
+    const identity = getSessionIdentity();
     try {
-      const [response] = await Promise.all([loadUserInfo(), loadRoutes()]);
-      is.user = response.data;
-      User.set(JSON.stringify(response.data));
+      is.user = await loadAuthorization();
     } catch {
-      Token.clean();
-      User.clean();
-      is.user = undefined;
+      if (identity === getSessionIdentity()) {
+        Token.clean();
+        User.clean();
+        cacheRoutes([]);
+      }
     }
+  } else {
+    User.clean();
+    cacheRoutes([]);
   }
 
   return { ...is };
-}
-
-export function render(oldRender: () => void) {
-  if (Token.get()) {
-    void loadUserInfo().catch(() => undefined);
-    loadRoutes()
-      .then(() => oldRender())
-      .catch(() => oldRender());
-  } else {
-    oldRender();
-  }
 }
 
 /**

@@ -32,16 +32,19 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
     {
       title: intl.formatMessage({ id: 'system.dict.item.name' }),
       dataIndex: 'label',
+      width: 180,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.dict.item.value' }),
       dataIndex: 'value',
+      width: 180,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.dict.item.tag.color' }),
       dataIndex: 'color',
+      width: 120,
       render: (_, record) =>
         record.color ? <Tag color={record.color}>{record.color}</Tag> : '-',
     },
@@ -65,11 +68,13 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
       dataIndex: 'description',
+      width: 220,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           <AccessControl permission="system:dict:update">
@@ -135,6 +140,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         search={false}
         params={{ dictId }}
         request={async (params) => {

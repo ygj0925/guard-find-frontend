@@ -235,7 +235,7 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
           dataSource={fields}
           rowKey="id"
           pagination={false}
-          scroll={{ x: 800, y: 400 }}
+          scroll={{ x: 'max-content', y: 400 }}
           size="small"
         />
       </Spin>

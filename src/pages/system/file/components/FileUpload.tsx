@@ -6,15 +6,21 @@ import { checkFile, uploadFile } from '@/services/web/file';
 import { sha256Hex } from '@/utils/hash';
 
 interface FileUploadProps {
+  disabled?: boolean;
   onSuccess?: () => void;
   /** 归档目录，留空由后端按 `/yyyy/MM/dd` 生成 */
   parentPath?: string;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onSuccess, parentPath }) => {
+const FileUpload: React.FC<FileUploadProps> = ({
+  onSuccess,
+  parentPath,
+  disabled = false,
+}) => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   const customRequest: UploadProps['customRequest'] = async (options) => {
+    if (disabled) return;
     const { file, onProgress, onSuccess: onUploadSuccess, onError } = options;
     const raw = file as File;
 
@@ -57,13 +63,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onSuccess, parentPath }) => {
 
   return (
     <Upload
+      disabled={disabled}
       customRequest={customRequest}
       fileList={fileList}
       onChange={handleChange}
       showUploadList={false}
       multiple
     >
-      <Button type="primary" icon={<UploadOutlined />}>
+      <Button type="primary" icon={<UploadOutlined />} disabled={disabled}>
         上传文件
       </Button>
     </Upload>

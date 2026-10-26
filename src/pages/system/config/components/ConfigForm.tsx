@@ -6,8 +6,10 @@ import {
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
 import React, { useEffect } from 'react';
+import { useAccess } from '@/hooks/useAccess';
 import type { SysConfigVo } from '@/services/web/system';
 import { config } from '@/services/web/system';
+import { getOptionPermission } from '@/utils/optionAccess';
 
 interface ConfigFormProps {
   visible: boolean;
@@ -24,6 +26,11 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
+  const { hasPermission } = useAccess();
+  const canUpdate = Boolean(
+    configData?.category &&
+      hasPermission(getOptionPermission(configData.category, 'update')),
+  );
 
   useEffect(() => {
     if (visible) {
@@ -36,7 +43,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   }, [visible, configData, form]);
 
   const handleSubmit = async (values: any) => {
-    if (!configData) return;
+    if (!configData || !canUpdate) return;
     try {
       // 后端只提供 `PUT /system/option`（批量改值），参数项不支持界面新增
       await config.edit({ ...values, id: configData.id });
@@ -61,7 +68,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
       footer={null}
       destroyOnClose
     >
-      <ProForm form={form} onFinish={handleSubmit}>
+      <ProForm
+        form={form}
+        onFinish={handleSubmit}
+        disabled={!canUpdate}
+        submitter={{ submitButtonProps: { disabled: !canUpdate } }}
+      >
         <ProFormText
           name="name"
           label={intl.formatMessage({ id: 'system.config.name' })}

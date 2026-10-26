@@ -83,7 +83,10 @@ const FilePage: React.FC = () => {
           openDownload(record.url, record.originalName || record.name),
       });
     }
-    if (record.type === TYPE_DIR) {
+    if (
+      record.type === TYPE_DIR &&
+      hasAnyPermission(['system:file:calcDirSize'])
+    ) {
       items.push({
         key: 'size',
         icon: <CalculatorOutlined />,
@@ -108,6 +111,7 @@ const FilePage: React.FC = () => {
       title: '文件名',
       // 展示与筛选都用 originalName（后端 `FileQuery.originalName` 做 like）
       dataIndex: 'originalName',
+      width: 240,
       ellipsis: true,
       render: (_, record) => (
         <Space size={4}>
@@ -193,6 +197,7 @@ const FilePage: React.FC = () => {
       actionRef={actionRef}
       rowKey="id"
       columns={columns}
+      scroll={{ x: 'max-content' }}
       pagination={{ defaultPageSize: 10 }}
       request={async ({ current, pageSize, ...rest }) => {
         const response = await queryFiles({
@@ -242,7 +247,9 @@ const FilePage: React.FC = () => {
         defaultActiveKey="files"
         items={[
           { key: 'files', label: '文件列表', children: fileList },
-          { key: 'recycle', label: '回收站', children: <RecycleBin /> },
+          ...(hasAnyPermission(['system:fileRecycle:list'])
+            ? [{ key: 'recycle', label: '回收站', children: <RecycleBin /> }]
+            : []),
         ]}
       />
 

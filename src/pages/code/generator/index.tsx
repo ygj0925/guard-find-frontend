@@ -35,34 +35,40 @@ const GeneratorPage: React.FC = () => {
     {
       title: '表名',
       dataIndex: 'tableName',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '表注释',
       dataIndex: 'comment',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '类名前缀',
       dataIndex: 'classNamePrefix',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '模块名',
       dataIndex: 'moduleName',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '创建时间',
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '操作',
       valueType: 'option',
+      width: 240,
       render: (_, record) => (
         <Space>
           <AccessControl permission="code:generator:config">
@@ -151,6 +157,7 @@ const GeneratorPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="tableName"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),

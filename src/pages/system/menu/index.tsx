@@ -10,7 +10,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
@@ -21,6 +21,7 @@ import MenuForm from './components/MenuForm';
 const MenuPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
+  const { refreshAuthorization } = useModel('authorization');
   const [formVisible, setFormVisible] = useState(false);
   const [currentMenu, setCurrentMenu] = useState<SysMenuVo | null>(null);
   const [parentMenu, setParentMenu] = useState<SysMenuVo | null>(null);
@@ -44,6 +45,7 @@ const MenuPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.menu.name' }),
       dataIndex: 'title',
+      width: 180,
       ellipsis: true,
     },
     {
@@ -68,11 +70,13 @@ const MenuPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.menu.path' }),
       dataIndex: 'path',
+      width: 220,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.menu.permission' }),
       dataIndex: 'permission',
+      width: 220,
       ellipsis: true,
     },
     {
@@ -94,6 +98,7 @@ const MenuPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 280,
       render: (_, record) => (
         <Space>
           {record.type !== 3 && (
@@ -155,6 +160,7 @@ const MenuPage: React.FC = () => {
   const handleDelete = async (record: SysMenuVo) => {
     try {
       await menu.del(record);
+      await refreshAuthorization();
       message.success(intl.formatMessage({ id: 'common.delete.success' }));
       actionRef.current?.reload();
     } catch (error) {
@@ -166,13 +172,15 @@ const MenuPage: React.FC = () => {
   const handleClearCache = async () => {
     try {
       await menu.clearCache();
-      message.success('菜单缓存已清理，重新登录后生效');
+      await refreshAuthorization();
+      message.success('菜单与权限已刷新');
     } catch (error) {
       console.error('Clear cache failed:', error);
     }
   };
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = async () => {
+    await refreshAuthorization();
     setFormVisible(false);
     actionRef.current?.reload();
   };
@@ -184,6 +192,7 @@ const MenuPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         search={false}
         pagination={false}
         request={async (params) => {

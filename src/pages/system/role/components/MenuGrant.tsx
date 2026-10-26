@@ -1,4 +1,4 @@
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { Button, Drawer, message, Space, Tree } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import { role } from '@/services/web/system';
@@ -32,6 +32,7 @@ const MenuGrant: React.FC<MenuGrantProps> = ({
   onSuccess,
 }) => {
   const intl = useIntl();
+  const { refreshAuthorization } = useModel('authorization');
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [checkedKeys, setCheckedKeys] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,6 +74,7 @@ const MenuGrant: React.FC<MenuGrantProps> = ({
     setSubmitting(true);
     try {
       await role.updatePermissionIds(roleId, checkedKeys);
+      await refreshAuthorization();
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
       onSuccess?.();
       onCancel();

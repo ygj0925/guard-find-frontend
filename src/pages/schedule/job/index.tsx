@@ -32,11 +32,13 @@ const JobPage: React.FC = () => {
     {
       title: '任务名称',
       dataIndex: 'jobName',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '任务分组',
       dataIndex: 'groupName',
+      width: 140,
       ellipsis: true,
       valueType: 'select',
       // 分组候选来自后端 `GET /schedule/job/group`，避免手输错拼
@@ -56,6 +58,7 @@ const JobPage: React.FC = () => {
     {
       title: '触发方式',
       dataIndex: 'triggerType',
+      width: 120,
       ellipsis: true,
       hideInSearch: true,
       valueEnum: {
@@ -67,18 +70,21 @@ const JobPage: React.FC = () => {
     {
       title: '触发表达式',
       dataIndex: 'triggerInterval',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '执行器',
       dataIndex: 'executorInfo',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '状态',
       dataIndex: 'jobStatus',
+      width: 100,
       valueType: 'select',
       // 后端 JobStatusEnum：0 禁用 / 1 启用（与 DisEnableStatusEnum 的 1/2 不同）
       valueEnum: {
@@ -95,22 +101,26 @@ const JobPage: React.FC = () => {
     {
       title: '描述',
       dataIndex: 'description',
+      width: 200,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '下次触发时间',
       dataIndex: 'nextTriggerAt',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '创建时间',
       dataIndex: 'createDt',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '操作',
       valueType: 'option',
+      width: 260,
       render: (_, record) => (
         <Space>
           <AccessControl permission="schedule:job:update">
@@ -197,6 +207,7 @@ const JobPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryJobs({

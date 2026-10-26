@@ -113,13 +113,18 @@ const AnalysisPage: React.FC = () => {
             <Table
               size="small"
               columns={[
-                { title: '系统', dataIndex: 'name' },
+                {
+                  title: '系统',
+                  dataIndex: 'name',
+                  width: 120,
+                  ellipsis: true,
+                },
                 { title: '数量', dataIndex: 'value', width: 60 },
               ]}
               dataSource={osData}
               rowKey="name"
               pagination={false}
-              scroll={{ y: 120 }}
+              scroll={{ x: 'max-content', y: 120 }}
             />
           </Card>
         </Col>
@@ -128,13 +133,18 @@ const AnalysisPage: React.FC = () => {
             <Table
               size="small"
               columns={[
-                { title: '浏览器', dataIndex: 'name' },
+                {
+                  title: '浏览器',
+                  dataIndex: 'name',
+                  width: 120,
+                  ellipsis: true,
+                },
                 { title: '数量', dataIndex: 'value', width: 60 },
               ]}
               dataSource={browserData}
               rowKey="name"
               pagination={false}
-              scroll={{ y: 120 }}
+              scroll={{ x: 'max-content', y: 120 }}
             />
           </Card>
         </Col>
@@ -144,12 +154,17 @@ const AnalysisPage: React.FC = () => {
             <Table
               size="small"
               columns={[
-                { title: '时段', dataIndex: 'name' },
+                {
+                  title: '时段',
+                  dataIndex: 'name',
+                  width: 120,
+                  ellipsis: true,
+                },
                 { title: '访问量', dataIndex: 'value', width: 100 },
                 {
                   title: '占比',
                   dataIndex: 'value',
-                  width: 200,
+                  width: 180,
                   render: (val: number) => {
                     const max = Math.max(
                       ...timeslotData.map((d) => d.value),
@@ -180,7 +195,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={timeslotData}
               rowKey="name"
               pagination={false}
-              scroll={{ y: 300 }}
+              scroll={{ x: 'max-content', y: 300 }}
             />
           </Card>
         </Col>
@@ -192,7 +207,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={moduleData}
               rowKey="name"
               pagination={false}
-              scroll={{ y: 300 }}
+              scroll={{ x: 'max-content', y: 300 }}
             />
           </Card>
         </Col>
@@ -205,6 +220,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={geoData.slice(0, 10)}
               rowKey="name"
               pagination={false}
+              scroll={{ x: 'max-content' }}
             />
           </Card>
         </Col>

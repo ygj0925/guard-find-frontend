@@ -34,27 +34,32 @@ const TenantPage: React.FC = () => {
     {
       title: '租户名称',
       dataIndex: 'name',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '域名',
       dataIndex: 'domain',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '管理员账号',
       dataIndex: 'adminUsername',
+      width: 140,
       hideInSearch: true,
     },
     {
       title: '套餐名称',
       dataIndex: 'packageName',
+      width: 140,
       hideInSearch: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
+      width: 100,
       valueType: 'select',
       valueEnum: {
         0: { text: '禁用', status: 'Error' },
@@ -68,16 +73,19 @@ const TenantPage: React.FC = () => {
     {
       title: '过期时间',
       dataIndex: 'expireTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '创建时间',
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '操作',
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           <AccessControl permission="tenant:management:update">
@@ -154,6 +162,7 @@ const TenantPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryTenants({

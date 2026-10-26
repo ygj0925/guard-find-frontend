@@ -4,7 +4,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { Button, Modal, message, Popconfirm, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
@@ -28,6 +28,7 @@ interface UserBindProps {
 const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
+  const { refreshAuthorization } = useModel('authorization');
   const [selectVisible, setSelectVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
@@ -35,6 +36,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
 
   const handleUnbind = async (record: SysRoleBindVo) => {
     await role.unbindUser(record.id);
+    await refreshAuthorization();
     message.success(intl.formatMessage({ id: 'common.operation.success' }));
     setSelectedRowKeys((keys) => keys.filter((key) => key !== record.id));
     reload();
@@ -42,6 +44,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
 
   const handleBatchUnbind = async () => {
     await role.unbindUsers(selectedRowKeys as number[]);
+    await refreshAuthorization();
     message.success(intl.formatMessage({ id: 'common.operation.success' }));
     setSelectedRowKeys([]);
     reload();
@@ -51,6 +54,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
     {
       title: intl.formatMessage({ id: 'system.user.username' }),
       dataIndex: 'username',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -64,12 +68,14 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
     {
       title: intl.formatMessage({ id: 'system.user.nickname' }),
       dataIndex: 'nickname',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.organization' }),
       dataIndex: 'deptName',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -127,6 +133,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
         rowKey="id"
         size="small"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         params={{ roleId }}
         // 只留"关键词"一个筛选项（后端 RoleUserQuery 只有 description 一个可搜字段）
         search={{ labelWidth: 'auto', span: 12 }}

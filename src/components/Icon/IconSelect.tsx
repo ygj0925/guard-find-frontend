@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
+import { resolveIconComponent } from '@/components/Icon/Icon';
 import './IconSelect.less';
 import { Input, Modal, Tabs } from 'antd';
 
@@ -408,21 +409,23 @@ const IconSelect = (props: IconSelectProps) => {
     // 加载数据
     iconTypeArray.forEach((iconType) => {
       const iconNodes: React.ReactNode[] = [];
-      iconType.icons.forEach((icon) => {
-        iconNodes.push(
-          <li
-            className={`icon-select-li ${selectIcon && selectIcon === icon ? 'active' : ''}`}
-            key={`icon-select-li-${iconType.key}-${icon}`}
-            onClick={() => setSelectIcon(icon)}
-          >
-            <Icon
-              key={`icon-select-icon-${iconType.key}-${icon}`}
-              type={icon}
-              style={{ fontSize: 36 }}
-            />
-          </li>,
-        );
-      });
+      iconType.icons
+        .filter((icon) => resolveIconComponent(icon))
+        .forEach((icon) => {
+          iconNodes.push(
+            <li
+              className={`icon-select-li ${selectIcon && selectIcon === icon ? 'active' : ''}`}
+              key={`icon-select-li-${iconType.key}-${icon}`}
+              onClick={() => setSelectIcon(icon)}
+            >
+              <Icon
+                key={`icon-select-icon-${iconType.key}-${icon}`}
+                type={icon}
+                style={{ fontSize: 36 }}
+              />
+            </li>,
+          );
+        });
 
       tabs.push(
         <Tabs.TabPane

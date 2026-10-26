@@ -29,6 +29,7 @@ const OrganizationPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.organization.name' }),
       dataIndex: 'name',
+      width: 200,
       ellipsis: true,
     },
     {
@@ -53,17 +54,20 @@ const OrganizationPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
       dataIndex: 'description',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.time.create' }),
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 260,
       render: (_, record) => (
         <Space>
           <AccessControl permission="system:dept:create">
@@ -151,6 +155,7 @@ const OrganizationPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         search={false}
         pagination={false}
         request={async () => {

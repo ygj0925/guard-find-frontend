@@ -43,6 +43,7 @@ const RecycleBin: React.FC = () => {
     {
       title: '文件名',
       dataIndex: 'originalName',
+      width: 240,
       ellipsis: true,
     },
     {
@@ -110,6 +111,7 @@ const RecycleBin: React.FC = () => {
       actionRef={actionRef}
       rowKey="id"
       columns={columns}
+      scroll={{ x: 'max-content' }}
       pagination={{ defaultPageSize: 10 }}
       request={async ({ current, pageSize, ...rest }) => {
         const response = await queryRecycleFiles({

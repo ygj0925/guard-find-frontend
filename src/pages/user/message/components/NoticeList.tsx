@@ -31,6 +31,7 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
     {
       title: '标题',
       dataIndex: 'title',
+      width: 240,
       ellipsis: true,
       render: (_, record) => (
         <Space>
@@ -96,6 +97,7 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         pagination={{ defaultPageSize: 10 }}
         request={async ({ current, pageSize, ...rest }) => {
           const response = await queryNotices({

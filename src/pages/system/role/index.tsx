@@ -35,11 +35,13 @@ const RolePage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.role.name' }),
       dataIndex: 'name',
+      width: 180,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.role.code' }),
       dataIndex: 'code',
+      width: 160,
       ellipsis: true,
     },
     {
@@ -57,17 +59,20 @@ const RolePage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
       dataIndex: 'description',
+      width: 240,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.time.create' }),
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           <AccessControl permission="system:role:update">
@@ -88,7 +93,7 @@ const RolePage: React.FC = () => {
               {intl.formatMessage({ id: 'system.role.menu.grant' })}
             </Button>
           </AccessControl>
-          <AccessControl permission="system:role:updatePermission">
+          <AccessControl permission="system:role:list">
             <Button
               type="link"
               icon={<TeamOutlined />}
@@ -154,6 +159,7 @@ const RolePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         pagination={false}
         request={async (params) => {
           const { current: _c, pageSize: _p, ...rest } = params;

@@ -81,17 +81,20 @@ const StoragePage: React.FC = () => {
     {
       title: '名称',
       dataIndex: 'name',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '编码',
       dataIndex: 'code',
+      width: 160,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '类型',
       dataIndex: 'type',
+      width: 140,
       valueEnum: {
         1: { text: '本地存储' },
         2: { text: '对象存储' },
@@ -101,18 +104,21 @@ const StoragePage: React.FC = () => {
     {
       title: 'Endpoint',
       dataIndex: 'endpoint',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: 'Bucket',
       dataIndex: 'bucketName',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '默认',
       dataIndex: 'isDefault',
+      width: 100,
       hideInSearch: true,
       render: (_, record) =>
         record.isDefault ? <Tag color="green">默认</Tag> : <Tag>否</Tag>,
@@ -120,12 +126,15 @@ const StoragePage: React.FC = () => {
     {
       title: '状态',
       dataIndex: 'status',
+      width: 100,
       hideInSearch: true,
       render: (_, record) => (
-        <Switch
-          checked={record.status === 1}
-          onChange={(checked) => handleStatusChange(record, checked)}
-        />
+        <AccessControl permission="system:storage:updateStatus" mode="disable">
+          <Switch
+            checked={record.status === 1}
+            onChange={(checked) => handleStatusChange(record, checked)}
+          />
+        </AccessControl>
       ),
     },
     {
@@ -150,7 +159,7 @@ const StoragePage: React.FC = () => {
             </Button>
           </AccessControl>
           {!record.isDefault && (
-            <AccessControl permission="system:storage:update">
+            <AccessControl permission="system:storage:setDefault">
               <Popconfirm
                 title="确定设为默认存储吗？"
                 onConfirm={() => handleSetDefault(record)}
@@ -183,6 +192,7 @@ const StoragePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         pagination={false}
         request={async (params) => {
           const { name } = params as Partial<StorageQuery>;

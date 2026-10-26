@@ -15,6 +15,7 @@ export default async (): Promise<any> => {
     setupFiles: [...(config.setupFiles || []), './tests/setupTests.jsx'],
     globals: {
       ...config.globals,
+      'jest-esbuild': { jsx: 'automatic' },
       localStorage: null,
     },
   };

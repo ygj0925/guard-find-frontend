@@ -10,6 +10,7 @@ export type OptionCategory = 'SITE' | 'PASSWORD' | 'MAIL' | 'LOGIN';
 
 /** 参数项（`OptionResp`） */
 export type SysConfigVo = {
+  category: OptionCategory;
   id: number;
   // 参数名称（中文可读，用于表单 label）
   name: string;

@@ -2,7 +2,12 @@
 
 ### Requirement: 权限码以后端派生规则为唯一来源
 
-界面使用的权限码 SHALL 与后端一致：CRUD 派生码为 `<prefix>:list|get|create|update|delete|export`，其余以 `@SaCheckPermission` 显式声明为准。全部权限码 SHALL 集中定义在 `src/config/permissionCodes.ts`，页面引用常量而非字面量。
+界面使用的权限码 SHALL 与后端一致：CRUD 派生码为 `<prefix>:list|get|create|update|delete|export`，其余以 `@SaCheckPermission` 显式声明为准。页面 SHALL 声明按钮所需的权限码，用户实际拥有的权限 SHALL 以 `/auth/user/info` 返回的 `permissions` 为准，前端 SHALL NOT 维护或生成完整权限码清单。
+
+#### Scenario: 获取用户权限
+
+- **WHEN** 用户登录或应用初始化获取用户信息
+- **THEN** 前端 SHALL 使用后端返回的 `permissions` 更新用户状态和本地缓存，按钮权限 SHALL 通过统一判定逻辑读取用户状态
 
 #### Scenario: 新增按钮的权限码
 
@@ -16,7 +21,7 @@
 
 #### Scenario: 越界权限码检测
 
-- **WHEN** 页面引用了映射表中不存在的权限码
+- **WHEN** 页面引用了后端源码扫描结果中不存在的权限码
 - **THEN** 契约检查 SHALL 失败并列出该 code
 
 ### Requirement: 权限判定的单一实现

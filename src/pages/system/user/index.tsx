@@ -14,7 +14,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { Avatar, Button, message, Popconfirm, Space, Switch } from 'antd';
 import React, { useCallback, useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
@@ -29,6 +29,7 @@ import UserForm from './components/UserForm';
 const UserPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
+  const { refreshAuthorization } = useModel('authorization');
   const [formVisible, setFormVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<SysUserVo | null>(null);
   const [grantVisible, setGrantVisible] = useState(false);
@@ -57,11 +58,13 @@ const UserPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.user.username' }),
       dataIndex: 'username',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.nickname' }),
       dataIndex: 'nickname',
+      width: 140,
       ellipsis: true,
     },
     {
@@ -74,18 +77,21 @@ const UserPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.user.phone' }),
       dataIndex: 'phone',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.email' }),
       dataIndex: 'email',
+      width: 200,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.organization' }),
       dataIndex: 'deptName',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -106,11 +112,13 @@ const UserPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'common.time.create' }),
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           <AccessControl permission="system:user:update">
@@ -251,7 +259,8 @@ const UserPage: React.FC = () => {
     actionRef.current?.reload();
   };
 
-  const handleGrantSuccess = () => {
+  const handleGrantSuccess = async () => {
+    await refreshAuthorization();
     setGrantVisible(false);
     message.success(intl.formatMessage({ id: 'common.operation.success' }));
   };
@@ -285,6 +294,7 @@ const UserPage: React.FC = () => {
             actionRef={actionRef}
             rowKey="id"
             columns={columns}
+            scroll={{ x: 'max-content' }}
             rowSelection={{}}
             params={{
               deptId: selectedOrgId || undefined,

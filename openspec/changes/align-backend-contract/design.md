@@ -46,8 +46,8 @@
 `RouteUtils` 增加 `OFFLINE_MENU_PATHS` 过滤（`/i18n`、`/monitor/log/access`、`/chat`），服务文件保留但加 `// @deprecated 后端未实现（见 align-backend-contract）`，并在根方案文档登记为"待后端补齐"。理由：菜单来自 `sys_menu`，改数据属后端变更；前端过滤可立即止血，且后端补实现后只需摘掉过滤项。
 备选：直接删页面。否决：驾驶舱/工作台等已投入使用的页面与被下线页面混在同一提交里，回滚面过大。
 
-**D6 权限码建表而非散落替换**
-`src/config/permissionCodes.ts` 以 `PERM.user.create = 'system:user:create'` 形式集中定义，页面引用常量。理由：66 个 code × 83 处引用手工替换易漏，常量表可被 `check:contract` 与 `tsc` 校验，且后端 ContiNew 升级时只改一张表。
+**D6 用户权限以后端返回为准**
+页面声明按钮所需的权限码，`AccessControl` 通过统一判定逻辑匹配 `/auth/user/info` 返回的 `permissions`。登录及应用初始化时更新用户信息和本地缓存，运行时读取 `initialState.user`。前端不维护或生成完整权限码清单；`check:contract` 直接扫描后端源码，检查页面声明的权限码是否与后端一致。
 
 **D7 菜单 `component` 字符串与约定式路由建立一致性校验**
 后端 `component` 形如 `monitor/log/login/index`，前端靠 UMI convention routes 命中文件。`check-api-contract.mjs` 增加第二项检查：拉取（或读取导出的）`sys_menu` 路径/组件清单，与 `src/pages` 文件树比对，缺失即非零退出。避免"菜单点开白屏"。

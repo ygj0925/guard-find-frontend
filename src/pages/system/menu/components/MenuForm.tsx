@@ -9,6 +9,7 @@ import {
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
 import React, { useEffect, useState } from 'react';
+import IconSelect from '@/components/Icon/IconSelect';
 import type { SysMenuVo } from '@/services/web/system';
 import { menu } from '@/services/web/system';
 
@@ -17,7 +18,7 @@ interface MenuFormProps {
   menu: SysMenuVo | null;
   parentMenu: SysMenuVo | null;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
 }
 
 /** 后端 MenuTypeEnum：1 目录 / 2 菜单 / 3 按钮 */
@@ -70,7 +71,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
         await menu.create(values);
       }
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
-      onSuccess();
+      await onSuccess();
     } catch (error) {
       console.error('Submit failed:', error);
     }
@@ -158,14 +159,15 @@ const MenuForm: React.FC<MenuFormProps> = ({
           rules={notEmptyRule('system.menu.name')}
         />
         {menuType !== TYPE_BUTTON && (
-          <ProFormText
+          <ProForm.Item
             name="icon"
             label={intl.formatMessage({ id: 'system.menu.icon' })}
-            placeholder={
-              intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-              intl.formatMessage({ id: 'system.menu.icon' })
-            }
-          />
+          >
+            <IconSelect
+              value={form.getFieldValue('icon')}
+              onChange={(value) => form.setFieldValue('icon', value)}
+            />
+          </ProForm.Item>
         )}
         {menuType !== TYPE_BUTTON && (
           <ProFormText

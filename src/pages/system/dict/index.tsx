@@ -31,16 +31,19 @@ const DictPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.dict.code' }),
       dataIndex: 'code',
+      width: 180,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.dict.title' }),
       dataIndex: 'name',
+      width: 180,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'common.field.remark' }),
       dataIndex: 'description',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -60,11 +63,13 @@ const DictPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'common.time.create' }),
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           <AccessControl permission="system:dict:update">
@@ -153,6 +158,7 @@ const DictPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         pagination={false}
         request={async (params) => {
           const { name, code } = params as Partial<SysDictQo>;

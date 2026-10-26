@@ -52,11 +52,13 @@ const AnnouncementPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'notify.announcement.name' }),
       dataIndex: 'title',
+      width: 220,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'notify.announcement.status' }),
       dataIndex: 'status',
+      width: 100,
       render: (_, record) => {
         const status = statusMap[record.status];
         return status ? <Tag color={status.color}>{status.label}</Tag> : '-';
@@ -66,16 +68,19 @@ const AnnouncementPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'notify.announcement.publish.time' }),
       dataIndex: 'publishTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.time.create' }),
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'common.operation.confirm' }),
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           {record.status === 1 && (
@@ -208,6 +213,7 @@ const AnnouncementPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await announcement.query({

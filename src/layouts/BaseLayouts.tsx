@@ -26,13 +26,14 @@ import { DictProvider } from '@/components/Dict';
 import Footer from '@/components/Footer';
 import KeepAliveOutlet from '@/components/KeepAliveOutlet';
 import MultiTab from '@/components/MultiTab';
+import RouteAccess from '@/components/RouteAccess';
 import {
   getUnreadCount,
   getUnreadNoticeCount,
 } from '@/services/web/user-message';
 import { redirectToLogin } from '@/utils/LoginRedirect';
 import Notify from '@/utils/NotifyUtils';
-import { isOfflinePath } from '@/utils/RouteUtils';
+import { getAuthorizedRoutes, isOfflinePath } from '@/utils/RouteUtils';
 import { isLogin, LayoutSetting } from '@/utils/Web';
 
 /**
@@ -111,13 +112,27 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
   const location = useLocation();
 
   const { initialState, setInitialState } = useModel('@@initialState');
+  useModel('authorization');
 
   const aliveRef = useKeepAliveRef();
+  const authorizationKey = JSON.stringify([
+    initialState?.user?.id,
+    initialState?.user?.permissions,
+    initialState?.user?.roles,
+    getAuthorizedRoutes(),
+  ]);
+  useEffect(() => {
+    aliveRef.current?.destroyAll();
+  }, [authorizationKey, aliveRef]);
 
   const multiTab =
     (initialState?.settings as any)?.multiTab ?? defaultSettings.multiTab;
   const multiTabStyle =
     (initialState?.settings as any)?.multiTabStyle ?? 'default';
+  const layout = ((initialState?.settings as any)?.layout ??
+    defaultSettings.layout) as 'top' | 'side' | 'mix';
+  const fixedHeader =
+    (initialState?.settings as any)?.fixedHeader ?? defaultSettings.fixedHeader;
 
   useEffect(() => {
     if (multiTab) {
@@ -178,7 +193,7 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
    */
 
   const handlePageChange = () => {
-    if (!isLogin(initialState)) {
+    if (!initialState?.user || !isLogin(initialState)) {
       redirectToLogin(`${location.pathname}${location.search}`);
     }
   };
@@ -340,21 +355,18 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
         }
         {...initialState?.settings}
         contentStyle={{
-          marginTop: multiTab ? 40 : undefined,
+          marginTop:
+            multiTab && (fixedHeader || layout === 'mix') ? 40 : undefined,
         }}
       >
-        {multiTab && (
-          <MultiTab
-            aliveRef={aliveRef}
-            style={multiTabStyle}
-            fixed={defaultSettings.fixedHeader}
-          />
-        )}
+        {multiTab && <MultiTab aliveRef={aliveRef} style={multiTabStyle} />}
         <WaterMark
           content={initialState?.user?.nickname || initialState?.user?.username}
           style={{ height: '100%' }}
         >
-          {multiTab ? <KeepAliveOutlet aliveRef={aliveRef} /> : <Outlet />}
+          <RouteAccess>
+            {multiTab ? <KeepAliveOutlet aliveRef={aliveRef} /> : <Outlet />}
+          </RouteAccess>
         </WaterMark>
 
         <SettingDrawer

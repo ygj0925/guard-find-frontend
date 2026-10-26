@@ -36,17 +36,20 @@ const PackagePage: React.FC = () => {
     {
       title: '套餐名称',
       dataIndex: 'name',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '描述',
       dataIndex: 'description',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
+      width: 100,
       hideInSearch: true,
       render: (_, record) => {
         const item = statusMap[record.status];
@@ -56,11 +59,13 @@ const PackagePage: React.FC = () => {
     {
       title: '创建时间',
       dataIndex: 'createTime',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '操作',
       valueType: 'option',
+      width: 220,
       render: (_, record) => (
         <Space>
           <AccessControl permission="tenant:package:update">
@@ -138,6 +143,7 @@ const PackagePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryPackages({

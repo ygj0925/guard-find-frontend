@@ -1,4 +1,6 @@
 import type { Route } from '@ant-design/pro-layout/lib/typing';
+import React from 'react';
+import { resolveIconComponent } from '@/components/Icon/Icon';
 import { router } from '@/services/web/login';
 import type { GLOBAL } from '@/typings';
 
@@ -14,6 +16,7 @@ export type ExpandRoute = {
 let menuDict: Record<string, ExpandRoute> = {};
 let cachedMenuRoutes: ExpandRoute[] = [];
 let cachedFirstPath: string | undefined;
+let authorizedRoutes: GLOBAL.Router[] = [];
 
 /**
  * 后端尚未实现的模块入口。
@@ -24,6 +27,13 @@ let cachedFirstPath: string | undefined;
  * 从这里摘掉即可恢复。登记见 openspec change `align-backend-contract`。
  */
 export const OFFLINE_MENU_PATHS = ['/i18n', '/monitor/log/access', '/chat'];
+
+export function resolveMenuIcon(icon?: string): React.ReactNode {
+  if (!icon) return undefined;
+  if (/^(https?:\/\/|\/|data:)/.test(icon)) return icon;
+  const IconComponent = resolveIconComponent(icon);
+  return IconComponent ? React.createElement(IconComponent) : undefined;
+}
 
 let offlineWarned = false;
 const offlineHit = new Set<string>();
@@ -98,7 +108,7 @@ export function serializationRemoteList(
         // RouteResp 是 @JsonInclude(NON_EMPTY)：isHidden 为 false 时字段不下发，
         // 所以必须显式比较 true，不能用 ?? 回落到已不存在的 ballcat 字段
         hideInMenu: item.isHidden === true,
-        icon: item.icon,
+        icon: resolveMenuIcon(item.icon),
         locale: false,
         path: fullPath,
         name: item.title,
@@ -129,11 +139,19 @@ export function serializationRemoteList(
 
 export async function fetchAndCacheRoutes(): Promise<void> {
   const res = await router();
-  const list = res?.data ?? [];
+  cacheRoutes(res?.data ?? []);
+}
+
+export function cacheRoutes(list: GLOBAL.Router[]): void {
   const arr = Array.isArray(list) ? list : [];
   menuDict = {};
+  authorizedRoutes = arr;
   cachedMenuRoutes = serializationRemoteList(arr);
   cachedFirstPath = getFirstUrl(cachedMenuRoutes);
+}
+
+export function getAuthorizedRoutes(): GLOBAL.Router[] {
+  return authorizedRoutes;
 }
 
 export function getCachedMenuRoutes(): ExpandRoute[] {

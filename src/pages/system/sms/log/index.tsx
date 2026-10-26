@@ -60,17 +60,20 @@ const SmsLogPage: React.FC = () => {
     {
       title: '手机号',
       dataIndex: 'phone',
+      width: 140,
       ellipsis: true,
     },
     {
       title: '参数配置',
       dataIndex: 'params',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
+      width: 100,
       valueEnum: {
         1: { text: '成功' },
         2: { text: '失败' },
@@ -85,6 +88,7 @@ const SmsLogPage: React.FC = () => {
     {
       title: '返回数据',
       dataIndex: 'resMsg',
+      width: 220,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -120,6 +124,7 @@ const SmsLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),

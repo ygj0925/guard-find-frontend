@@ -1,15 +1,17 @@
 .multi-tab {
   z-index: 16;
   height: 40px;
+  box-sizing: border-box;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-  transition: width 0.3s;
+  transition: left 0.2s;
   user-select: none;
 }
 
 .multi-tab-fixed {
   position: fixed;
-  top: 56px;
+  top: 0;
+  right: 0;
 }
 
 .multi-tab-float {
@@ -24,9 +26,11 @@
 }
 
 .multi-tab .ant-tabs .ant-tabs-nav .ant-tabs-nav-wrap .ant-tabs-tab {
+  display: inline-flex;
+  align-items: center;
   height: 40px;
   margin: 0;
-  padding: 0;
+  padding: 0 12px 0 16px;
   line-height: 40px;
   background: none;
   border: none;
@@ -35,11 +39,16 @@
 }
 
 .multi-tab .ant-tabs .ant-tabs-nav .ant-tabs-nav-wrap .ant-tabs-tab > div {
-  padding: 0 0 0 16px;
+  padding: 0;
 }
 
 .multi-tab .ant-tabs .ant-tabs-nav .ant-tabs-nav-wrap .ant-tabs-tab-active {
   background-color: #e6f4ff;
+}
+
+.multi-tab .ant-tabs .ant-tabs-nav .ant-tabs-nav-wrap .multi-tab-item-closing {
+  animation: multi-tab-item-exit 180ms ease-out forwards;
+  pointer-events: none;
 }
 
 .multi-tab
@@ -48,22 +57,12 @@
   .ant-tabs-nav-wrap
   .ant-tabs-tab
   .ant-tabs-tab-remove {
-  height: 40px;
-  margin: -4px 0 0 0;
-}
-
-.multi-tab-tool {
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  line-height: 40px;
-  text-align: center;
-  border-left: 1px solid #f0f0f0;
-  cursor: pointer;
-}
-
-.multi-tab-tool .anticon {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  margin: 0 0 0 8px;
+  padding: 0;
+  line-height: 24px;
 }
 
 /* Card style */
@@ -80,19 +79,6 @@
   height: 32px;
 }
 
-.multi-tab-card .ant-tabs .ant-tabs-nav .ant-tabs-extra-content {
-  background-color: #fff;
-}
-
-.multi-tab-card
-  .ant-tabs
-  .ant-tabs-nav
-  .ant-tabs-extra-content
-  .multi-tab-tool {
-  height: 32px;
-  line-height: 32px;
-}
-
 .multi-tab-card
   .ant-tabs
   .ant-tabs-nav
@@ -107,4 +93,26 @@
   line-height: 32px;
   background-color: #fff;
   border-radius: 4px;
+}
+
+.multi-tab-card
+  .ant-tabs
+  .ant-tabs-nav
+  .ant-tabs-nav-wrap
+  .ant-tabs-tab
+  .ant-tabs-tab-remove {
+  height: 20px;
+  line-height: 20px;
+}
+
+@keyframes multi-tab-item-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
 }

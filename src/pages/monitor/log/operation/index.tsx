@@ -21,11 +21,13 @@ const OperationLogPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'log.operation.description' }),
       dataIndex: 'description',
+      width: 220,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.module' }),
       dataIndex: 'module',
+      width: 140,
       ellipsis: true,
     },
     {
@@ -38,28 +40,33 @@ const OperationLogPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'log.operation.operator' }),
       dataIndex: 'createUserString',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.ip' }),
       dataIndex: 'ip',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.address' }),
       dataIndex: 'address',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.browser' }),
       dataIndex: 'browser',
+      width: 160,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'log.operation.os' }),
       dataIndex: 'os',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -117,6 +124,7 @@ const OperationLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         expandable={{ expandedRowRender }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;

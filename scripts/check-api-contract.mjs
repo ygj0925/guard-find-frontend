@@ -456,49 +456,6 @@ if (asFlag('--json')) {
   console.log(`\n=== 汇总 ===\n${JSON.stringify(summary, null, 2)}`);
 }
 
-/**
- * 生成 `src/config/permissionCodes.ts`：以后端为唯一来源的权限码清单。
- * 用途：IDE 补全 + 人读；页面仍写字符串字面量，正确性由本脚本的门禁保证
- * （清单本身是派生产物，不作为第二份真相手工维护）。
- */
-function emitPermissionManifest() {
-  const target = path.join(FE_ROOT, 'src', 'config', 'permissionCodes.ts');
-  const byModule = new Map();
-  for (const code of [...backendPermissions].sort()) {
-    const [mod, name] = code.split(':');
-    const key = `${mod}:${name}`;
-    if (!byModule.has(key)) byModule.set(key, []);
-    byModule.get(key).push(code);
-  }
-  const lines = [
-    '// 本文件由 `node scripts/check-api-contract.mjs --emit-permission-manifest` 生成，',
-    '// 来源为 guard-find-backend 的种子 SQL(sys_menu.permission) 与 @SaCheckPermission 注解，',
-    '// 请勿手工编辑；页面仍写字符串字面量，正确性由 check:contract 门禁保证。',
-    '',
-    '/** 后端可校验的全部权限码（超级权限 `*:*:*` 由后端直接授予，不在此列） */',
-    'export const PERMISSION_CODES = [',
-  ];
-  let currentModule = '';
-  for (const code of [...backendPermissions].sort()) {
-    const mod = code.split(':')[0];
-    if (mod !== currentModule) {
-      lines.push(`  // ${mod}`);
-      currentModule = mod;
-    }
-    lines.push(`  '${code}',`);
-  }
-  lines.push(
-    '] as const;',
-    '',
-    'export type PermissionCode = (typeof PERMISSION_CODES)[number];',
-    '',
-  );
-  fs.writeFileSync(target, lines.join('\n'));
-  console.log(`已生成 ${path.relative(FE_ROOT, target)}（${backendPermissions.size} 条）`);
-}
-
-if (asFlag('--emit-permission-manifest')) emitPermissionManifest();
-
 /* ------------------------------ 菜单 component ↔ src/pages 一致性（阶段 5.3） */
 
 /**

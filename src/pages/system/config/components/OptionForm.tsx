@@ -6,7 +6,9 @@ import {
 import { Alert, message, Spin } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { request } from 'umi';
+import { useAccess } from '@/hooks/useAccess';
 import type { OptionCategory } from '@/services/web/system';
+import { getOptionPermission } from '@/utils/optionAccess';
 
 /**
  * 系统参数表单（后端 `/system/option`）。
@@ -43,10 +45,17 @@ interface OptionRow {
 }
 
 const OptionForm: React.FC<Props> = ({ category, fields }) => {
+  const { hasPermission } = useAccess();
+  const canRead = hasPermission(getOptionPermission(category, 'get'));
+  const canUpdate = hasPermission(getOptionPermission(category, 'update'));
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<OptionRow[]>([]);
 
   useEffect(() => {
+    if (!canRead) {
+      setRows([]);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     request('system/option', { method: 'GET', params: { category } })
@@ -54,13 +63,14 @@ const OptionForm: React.FC<Props> = ({ category, fields }) => {
         if (cancelled) return;
         setRows(Array.isArray(res?.data) ? res.data : []);
       })
+      .catch(() => undefined)
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [category]);
+  }, [category, canRead]);
 
   const rowByCode = new Map(rows.map((row) => [row.code, row]));
   const missing = fields
@@ -75,6 +85,7 @@ const OptionForm: React.FC<Props> = ({ category, fields }) => {
   }
 
   const handleSubmit = async (values: Record<string, string>) => {
+    if (!canUpdate) return false;
     const payload = fields
       .map((field) => {
         const row = rowByCode.get(field.code);
@@ -84,8 +95,10 @@ const OptionForm: React.FC<Props> = ({ category, fields }) => {
       .filter(Boolean);
     await request('system/option', { method: 'PUT', data: payload });
     message.success('保存成功');
+    return true;
   };
 
+  if (!canRead) return null;
   if (loading) return <Spin />;
 
   return (
@@ -103,6 +116,8 @@ const OptionForm: React.FC<Props> = ({ category, fields }) => {
         key={category}
         initialValues={initialValues}
         onFinish={handleSubmit}
+        disabled={!canUpdate}
+        submitter={{ submitButtonProps: { disabled: !canUpdate } }}
         layout="horizontal"
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 14 }}

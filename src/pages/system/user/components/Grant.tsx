@@ -9,7 +9,7 @@ interface GrantModalProps {
   visible: boolean;
   user: SysUserVo | null;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
 }
 
 const GrantModal: React.FC<GrantModalProps> = ({
@@ -49,7 +49,7 @@ const GrantModal: React.FC<GrantModalProps> = ({
     try {
       await user.assignRoles(userData.id, values.roleIds || []);
       message.success(intl.formatMessage({ id: 'common.operation.success' }));
-      onSuccess();
+      await onSuccess();
     } catch (error) {
       console.error('Submit failed:', error);
     }

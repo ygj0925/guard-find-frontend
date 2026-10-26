@@ -65,23 +65,27 @@ const SmsConfigPage: React.FC = () => {
     {
       title: '名称',
       dataIndex: 'name',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '厂商',
       dataIndex: 'supplier',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '签名',
       dataIndex: 'signature',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '默认',
       dataIndex: 'isDefault',
+      width: 100,
       hideInSearch: true,
       render: (_, record) =>
         record.isDefault ? <Tag color="green">默认</Tag> : <Tag>否</Tag>,
@@ -89,6 +93,7 @@ const SmsConfigPage: React.FC = () => {
     {
       title: '状态',
       dataIndex: 'status',
+      width: 100,
       hideInSearch: true,
       render: (_, record) =>
         record.status === 1 ? (
@@ -119,7 +124,7 @@ const SmsConfigPage: React.FC = () => {
             </Button>
           </AccessControl>
           {!record.isDefault && (
-            <AccessControl permission="system:smsConfig:update">
+            <AccessControl permission="system:smsConfig:setDefault">
               <Popconfirm
                 title="确定设为默认短信配置吗？"
                 onConfirm={() => handleSetDefault(record)}
@@ -152,6 +157,7 @@ const SmsConfigPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await querySmsConfigs({

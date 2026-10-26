@@ -9,13 +9,11 @@
  * - `UserInfoResp.permissions` 为权限码集合，超级权限是 `*:*:*`
  * - `UserInfoResp.roles` 为角色编码集合
  * - 权限码本身由 `@CrudRequestMapping` 派生（`<prefix>:list/get/create/update/delete/export`）
- *   加 `@SaCheckPermission` 显式声明，权威清单见 `src/config/permissionCodes.ts`（脚本生成）
+ *   加 `@SaCheckPermission` 显式声明；用户实际拥有的权限以后端返回为准
+ * - 登录及应用初始化时获取用户信息并更新本地缓存，运行时读取 initialState.user
  */
 
 export const ALL_PERMISSION = '*:*:*';
-
-/** 后端种子数据里的超级管理员角色编码 */
-export const SUPER_ROLES = ['admin', 'super_admin', 'account'];
 
 export interface AccessSubject {
   permissions?: string[];
@@ -38,7 +36,7 @@ export function createAccessChecker(
   const permissions = subject?.permissions || [];
   const roles = subject?.roles || [];
   const hasAll = permissions.includes(ALL_PERMISSION);
-  const isAdmin = hasAll || roles.some((role) => SUPER_ROLES.includes(role));
+  const isAdmin = hasAll;
 
   const hasPermission = (permission?: string) => {
     // 未声明权限要求 = 登录即可见（与后端"本人数据接口只校验登录"一致）
@@ -55,6 +53,6 @@ export function createAccessChecker(
       !list || list.length === 0 ? true : list.some((p) => hasPermission(p)),
     hasAllPermissions: (list) =>
       !list || list.length === 0 ? true : list.every((p) => hasPermission(p)),
-    hasRole: (role) => !role || isAdmin || roles.includes(role),
+    hasRole: (role) => !role || roles.includes(role),
   };
 }

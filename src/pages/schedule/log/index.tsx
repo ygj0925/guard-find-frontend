@@ -33,11 +33,13 @@ const JobLogPage: React.FC = () => {
     {
       title: '任务名称',
       dataIndex: 'jobName',
+      width: 180,
       ellipsis: true,
     },
     {
       title: '任务分组',
       dataIndex: 'groupName',
+      width: 140,
       ellipsis: true,
       valueType: 'select',
       // 分组候选同样取自 `GET /schedule/job/group`
@@ -57,6 +59,7 @@ const JobLogPage: React.FC = () => {
     {
       title: '执行器',
       dataIndex: 'executorInfo',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
       render: (_, record) =>
@@ -67,6 +70,7 @@ const JobLogPage: React.FC = () => {
     {
       title: '状态',
       dataIndex: 'taskBatchStatus',
+      width: 100,
       valueType: 'select',
       valueEnum: {
         1: { text: '待处理', status: 'Default' },
@@ -87,16 +91,19 @@ const JobLogPage: React.FC = () => {
     {
       title: '执行时间',
       dataIndex: 'executionAt',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '记录时间',
       dataIndex: 'createDt',
+      width: 180,
       hideInSearch: true,
     },
     {
       title: '操作原因',
       dataIndex: 'operationReason',
+      width: 160,
       hideInSearch: true,
       ellipsis: true,
       // 后端 JobLogResp 只有 operationReason（人工停止/超时等原因编码），没有 errorMessage 字段
@@ -112,6 +119,7 @@ const JobLogPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
+      width: 140,
       render: (_, record) => (
         <Space>
           {record.taskBatchStatus === 2 && (
@@ -168,6 +176,7 @@ const JobLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryJobLogs({

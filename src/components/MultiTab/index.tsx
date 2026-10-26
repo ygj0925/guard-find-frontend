@@ -3,28 +3,32 @@ import {
   ArrowRightOutlined,
   CloseCircleOutlined,
   CloseOutlined,
-  DownOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { RouteContext } from '@ant-design/pro-layout';
+import { ProProvider, RouteContext } from '@ant-design/pro-components';
 import { history, useLocation, useModel } from '@umijs/max';
 import { Dropdown, Tabs } from 'antd';
 import type { KeepAliveRef } from 'keepalive-for-react';
 import type { RefObject } from 'react';
-import React, { useCallback, useContext, useEffect, useMemo } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import RouteUtils from '@/utils/RouteUtils';
 import './index.css';
 
 interface MultiTabProps {
   aliveRef: RefObject<KeepAliveRef | null>;
   style?: 'default' | 'card';
-  fixed?: boolean;
 }
 
 const MultiTab: React.FC<MultiTabProps> = ({
   aliveRef,
   style: tabStyle = 'default',
-  fixed = true,
 }) => {
   const {
     tabs,
@@ -35,8 +39,30 @@ const MultiTab: React.FC<MultiTabProps> = ({
     removeRight,
     removeOthers,
   } = useModel('multiTab');
-  const { siderWidth } = useContext(RouteContext);
+  const [closingKeys, setClosingKeys] = useState<string[]>([]);
+  const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const { layout, fixedHeader, hasHeader, isMobile, siderWidth } =
+    useContext(RouteContext);
+  const { token } = useContext(ProProvider);
   const location = useLocation();
+  const fixed = fixedHeader || layout === 'mix';
+  // Desktop side layouts render no header; mobile layouts do render one.
+  const hasVisibleHeader = hasHeader && (layout !== 'side' || isMobile);
+  const headerHeight = token.layout?.header?.heightLayoutHeader ?? 56;
+  // The side menu's logo/collapse row occupies the first header-height pixels
+  // even when ProLayout does not render a global header in desktop side mode.
+  const topOffset =
+    layout === 'side' ? headerHeight : hasVisibleHeader ? headerHeight : 0;
+
+  useEffect(
+    () => () => {
+      closeTimers.current.forEach((timer) => {
+        clearTimeout(timer);
+      });
+      closeTimers.current.clear();
+    },
+    [],
+  );
 
   useEffect(() => {
     const pathname = location.pathname;
@@ -72,11 +98,22 @@ const MultiTab: React.FC<MultiTabProps> = ({
       action: 'add' | 'remove',
     ) => {
       if (action === 'remove' && typeof key === 'string') {
-        const removed = removeTab(key);
-        destroyKeys(removed);
+        if (tabs.length <= 1 || closingKeys.includes(key)) {
+          removeTab(key);
+          return;
+        }
+
+        setClosingKeys((current) => [...current, key]);
+        const timer = setTimeout(() => {
+          const removed = removeTab(key);
+          destroyKeys(removed);
+          setClosingKeys((current) => current.filter((item) => item !== key));
+          closeTimers.current.delete(key);
+        }, 180);
+        closeTimers.current.set(key, timer);
       }
     },
-    [removeTab, destroyKeys],
+    [tabs.length, closingKeys, removeTab, destroyKeys],
   );
 
   const handleRefresh = useCallback(() => {
@@ -84,9 +121,8 @@ const MultiTab: React.FC<MultiTabProps> = ({
   }, [aliveRef, activeKey]);
 
   const handleClose = useCallback(() => {
-    const removed = removeTab(activeKey);
-    destroyKeys(removed);
-  }, [removeTab, activeKey, destroyKeys]);
+    handleEdit(activeKey, 'remove');
+  }, [handleEdit, activeKey]);
 
   const handleCloseLeft = useCallback(() => {
     const removed = removeLeft(activeKey);
@@ -155,8 +191,11 @@ const MultiTab: React.FC<MultiTabProps> = ({
         key: tab.key,
         label: tab.title,
         closable: tabs.length > 1,
+        className: closingKeys.includes(tab.key)
+          ? 'multi-tab-item-closing'
+          : undefined,
       })),
-    [tabs],
+    [tabs, closingKeys],
   );
 
   return (
@@ -164,9 +203,8 @@ const MultiTab: React.FC<MultiTabProps> = ({
       <div
         className={cls.join(' ')}
         style={{
-          width: fixed
-            ? `calc(100% - ${(siderWidth || 0) + (tabStyle === 'card' ? 48 : 0)}px)`
-            : undefined,
+          top: fixed ? topOffset : undefined,
+          left: fixed ? (siderWidth ?? 0) : undefined,
         }}
       >
         <Tabs
@@ -176,13 +214,6 @@ const MultiTab: React.FC<MultiTabProps> = ({
           items={tabItems}
           onChange={handleChange}
           onEdit={handleEdit}
-          tabBarExtraContent={
-            <Dropdown menu={{ items: menuItems }} trigger={['hover', 'click']}>
-              <span className="multi-tab-tool">
-                <DownOutlined />
-              </span>
-            </Dropdown>
-          }
         />
       </div>
     </Dropdown>

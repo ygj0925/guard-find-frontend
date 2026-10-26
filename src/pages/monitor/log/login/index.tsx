@@ -21,33 +21,39 @@ const LoginLogPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'log.login.user' }),
       dataIndex: 'createUserString',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.login.description' }),
       dataIndex: 'description',
+      width: 220,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.login.ip' }),
       dataIndex: 'ip',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'log.login.address' }),
       dataIndex: 'address',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'log.login.browser' }),
       dataIndex: 'browser',
+      width: 160,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'log.login.os' }),
       dataIndex: 'os',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
@@ -86,6 +92,7 @@ const LoginLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await loginLog.query({

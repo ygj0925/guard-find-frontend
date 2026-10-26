@@ -5,7 +5,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { message } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { SysUserVo } from '@/services/web/system';
@@ -34,28 +34,33 @@ const UserSelect: React.FC<UserSelectProps> = ({
 }) => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
+  const { refreshAuthorization } = useModel('authorization');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const columns: ProColumns<SysUserVo>[] = [
     {
       title: intl.formatMessage({ id: 'system.user.username' }),
       dataIndex: 'username',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.nickname' }),
       dataIndex: 'nickname',
+      width: 140,
       ellipsis: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.organization' }),
       dataIndex: 'deptName',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: intl.formatMessage({ id: 'system.user.phone' }),
       dataIndex: 'phone',
+      width: 140,
       hideInSearch: true,
       copyable: true,
     },
@@ -78,6 +83,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
           // React.Key 含 bigint；雪花 ID 在 FLEXIBLE 模式下是字符串，不能 Number() 转换（会丢精度）
           selectedRowKeys as unknown as (string | number)[],
         );
+        await refreshAuthorization();
         message.success(intl.formatMessage({ id: 'common.operation.success' }));
         setSelectedRowKeys([]);
         onSuccess?.();
@@ -90,6 +96,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
         rowKey="id"
         size="small"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         options={false}
         search={{ labelWidth: 'auto' }}
         params={{ roleId }}

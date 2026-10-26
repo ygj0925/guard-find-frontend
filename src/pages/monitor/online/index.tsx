@@ -21,27 +21,36 @@ const OnlinePage: React.FC = () => {
   };
 
   const columns: ProColumns<OnlineUserVo>[] = [
-    { title: '用户名', dataIndex: 'username', ellipsis: true },
+    { title: '用户名', dataIndex: 'username', width: 140, ellipsis: true },
     {
       title: '昵称',
       dataIndex: 'nickname',
+      width: 140,
       ellipsis: true,
       hideInSearch: true,
     },
-    { title: 'IP地址', dataIndex: 'ip', ellipsis: true },
+    { title: 'IP地址', dataIndex: 'ip', width: 140, ellipsis: true },
     {
       title: '登录地点',
       dataIndex: 'address',
+      width: 180,
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: '浏览器',
       dataIndex: 'browser',
+      width: 160,
       ellipsis: true,
       hideInSearch: true,
     },
-    { title: '操作系统', dataIndex: 'os', ellipsis: true, hideInSearch: true },
+    {
+      title: '操作系统',
+      dataIndex: 'os',
+      width: 140,
+      ellipsis: true,
+      hideInSearch: true,
+    },
     {
       title: '登录时间',
       dataIndex: 'loginTime',
@@ -74,6 +83,7 @@ const OnlinePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="token"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await onlineService.queryOnlineUsers({

@@ -89,8 +89,8 @@
       `system:smsConfig:*`（非 `system:sms:config:*`）、`system:smsLog:*`（非 `system:sms:log:*`）、
       `system:dictItem:*`、`system:fileRecycle:*`、参数管理按类目分
       `system:siteConfig|securityConfig|loginConfig|mailConfig:get|update`
-- [x] 4.2 `src/config/permissionCodes.ts` 由脚本 `--emit-permission-manifest` **自动生成**（派生产物，
-      供补全与人工核对；页面仍写字面量，正确性靠门禁）
+- [x] 4.2 用户权限使用 `/auth/user/info` 返回的 `permissions`，登录及应用初始化时更新本地缓存；
+      已移除未使用的前端权限码清单及其生成入口，页面所需权限码与后端的一致性由契约检查保证
 - [x] 4.3 18 个页面文件批量改写 50 个不合规码 → 合规：`:add/:edit/:del` → `:create/:update/:delete`、
       `system:organization:*` → `system:dept:*`、`notify:announcement:*` → `system:notice:*`、
       `monitor:sms:log:*` → `system:smsLog:*`、`system:config:edit` → `system:siteConfig:update`、

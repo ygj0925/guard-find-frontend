@@ -68,6 +68,7 @@ const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
     {
       title: '标题',
       dataIndex: 'title',
+      width: 240,
       ellipsis: true,
       render: (_, record) => (
         <a onClick={() => setDetailId(record.id)}>{record.title}</a>
@@ -151,6 +152,7 @@ const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 'max-content' }}
         pagination={{ defaultPageSize: 10 }}
         rowSelection={{
           selectedRowKeys,

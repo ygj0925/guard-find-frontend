@@ -139,6 +139,9 @@ function dispatchByCode(
     Notify.logout();
     return;
   }
+  if (code === '403' && !url?.includes('/auth/user/')) {
+    window.dispatchEvent(new Event('authorization:refresh'));
+  }
   if (silent) return;
 
   switch (code) {
@@ -313,6 +316,9 @@ export const requestConfig: RequestConfig = {
         if (status === 401) {
           Notify.logout();
           return;
+        }
+        if (status === 403 && !error.config?.url?.includes('/auth/user/')) {
+          window.dispatchEvent(new Event('authorization:refresh'));
         }
         // 静默请求的网络/HTTP 失败交给调用方降级处理
         if (isSilent(error.config) || isSilent(error.response.config)) return;

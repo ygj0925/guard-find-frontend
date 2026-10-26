@@ -1,38 +1,29 @@
-import { Spin } from 'antd';
 import React from 'react';
 import icons from './icons';
 import type { IconProps } from './typings';
 
-const convertTypeToIconPath = (type: string) => {
+export const convertTypeToIconPath = (type: string) => {
   let path = '';
 
-  type.split('-').forEach((t) => {
-    path = `${path}${t.substr(0, 1).toLocaleUpperCase()}${t.substring(1).toLocaleLowerCase()}`;
-  });
+  type
+    .replace(/^icon-/, '')
+    .split('-')
+    .forEach((part) => {
+      path = `${path}${part.slice(0, 1).toUpperCase()}${part.slice(1).toLowerCase()}`;
+    });
 
   return `${path}Outlined`;
 };
 
-const Icon: React.FC<IconProps> = (props: IconProps) => {
-  const { type } = props;
+export const resolveIconComponent = (type?: string) => {
+  if (!type) return undefined;
+  const iconRegistry = icons as Record<string, React.ComponentType<any>>;
+  return iconRegistry[type] || iconRegistry[convertTypeToIconPath(type)];
+};
 
-  // type 值异常
-  if (!type || type.length === 0) {
-    return null;
-  }
-
-  const iconRegistry = icons as unknown as Record<
-    string,
-    React.ComponentType<any>
-  >;
-  const IconType =
-    iconRegistry[type] || iconRegistry[convertTypeToIconPath(type)];
-
-  return IconType ? (
-    <IconType {...props} />
-  ) : (
-    <Spin spinning size="small" style={{ marginRight: '2px' }} />
-  );
+const Icon: React.FC<IconProps> = ({ type, ...props }) => {
+  const IconType = resolveIconComponent(type);
+  return IconType ? <IconType {...props} /> : null;
 };
 
 export default Icon;
