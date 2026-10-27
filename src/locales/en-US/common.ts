@@ -1,4 +1,5 @@
 export default {
+  'common.table.actions': 'Actions',
   'common.operation.success': 'Operation successful',
   'common.operation.failed': 'Operation failed',
   'common.operation.confirm': 'Confirm',

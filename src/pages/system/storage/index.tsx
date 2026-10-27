@@ -20,6 +20,7 @@ import {
   toggleStatus,
 } from '@/services/web/storage';
 import type { StorageQuery, StorageVo } from '@/services/web/storage/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import StorageForm from './components/StorageForm';
 
 const storageTypeMap: Record<number, string> = {
@@ -146,9 +147,11 @@ const StoragePage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:storage:update">
             <Button
               type="link"
@@ -192,7 +195,7 @@ const StoragePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         pagination={false}
         request={async (params) => {
           const { name } = params as Partial<StorageQuery>;

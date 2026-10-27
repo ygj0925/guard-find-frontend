@@ -29,6 +29,7 @@ import {
 } from '@/services/web/file';
 import type { FileQuery, FileReq, FileVo } from '@/services/web/file/typings';
 import { formatFileSize } from '@/utils/format';
+import { getTableScrollX } from '@/utils/tableLayout';
 import FileUpload from './components/FileUpload';
 import RecycleBin from './components/RecycleBin';
 import StorageStats from './components/StorageStats';
@@ -170,9 +171,11 @@ const FilePage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 150,
       render: (_, record) => (
-        <Space size={0}>
+        <Space wrap size={0}>
           <AccessControl permission="system:file:update">
             <Button
               type="link"
@@ -197,7 +200,7 @@ const FilePage: React.FC = () => {
       actionRef={actionRef}
       rowKey="id"
       columns={columns}
-      scroll={{ x: 'max-content' }}
+      scroll={{ x: getTableScrollX(columns) }}
       pagination={{ defaultPageSize: 10 }}
       request={async ({ current, pageSize, ...rest }) => {
         const response = await queryFiles({

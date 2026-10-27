@@ -10,6 +10,7 @@ import { message } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { SysUserVo } from '@/services/web/system';
 import { role, user } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 interface UserSelectProps {
   visible: boolean;
@@ -96,7 +97,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
         rowKey="id"
         size="small"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns, 64) }}
         options={false}
         search={{ labelWidth: 'auto' }}
         params={{ roleId }}

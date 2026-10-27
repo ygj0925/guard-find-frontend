@@ -10,6 +10,7 @@ import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
 import * as onlineService from '@/services/web/monitor/online';
 import type { OnlineUserVo } from '@/services/web/monitor/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 const OnlinePage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -60,6 +61,8 @@ const OnlinePage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 100,
       render: (_, record) => (
         <AccessControl permission="monitor:online:kickout">
@@ -83,7 +86,7 @@ const OnlinePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="token"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await onlineService.queryOnlineUsers({

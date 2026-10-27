@@ -9,6 +9,7 @@ import DictSelect from '@/components/Dict/DictSelect';
 import DictTag from '@/components/Dict/DictTag';
 import { queryNotices } from '@/services/web/user-message';
 import type { UserNoticeVo } from '@/services/web/user-message/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import NoticeDetail from './NoticeDetail';
 
 /** 公告分类取值于字典 `notice_type`（后端 `NoticeQuery.type` / `NoticeResp.type`） */
@@ -81,6 +82,8 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
     {
       title: '操作',
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 80,
       render: (_, record) => (
         <Button type="link" size="small" onClick={() => setNoticeId(record.id)}>
@@ -97,7 +100,7 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         pagination={{ defaultPageSize: 10 }}
         request={async ({ current, pageSize, ...rest }) => {
           const response = await queryNotices({

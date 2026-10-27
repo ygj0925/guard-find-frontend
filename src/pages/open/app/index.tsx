@@ -17,6 +17,7 @@ import AccessControl from '@/components/AccessControl';
 import { deleteApp, exportApps, queryApps } from '@/services/web/open/app';
 import type { AppVo } from '@/services/web/open/typings';
 import { saveBlob } from '@/utils/download';
+import { getTableScrollX } from '@/utils/tableLayout';
 import AppForm from './components/AppForm';
 import SecretModal from './components/SecretModal';
 
@@ -71,9 +72,11 @@ const AppPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="open:app:update">
             <Button
               type="link"
@@ -154,7 +157,7 @@ const AppPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryApps({

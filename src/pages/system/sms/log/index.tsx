@@ -16,6 +16,7 @@ import {
 } from '@/services/web/sms/log';
 import type { SmsLogVo } from '@/services/web/sms/typings';
 import { saveBlob } from '@/utils/download';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 const SmsLogPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -101,6 +102,8 @@ const SmsLogPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 100,
       render: (_, record) => (
         <AccessControl permission="system:smsLog:delete">
@@ -124,7 +127,7 @@ const SmsLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns, 64) }}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),

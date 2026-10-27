@@ -6,6 +6,7 @@ import type {
   DashboardChartCommonResp,
   DashboardOverviewCommonResp,
 } from '@/services/web/dashboard/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 const { Text } = Typography;
 
@@ -53,7 +54,7 @@ const AnalysisPage: React.FC = () => {
       width: 60,
       render: (_: any, __: any, index: number) => index + 1,
     },
-    { title: '名称', dataIndex: 'name', ellipsis: true },
+    { title: '名称', dataIndex: 'name', width: 180, ellipsis: true },
     { title: '数量', dataIndex: 'value', width: 100 },
   ];
 
@@ -124,7 +125,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={osData}
               rowKey="name"
               pagination={false}
-              scroll={{ x: 'max-content', y: 120 }}
+              scroll={{ x: 180, y: 120 }}
             />
           </Card>
         </Col>
@@ -144,7 +145,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={browserData}
               rowKey="name"
               pagination={false}
-              scroll={{ x: 'max-content', y: 120 }}
+              scroll={{ x: 180, y: 120 }}
             />
           </Card>
         </Col>
@@ -195,7 +196,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={timeslotData}
               rowKey="name"
               pagination={false}
-              scroll={{ x: 'max-content', y: 300 }}
+              scroll={{ x: 400, y: 300 }}
             />
           </Card>
         </Col>
@@ -207,7 +208,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={moduleData}
               rowKey="name"
               pagination={false}
-              scroll={{ x: 'max-content', y: 300 }}
+              scroll={{ x: getTableScrollX(rankingColumns), y: 300 }}
             />
           </Card>
         </Col>
@@ -220,7 +221,7 @@ const AnalysisPage: React.FC = () => {
               dataSource={geoData.slice(0, 10)}
               rowKey="name"
               pagination={false}
-              scroll={{ x: 'max-content' }}
+              scroll={{ x: getTableScrollX(rankingColumns) }}
             />
           </Card>
         </Col>

@@ -12,6 +12,7 @@ import AccessControl from '@/components/AccessControl';
 import { operationLog } from '@/services/web/log';
 import type { OperationLogVo } from '@/services/web/log/typings';
 import { toSearchDateRange } from '@/utils/params';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 const OperationLogPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -124,7 +125,7 @@ const OperationLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         expandable={{ expandedRowRender }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;

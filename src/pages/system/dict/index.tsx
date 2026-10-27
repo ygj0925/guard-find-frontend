@@ -16,6 +16,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysDictQo, SysDictVo } from '@/services/web/system';
 import { dict } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import DictForm from './components/DictForm';
 import DictItemModal from './components/DictItemModal';
 
@@ -50,6 +51,7 @@ const DictPage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.dict.system.builtin' }),
       dataIndex: 'isSystem',
+      width: 100,
       render: (_, record) =>
         record.isSystem ? (
           <Tag color="blue">
@@ -67,11 +69,13 @@ const DictPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:dict:update">
             <Button
               type="link"
@@ -158,7 +162,7 @@ const DictPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         pagination={false}
         request={async (params) => {
           const { name, code } = params as Partial<SysDictQo>;

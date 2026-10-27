@@ -21,6 +21,7 @@ import {
   triggerJob,
 } from '@/services/web/schedule/job';
 import type { JobVo } from '@/services/web/schedule/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import JobForm from './components/JobForm';
 
 const JobPage: React.FC = () => {
@@ -120,9 +121,11 @@ const JobPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 260,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="schedule:job:update">
             <Button
               type="link"
@@ -207,7 +210,7 @@ const JobPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryJobs({

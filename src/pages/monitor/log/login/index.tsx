@@ -12,6 +12,7 @@ import AccessControl from '@/components/AccessControl';
 import { loginLog } from '@/services/web/log';
 import type { LoginLogVo } from '@/services/web/log/typings';
 import { toSearchDateRange } from '@/utils/params';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 const LoginLogPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -92,7 +93,7 @@ const LoginLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await loginLog.query({

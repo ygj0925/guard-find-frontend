@@ -15,6 +15,7 @@ import {
   stopJobLog,
 } from '@/services/web/schedule/log';
 import type { JobLogVo } from '@/services/web/schedule/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 /** 后端 JobExecuteStatusEnum：1 待处理 2 运行中 3 成功 4 已失败 5 已停止 6 已取消 */
 const statusMap: Record<number, { text: string; color: string }> = {
@@ -119,9 +120,11 @@ const JobLogPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 140,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           {record.taskBatchStatus === 2 && (
             <AccessControl permission="schedule:log:stop">
               <Button
@@ -176,7 +179,7 @@ const JobLogPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryJobLogs({

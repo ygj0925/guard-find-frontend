@@ -10,6 +10,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysDictItemVo } from '@/services/web/system';
 import { dictItem } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import DictItemForm from './DictItemForm';
 
 interface DictItemModalProps {
@@ -72,11 +73,13 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
       ellipsis: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:dict:update">
             <Button
               type="link"
@@ -140,7 +143,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         search={false}
         params={{ dictId }}
         request={async (params) => {

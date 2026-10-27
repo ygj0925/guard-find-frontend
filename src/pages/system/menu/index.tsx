@@ -16,6 +16,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysMenuVo } from '@/services/web/system';
 import { menu } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import MenuForm from './components/MenuForm';
 
 const MenuPage: React.FC = () => {
@@ -96,11 +97,13 @@ const MenuPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 280,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           {record.type !== 3 && (
             <AccessControl permission="system:menu:create">
               <Button
@@ -192,7 +195,7 @@ const MenuPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         search={false}
         pagination={false}
         request={async (params) => {

@@ -1,0 +1,44 @@
+/* Let Ant Design own the table's scroll container and column sizing. */
+.ant-pro-table,
+.ant-table-wrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ant-table-content,
+.ant-table-body {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ant-table-cell {
+  vertical-align: middle;
+}
+
+.ant-pro-table .ant-pro-table-list-toolbar-container {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ant-pro-table .ant-pro-table-list-toolbar-right {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ProTable's action wrapper is a flex row without wrapping by default. */
+.ant-pro-table .ant-pro-table-list-toolbar-right > div {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.ant-table-cell.table-action-column {
+  white-space: normal;
+}
+
+.table-action-column .ant-space {
+  gap: 4px;
+}
+
+.table-action-column .ant-btn-link {
+  padding-inline: 4px;
+}

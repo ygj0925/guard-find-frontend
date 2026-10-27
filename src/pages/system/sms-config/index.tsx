@@ -19,6 +19,7 @@ import {
   setDefaultSms,
 } from '@/services/web/sms/config';
 import type { SmsConfigVo } from '@/services/web/sms/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import SmsConfigForm from './components/SmsConfigForm';
 
 const SmsConfigPage: React.FC = () => {
@@ -111,9 +112,11 @@ const SmsConfigPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:smsConfig:update">
             <Button
               type="link"
@@ -157,7 +160,7 @@ const SmsConfigPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await querySmsConfigs({

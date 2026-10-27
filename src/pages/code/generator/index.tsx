@@ -19,6 +19,7 @@ import {
 } from '@/services/web/code/generator';
 import type { GeneratorTableVo } from '@/services/web/code/typings';
 import { saveBlob } from '@/utils/download';
+import { getTableScrollX } from '@/utils/tableLayout';
 import CodePreview from './components/CodePreview';
 import FieldConfig from './components/FieldConfig';
 import TableConfig from './components/TableConfig';
@@ -68,9 +69,11 @@ const GeneratorPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 240,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="code:generator:config">
             <Button
               type="link"
@@ -157,7 +160,7 @@ const GeneratorPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="tableName"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns, 64) }}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),

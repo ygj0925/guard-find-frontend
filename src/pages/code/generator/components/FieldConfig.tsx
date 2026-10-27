@@ -6,6 +6,7 @@ import type {
   GeneratorFieldDto,
   GeneratorFieldVo,
 } from '@/services/web/code/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 interface FieldConfigProps {
   visible: boolean;
@@ -235,7 +236,7 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
           dataSource={fields}
           rowKey="id"
           pagination={false}
-          scroll={{ x: 'max-content', y: 400 }}
+          scroll={{ x: getTableScrollX(columns), y: 400 }}
           size="small"
         />
       </Spin>

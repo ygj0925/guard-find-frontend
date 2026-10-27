@@ -14,6 +14,7 @@ import {
   queryMessages,
 } from '@/services/web/user-message';
 import type { UserMessageVo } from '@/services/web/user-message/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import { MESSAGE_TYPE_MAP } from '../constants';
 import MessageDetail from './MessageDetail';
 
@@ -119,9 +120,11 @@ const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
     {
       title: '操作',
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 160,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           {!record.isRead && (
             <Button
               type="link"
@@ -152,7 +155,7 @@ const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns, 64) }}
         pagination={{ defaultPageSize: 10 }}
         rowSelection={{
           selectedRowKeys,

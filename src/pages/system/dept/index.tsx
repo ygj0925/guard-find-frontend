@@ -16,6 +16,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysOrganizationVo } from '@/services/web/system';
 import { organization } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import OrgForm from './components/OrgForm';
 
 const OrganizationPage: React.FC = () => {
@@ -65,11 +66,13 @@ const OrganizationPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 260,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:dept:create">
             <Button
               type="link"
@@ -155,7 +158,7 @@ const OrganizationPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         search={false}
         pagination={false}
         request={async () => {

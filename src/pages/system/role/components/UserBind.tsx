@@ -10,6 +10,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysRoleBindVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import UserSelect from './UserSelect';
 
 interface UserBindProps {
@@ -88,11 +89,13 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
         record.status === 1 ? '正常' : record.status === 2 ? '禁用' : '-',
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 80,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 120,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           {/* 内置角色（如超级管理员）不允许解绑用户，后端会拒 */}
           <AccessControl
             permission="system:role:unassign"
@@ -133,7 +136,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
         rowKey="id"
         size="small"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns, 64) }}
         params={{ roleId }}
         // 只留"关键词"一个筛选项（后端 RoleUserQuery 只有 description 一个可搜字段）
         search={{ labelWidth: 'auto', span: 12 }}

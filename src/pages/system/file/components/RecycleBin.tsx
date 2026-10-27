@@ -15,6 +15,7 @@ import {
 } from '@/services/web/file';
 import type { FileVo } from '@/services/web/file/typings';
 import { formatFileSize } from '@/utils/format';
+import { getTableScrollX } from '@/utils/tableLayout';
 
 const RecycleBin: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -75,9 +76,11 @@ const RecycleBin: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 200,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:fileRecycle:restore">
             <Button
               type="link"
@@ -111,7 +114,7 @@ const RecycleBin: React.FC = () => {
       actionRef={actionRef}
       rowKey="id"
       columns={columns}
-      scroll={{ x: 'max-content' }}
+      scroll={{ x: getTableScrollX(columns) }}
       pagination={{ defaultPageSize: 10 }}
       request={async ({ current, pageSize, ...rest }) => {
         const response = await queryRecycleFiles({

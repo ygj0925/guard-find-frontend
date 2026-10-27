@@ -17,6 +17,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { SysRoleQo, SysRoleVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import MenuGrant from './components/MenuGrant';
 import RoleForm from './components/RoleForm';
 import UserBind from './components/UserBind';
@@ -47,6 +48,7 @@ const RolePage: React.FC = () => {
     {
       title: intl.formatMessage({ id: 'system.role.type' }),
       dataIndex: 'isSystem',
+      width: 100,
       render: (_, record) => (
         <Tag color={record.isSystem ? 'blue' : 'green'}>
           {record.isSystem
@@ -70,11 +72,13 @@ const RolePage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:role:update">
             <Button
               type="link"
@@ -159,7 +163,7 @@ const RolePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         pagination={false}
         request={async (params) => {
           const { current: _c, pageSize: _p, ...rest } = params;

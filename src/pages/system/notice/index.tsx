@@ -21,6 +21,7 @@ import type {
   AnnouncementDetailVo,
   AnnouncementVo,
 } from '@/services/web/notify/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import AnnouncementForm from './components/AnnouncementForm';
 import AnnouncementPreview from './components/AnnouncementPreview';
 
@@ -78,11 +79,13 @@ const AnnouncementPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           {record.status === 1 && (
             <AccessControl permission="system:notice:update">
               <Button
@@ -213,7 +216,7 @@ const AnnouncementPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await announcement.query({

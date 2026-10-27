@@ -15,6 +15,7 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import { deletePackage, queryPackages } from '@/services/web/tenant/package';
 import type { TenantPackageVo } from '@/services/web/tenant/typings';
+import { getTableScrollX } from '@/utils/tableLayout';
 import MenuAssign from './components/MenuAssign';
 import PackageForm from './components/PackageForm';
 
@@ -65,9 +66,11 @@ const PackagePage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="tenant:package:update">
             <Button
               type="link"
@@ -143,7 +146,7 @@ const PackagePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: getTableScrollX(columns) }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryPackages({

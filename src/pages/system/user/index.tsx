@@ -21,10 +21,12 @@ import AccessControl from '@/components/AccessControl';
 import OrganizationTree from '@/components/OrganizationTree';
 import type { SysUserVo } from '@/services/web/system';
 import { user } from '@/services/web/system';
+import { getTableScrollX } from '@/utils/tableLayout';
 import Grant from './components/Grant';
 import ImportModal from './components/ImportModal';
 import Pass from './components/Pass';
 import UserForm from './components/UserForm';
+import './index.css';
 
 const UserPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -116,11 +118,13 @@ const UserPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
-      width: 220,
+      fixed: 'right',
+      className: 'table-action-column',
+      width: 180,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <AccessControl permission="system:user:update">
             <Button
               type="link"
@@ -277,10 +281,10 @@ const UserPage: React.FC = () => {
 
   return (
     <PageContainer>
-      <div style={{ display: 'flex', gap: 16 }}>
+      <div className="user-management-layout">
         <div
+          className="user-management-organization"
           style={{
-            width: 250,
             background: '#fff',
             padding: 16,
             borderRadius: 8,
@@ -288,13 +292,13 @@ const UserPage: React.FC = () => {
         >
           <OrganizationTree onSelectOrganization={handleOrgSelect} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <ProTable<SysUserVo>
             headerTitle={intl.formatMessage({ id: 'system.user.title' })}
             actionRef={actionRef}
             rowKey="id"
             columns={columns}
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: getTableScrollX(columns, 64) }}
             rowSelection={{}}
             params={{
               deptId: selectedOrgId || undefined,

@@ -13,6 +13,7 @@ import { useAccess } from '@/hooks/useAccess';
 import type { SysConfigQo, SysConfigVo } from '@/services/web/system';
 import { config } from '@/services/web/system';
 import { getOptionPermission } from '@/utils/optionAccess';
+import { getTableScrollX } from '@/utils/tableLayout';
 import ClientConfig from './components/ClientConfig';
 import ConfigForm from './components/ConfigForm';
 import LoginConfig from './components/LoginConfig';
@@ -55,11 +56,13 @@ const ConfigPage: React.FC = () => {
       hideInSearch: true,
     },
     {
-      title: intl.formatMessage({ id: 'common.operation.confirm' }),
+      title: intl.formatMessage({ id: 'common.table.actions' }),
       valueType: 'option',
+      fixed: 'right',
+      className: 'table-action-column',
       width: 100,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           {record.category && (
             <AccessControl
               permission={getOptionPermission(record.category, 'update')}
@@ -110,7 +113,7 @@ const ConfigPage: React.FC = () => {
                   actionRef={actionRef}
                   rowKey="id"
                   columns={columns}
-                  scroll={{ x: 'max-content' }}
+                  scroll={{ x: getTableScrollX(columns) }}
                   pagination={false}
                   request={async (params) => {
                     const { name, code } = params as Partial<SysConfigQo>;
