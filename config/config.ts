@@ -171,6 +171,12 @@ export default defineConfig({
 
   //================ pro 插件配置 =================
   presets: ['umi-presets-pro'],
+  plugins: ['./plugins/route-tabs'],
+  keepalive: [/.*/],
+  tabsLayout: {
+    hasDropdown: true,
+    hasFixedHeader: false,
+  },
   /**
    * @name 是否开启 mako
    * @description 使用 mako 极速研发

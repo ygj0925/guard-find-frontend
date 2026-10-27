@@ -1,0 +1,56 @@
+.admin-route-tabs {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-route-tabs > .runtime-keep-alive-tabs-layout {
+  position: sticky;
+  top: var(--route-tabs-top, 0px);
+  z-index: 9;
+  margin-block-start: calc(-1 * var(--route-tabs-inset-top, 0px));
+  margin-block-end: var(--route-tabs-inset-top, 0px);
+  margin-inline-start: calc(-1 * var(--route-tabs-inset-start, 0px));
+  margin-inline-end: calc(-1 * var(--route-tabs-inset-end, 0px));
+  padding-inline: 12px;
+  background: var(--route-tabs-background);
+  border-bottom: 1px solid var(--route-tabs-border);
+}
+
+.admin-route-tabs > .runtime-keep-alive-tabs-layout > .ant-tabs {
+  min-width: 0;
+}
+
+.admin-route-tabs > .runtime-keep-alive-tabs-layout .ant-tabs-nav {
+  min-height: 40px;
+  margin: 0;
+}
+
+.admin-route-tabs > .runtime-keep-alive-tabs-layout .ant-tabs-tab {
+  max-width: 240px;
+}
+
+.admin-route-tabs > .runtime-keep-alive-tabs-layout .ant-tabs-tab-btn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Let pages grow vertically and contain wide content in the page body. */
+.admin-route-tabs > .runtime-keep-alive-layout,
+.admin-route-tabs > .runtime-keep-alive-layout-no {
+  /* biome-ignore lint/complexity/noImportantStyles: override the preset's inline 100% height */
+  height: auto !important;
+  min-width: 0;
+  /* biome-ignore lint/complexity/noImportantStyles: override the preset's inline overflow */
+  overflow: auto !important;
+}
+
+@media (max-width: 575px) {
+  .admin-route-tabs > .runtime-keep-alive-tabs-layout {
+    padding-inline: 4px;
+  }
+
+  .admin-route-tabs > .runtime-keep-alive-tabs-layout .ant-tabs-tab {
+    max-width: 160px;
+  }
+}

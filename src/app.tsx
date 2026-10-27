@@ -5,6 +5,7 @@ import type { GLOBAL } from '@/typings';
 import { getSessionIdentity, loadAuthorization } from '@/utils/AuthSession';
 import { requestConfig } from '@/utils/RequestConfig';
 import { cacheRoutes } from '@/utils/RouteUtils';
+import { getRouteTabs } from '@/utils/routeTabs';
 import {
   applyCachedSiteSettings,
   loadSiteSettings,
@@ -52,4 +53,14 @@ export async function getInitialState(): Promise<{
  */
 export const request: RequestConfig = {
   ...requestConfig,
+};
+
+// Alita tabsLayout is provided by umi-presets-pro; titles come from authorized menus.
+export const tabsLayout = () => {
+  const tabs = Object.entries(getRouteTabs());
+  return {
+    local: Object.fromEntries(tabs.map(([path, tab]) => [path, tab.title])),
+    icon: {},
+    size: 'small',
+  };
 };

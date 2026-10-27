@@ -18,21 +18,18 @@ import {
 } from '@ant-design/pro-components';
 import { history, Link, Outlet, useLocation, useModel } from '@umijs/max';
 import { Badge, Input, theme } from 'antd';
-import { useKeepAliveRef } from 'keepalive-for-react';
 import React, { type FC, useEffect, useMemo, useState } from 'react';
 import defaultSettings from '@/../config/defaultSettings';
 import ChatFloat from '@/components/ChatFloat';
 import { DictProvider } from '@/components/Dict';
 import Footer from '@/components/Footer';
-import KeepAliveOutlet from '@/components/KeepAliveOutlet';
-import MultiTab from '@/components/MultiTab';
 import RouteAccess from '@/components/RouteAccess';
+import RouteTabs from '@/components/RouteTabs';
 import {
   getUnreadCount,
   getUnreadNoticeCount,
 } from '@/services/web/user-message';
 import { redirectToLogin } from '@/utils/LoginRedirect';
-import Notify from '@/utils/NotifyUtils';
 import { getAuthorizedRoutes, isOfflinePath } from '@/utils/RouteUtils';
 import { isLogin, LayoutSetting } from '@/utils/Web';
 
@@ -114,33 +111,15 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
   const { initialState, setInitialState } = useModel('@@initialState');
   useModel('authorization');
 
-  const aliveRef = useKeepAliveRef();
   const authorizationKey = JSON.stringify([
     initialState?.user?.id,
     initialState?.user?.permissions,
     initialState?.user?.roles,
     getAuthorizedRoutes(),
   ]);
-  useEffect(() => {
-    aliveRef.current?.destroyAll();
-  }, [authorizationKey, aliveRef]);
 
   const multiTab =
     (initialState?.settings as any)?.multiTab ?? defaultSettings.multiTab;
-  const multiTabStyle =
-    (initialState?.settings as any)?.multiTabStyle ?? 'default';
-  const layout = ((initialState?.settings as any)?.layout ??
-    defaultSettings.layout) as 'top' | 'side' | 'mix';
-  const fixedHeader =
-    (initialState?.settings as any)?.fixedHeader ?? defaultSettings.fixedHeader;
-
-  useEffect(() => {
-    if (multiTab) {
-      Notify.setCleanCache(() => {
-        aliveRef.current?.destroyAll();
-      });
-    }
-  }, [multiTab, aliveRef]);
 
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -354,18 +333,12 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
           }))
         }
         {...initialState?.settings}
-        contentStyle={{
-          marginTop:
-            multiTab && (fixedHeader || layout === 'mix') ? 40 : undefined,
-        }}
       >
-        {multiTab && <MultiTab aliveRef={aliveRef} style={multiTabStyle} />}
         <WaterMark
           content={initialState?.user?.nickname || initialState?.user?.username}
-          style={{ height: '100%' }}
         >
           <RouteAccess>
-            {multiTab ? <KeepAliveOutlet aliveRef={aliveRef} /> : <Outlet />}
+            {multiTab ? <RouteTabs key={authorizationKey} /> : <Outlet />}
           </RouteAccess>
         </WaterMark>
 
