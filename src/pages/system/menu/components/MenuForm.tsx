@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import IconSelect from '@/components/Icon/IconSelect';
 import type { SysMenuVo } from '@/services/web/system';
 import { menu } from '@/services/web/system';
@@ -35,33 +35,12 @@ const MenuForm: React.FC<MenuFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
-  const [menuType, setMenuType] = useState<number>(TYPE_DIR);
-
-  useEffect(() => {
-    if (!visible) return;
-    if (menuData) {
-      form.setFieldsValue(menuData);
-      setMenuType(menuData.type);
-    } else {
-      form.resetFields();
-      // 根节点默认建目录；挂在目录下建菜单；挂在菜单下建按钮
-      const defaultType = parentMenu
-        ? parentMenu.type === TYPE_DIR
-          ? TYPE_MENU
-          : TYPE_BUTTON
-        : TYPE_DIR;
-      form.setFieldsValue({
-        type: defaultType,
-        parentId: parentMenu?.id,
-        sort: 0,
-        status: 1,
-        isExternal: false,
-        isCache: false,
-        isHidden: false,
-      });
-      setMenuType(defaultType);
-    }
-  }, [visible, menuData, parentMenu, form]);
+  const defaultType = parentMenu
+    ? parentMenu.type === TYPE_DIR
+      ? TYPE_MENU
+      : TYPE_BUTTON
+    : TYPE_DIR;
+  const [menuType, setMenuType] = useState(menuData?.type ?? defaultType);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -115,9 +94,22 @@ const MenuForm: React.FC<MenuFormProps> = ({
       onCancel={onCancel}
       footer={null}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
-      <ProForm form={form} onFinish={handleSubmit}>
+      <ProForm
+        form={form}
+        onFinish={handleSubmit}
+        initialValues={{
+          type: defaultType,
+          parentId: parentMenu?.id,
+          sort: 0,
+          status: 1,
+          isExternal: false,
+          isCache: false,
+          isHidden: false,
+          ...menuData,
+        }}
+      >
         <ProFormTreeSelect
           name="parentId"
           label={intl.formatMessage({ id: 'system.menu.parent' })}

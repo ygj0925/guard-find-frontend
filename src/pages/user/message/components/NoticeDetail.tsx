@@ -25,13 +25,21 @@ const NoticeDetail: React.FC<NoticeDetailProps> = ({
       setNoticeData(null);
       return;
     }
+    let active = true;
     setLoading(true);
     getNoticeDetail(noticeId)
-      .then((res) => setNoticeData(res.data ?? null))
+      .then((res) => {
+        if (active) setNoticeData(res.data ?? null);
+      })
       .catch((error) => {
         console.error('Fetch notice detail failed:', error);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [visible, noticeId]);
 
   const safeContent = useMemo(

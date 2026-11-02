@@ -1,17 +1,30 @@
 import { useMemo } from 'react';
 import { useModel } from 'umi';
-import { createAccessChecker } from '@/utils/access';
+import { type AccessSubject, createAccessChecker } from '@/utils/access';
+
+const checkers = new WeakMap<
+  AccessSubject,
+  ReturnType<typeof createAccessChecker>
+>();
+const emptyChecker = createAccessChecker(undefined);
 
 /**
  * 页面/组件用的权限判定。逻辑与 `src/access.ts` 同源（`@/utils/access`），
  * 返回值保持历史字段名，避免大面积改调用点。
  */
 export function useAccess() {
-  const { initialState } = useModel('@@initialState');
-  const currentUser = initialState?.user;
+  const currentUser = useModel(
+    '@@initialState',
+    (model) => model.initialState?.user,
+  );
 
   return useMemo(() => {
-    const access = createAccessChecker(currentUser);
+    // Hundreds of row action buttons share one immutable user snapshot.
+    let access = currentUser ? checkers.get(currentUser) : emptyChecker;
+    if (!access) {
+      access = createAccessChecker(currentUser);
+      if (currentUser) checkers.set(currentUser, access);
+    }
     return {
       permissions: access.permissions,
       roles: access.roles,

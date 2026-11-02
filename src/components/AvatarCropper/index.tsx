@@ -1,8 +1,9 @@
 import { UploadOutlined } from '@ant-design/icons';
-import { Button, Modal, message, Upload } from 'antd';
-import React, { useCallback, useRef, useState } from 'react';
-import Cropper from 'react-cropper';
+import { Button, Modal, message, Spin, Upload } from 'antd';
+import React, { lazy, Suspense, useCallback, useRef, useState } from 'react';
 import 'cropperjs/dist/cropper.css';
+
+const Cropper = lazy(() => import('react-cropper'));
 
 interface AvatarCropperProps {
   visible: boolean;
@@ -120,22 +121,32 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({
           </Upload>
         ) : (
           <div>
-            <Cropper
-              ref={cropperRef}
-              src={image}
-              style={{ height: 400, width: '100%' }}
-              aspectRatio={aspectRatio}
-              guides={true}
-              cropBoxMovable={true}
-              cropBoxResizable={true}
-              dragMode="move"
-              autoCropArea={0.8}
-              restore={false}
-              highlight={true}
-              center={true}
-              responsive={true}
-              preview=".avatar-preview"
-            />
+            <Suspense
+              fallback={
+                <div
+                  style={{ height: 400, display: 'grid', placeItems: 'center' }}
+                >
+                  <Spin />
+                </div>
+              }
+            >
+              <Cropper
+                ref={cropperRef}
+                src={image}
+                style={{ height: 400, width: '100%' }}
+                aspectRatio={aspectRatio}
+                guides={true}
+                cropBoxMovable={true}
+                cropBoxResizable={true}
+                dragMode="move"
+                autoCropArea={0.8}
+                restore={false}
+                highlight={true}
+                center={true}
+                responsive={true}
+                preview=".avatar-preview"
+              />
+            </Suspense>
             <div style={{ marginTop: 16 }}>
               <Button
                 onClick={() => {

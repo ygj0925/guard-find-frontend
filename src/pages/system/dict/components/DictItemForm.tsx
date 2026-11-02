@@ -7,7 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { SysDictItemVo } from '@/services/web/system';
 import { dictItem, tagDefaultColorArray } from '@/services/web/system';
 
@@ -28,16 +28,6 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
-
-  useEffect(() => {
-    if (visible) {
-      if (item) {
-        form.setFieldsValue(item);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, item, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -65,9 +55,13 @@ const DictItemForm: React.FC<DictItemFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
-      <ProForm form={form} onFinish={handleSubmit} initialValues={{ sort: 1 }}>
+      <ProForm
+        form={form}
+        onFinish={handleSubmit}
+        initialValues={{ sort: 1, ...item }}
+      >
         <ProFormText
           name="label"
           label={intl.formatMessage({ id: 'system.dict.item.name' })}

@@ -40,8 +40,7 @@ const metrics = [
 ];
 
 const CockpitPage: React.FC = () => {
-  const { initialState } = useModel('@@initialState');
-  const user = initialState?.user;
+  const user = useModel('@@initialState', (model) => model.initialState?.user);
 
   return (
     <PageContainer

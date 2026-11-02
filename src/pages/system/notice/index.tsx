@@ -14,13 +14,11 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import { announcement } from '@/services/web/notify';
-import type {
-  AnnouncementDetailVo,
-  AnnouncementVo,
-} from '@/services/web/notify/typings';
+import type { AnnouncementVo } from '@/services/web/notify/typings';
 import { getTableScrollX } from '@/utils/tableLayout';
 import AnnouncementForm from './components/AnnouncementForm';
 import AnnouncementPreview from './components/AnnouncementPreview';
@@ -28,11 +26,8 @@ import AnnouncementPreview from './components/AnnouncementPreview';
 const AnnouncementPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentAnnouncement, setCurrentAnnouncement] =
-    useState<AnnouncementDetailVo | null>(null);
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewContent, setPreviewContent] = useState('');
+  const formDialog = useDialog<number | null>();
+  const previewDialog = useDialog<number>();
 
   const statusMap: Record<number, { label: string; color: string }> = {
     1: {
@@ -150,28 +145,15 @@ const AnnouncementPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentAnnouncement(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
-  const handleEdit = async (record: AnnouncementVo) => {
-    try {
-      const response = await announcement.detail(record.id);
-      setCurrentAnnouncement(response.data || null);
-      setFormVisible(true);
-    } catch (error) {
-      console.error('Load detail failed:', error);
-    }
+  const handleEdit = (record: AnnouncementVo) => {
+    formDialog.open(record.id);
   };
 
-  const handlePreview = async (record: AnnouncementVo) => {
-    try {
-      const response = await announcement.detail(record.id);
-      setPreviewContent(response.data?.content || '');
-      setPreviewVisible(true);
-    } catch (error) {
-      console.error('Preview failed:', error);
-    }
+  const handlePreview = (record: AnnouncementVo) => {
+    previewDialog.open(record.id);
   };
 
   const handlePublish = async (record: AnnouncementVo) => {
@@ -205,7 +187,7 @@ const AnnouncementPage: React.FC = () => {
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -239,18 +221,26 @@ const AnnouncementPage: React.FC = () => {
         ]}
       />
 
-      <AnnouncementForm
-        visible={formVisible}
-        announcement={currentAnnouncement}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <AnnouncementForm
+            visible={visible}
+            announcementId={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <AnnouncementPreview
-        visible={previewVisible}
-        content={previewContent}
-        onCancel={() => setPreviewVisible(false)}
-      />
+      <DialogHost dialog={previewDialog}>
+        {({ visible, data }) => (
+          <AnnouncementPreview
+            visible={visible}
+            announcementId={data}
+            onCancel={() => previewDialog.close()}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

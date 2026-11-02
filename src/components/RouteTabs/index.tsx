@@ -49,25 +49,21 @@ export default function RouteTabs() {
     if (!root || !content || !container) return;
     const measure = () => {
       const padding = getComputedStyle(content);
-      root.style.setProperty(
-        '--route-tabs-inset-start',
-        padding.paddingInlineStart,
-      );
-      root.style.setProperty(
-        '--route-tabs-inset-end',
-        padding.paddingInlineEnd,
-      );
-      root.style.setProperty('--route-tabs-inset-top', padding.paddingTop);
-      // Read the rendered header: desktop side mode may have no global header.
+      // Finish layout reads before changing CSS variables on the measured tree.
+      const insetStart = padding.paddingInlineStart;
+      const insetEnd = padding.paddingInlineEnd;
+      const insetTop = padding.paddingTop;
       const header = container.querySelector<HTMLElement>(
         '.ant-pro-layout-header',
       );
-      const headerStyle = header && getComputedStyle(header);
-      const fixed = header && headerStyle?.position === 'fixed';
-      root.style.setProperty(
-        '--route-tabs-top',
-        `${fixed ? Math.max(0, header.getBoundingClientRect().bottom) : 0}px`,
-      );
+      const fixed = header && getComputedStyle(header).position === 'fixed';
+      const top = fixed
+        ? Math.max(0, header.getBoundingClientRect().bottom)
+        : 0;
+      root.style.setProperty('--route-tabs-inset-start', insetStart);
+      root.style.setProperty('--route-tabs-inset-end', insetEnd);
+      root.style.setProperty('--route-tabs-inset-top', insetTop);
+      root.style.setProperty('--route-tabs-top', `${top}px`);
     };
     measure();
     const observer = new ResizeObserver(measure);

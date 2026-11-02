@@ -11,8 +11,9 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import { deletePackage, queryPackages } from '@/services/web/tenant/package';
 import type { TenantPackageVo } from '@/services/web/tenant/typings';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -26,12 +27,8 @@ const statusMap: Record<number, { text: string; color: string }> = {
 
 const PackagePage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<TenantPackageVo | null>(
-    null,
-  );
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [menuPackageId, setMenuPackageId] = useState<number | null>(null);
+  const formDialog = useDialog<TenantPackageVo | null>();
+  const menuDialog = useDialog<number>();
 
   const columns: ProColumns<TenantPackageVo>[] = [
     {
@@ -105,13 +102,11 @@ const PackagePage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentRecord(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: TenantPackageVo) => {
-    setCurrentRecord(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: TenantPackageVo) => {
@@ -125,17 +120,16 @@ const PackagePage: React.FC = () => {
   };
 
   const handleMenuAssign = (record: TenantPackageVo) => {
-    setMenuPackageId(record.id);
-    setMenuVisible(true);
+    menuDialog.open(record.id);
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
   const handleMenuSuccess = () => {
-    setMenuVisible(false);
+    menuDialog.close();
     actionRef.current?.reload();
   };
 
@@ -169,19 +163,27 @@ const PackagePage: React.FC = () => {
         ]}
       />
 
-      <PackageForm
-        visible={formVisible}
-        record={currentRecord}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <PackageForm
+            visible={visible}
+            record={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <MenuAssign
-        visible={menuVisible}
-        packageId={menuPackageId}
-        onCancel={() => setMenuVisible(false)}
-        onSuccess={handleMenuSuccess}
-      />
+      <DialogHost dialog={menuDialog}>
+        {({ visible, data }) => (
+          <MenuAssign
+            visible={visible}
+            packageId={data}
+            onCancel={() => menuDialog.close()}
+            onSuccess={handleMenuSuccess}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

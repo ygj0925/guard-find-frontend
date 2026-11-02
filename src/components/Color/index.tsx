@@ -1,7 +1,24 @@
-import { Popover } from 'antd';
-import React, { useState } from 'react';
+import { Popover, Spin } from 'antd';
+import React, { lazy, Suspense, useState } from 'react';
 import type { ColorResult } from 'react-color';
-import { SketchPicker } from 'react-color';
+
+const SketchPicker = lazy(() =>
+  import('react-color').then((module) => ({ default: module.SketchPicker })),
+);
+const DEFAULT_PRESET_COLORS = [
+  '#f5222d',
+  '#fa8c16',
+  '#fadb14',
+  '#52c41a',
+  '#13c2c2',
+  '#1890ff',
+  '#722ed1',
+  '#eb2f96',
+  '#333333',
+  '#666666',
+  '#999999',
+  '#cccccc',
+];
 
 interface ColorProps {
   value?: string;
@@ -14,20 +31,7 @@ interface ColorProps {
 const Color: React.FC<ColorProps> = ({
   value,
   onChange,
-  presetColors = [
-    '#f5222d',
-    '#fa8c16',
-    '#fadb14',
-    '#52c41a',
-    '#13c2c2',
-    '#1890ff',
-    '#722ed1',
-    '#eb2f96',
-    '#333333',
-    '#666666',
-    '#999999',
-    '#cccccc',
-  ],
+  presetColors = DEFAULT_PRESET_COLORS,
   disableAlpha = false,
   disabled = false,
 }) => {
@@ -46,12 +50,29 @@ const Color: React.FC<ColorProps> = ({
     <Popover
       content={
         <div>
-          <SketchPicker
-            color={value || '#000000'}
-            onChange={handleChange}
-            presetColors={presetColors}
-            disableAlpha={disableAlpha}
-          />
+          {visible && (
+            <Suspense
+              fallback={
+                <div
+                  style={{
+                    width: 220,
+                    height: 280,
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  <Spin />
+                </div>
+              }
+            >
+              <SketchPicker
+                color={value || '#000000'}
+                onChange={handleChange}
+                presetColors={presetColors}
+                disableAlpha={disableAlpha}
+              />
+            </Suspense>
+          )}
           <div style={{ textAlign: 'center', marginTop: 8 }}>
             <a onClick={handleClear}>清除颜色</a>
           </div>

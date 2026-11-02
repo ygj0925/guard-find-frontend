@@ -6,6 +6,7 @@ import {
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import {
   batchDeleteMessages,
   deleteMessage,
@@ -32,7 +33,7 @@ interface MessageListProps {
 const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
   const actionRef = useRef<ActionType>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [detailId, setDetailId] = useState<number | null>(null);
+  const detailDialog = useDialog<number>();
 
   const reload = () => {
     actionRef.current?.reload();
@@ -72,7 +73,7 @@ const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
       width: 240,
       ellipsis: true,
       render: (_, record) => (
-        <a onClick={() => setDetailId(record.id)}>{record.title}</a>
+        <a onClick={() => detailDialog.open(record.id)}>{record.title}</a>
       ),
     },
     {
@@ -195,12 +196,16 @@ const MessageList: React.FC<MessageListProps> = ({ onChanged }) => {
         ]}
       />
 
-      <MessageDetail
-        messageId={detailId}
-        open={detailId !== null}
-        onCancel={() => setDetailId(null)}
-        onRead={reload}
-      />
+      <DialogHost dialog={detailDialog}>
+        {({ visible, data }) => (
+          <MessageDetail
+            messageId={data}
+            open={visible}
+            onCancel={() => detailDialog.close()}
+            onRead={reload}
+          />
+        )}
+      </DialogHost>
     </>
   );
 };

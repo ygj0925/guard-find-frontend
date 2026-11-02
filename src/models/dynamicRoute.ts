@@ -1,4 +1,5 @@
 import { useModel } from '@umijs/max';
+import { useMemo } from 'react';
 import {
   type ExpandRoute,
   getCachedFirstPath,
@@ -10,10 +11,22 @@ export default function useDynamicRoute(): {
   dynamicRoute: ExpandRoute[];
   firstPath: string | undefined;
 } {
-  const { initialState } = useModel('@@initialState');
-  const loggedIn = Boolean(initialState?.user && isLogin(initialState));
-  return {
-    dynamicRoute: loggedIn ? getCachedMenuRoutes() : [],
-    firstPath: loggedIn ? getCachedFirstPath() : undefined,
-  };
+  // Menu edits can change routes without changing the user object.
+  const { loggedIn, routes, firstPath } = useModel(
+    '@@initialState',
+    (model) => ({
+      loggedIn: Boolean(
+        model.initialState?.user && isLogin(model.initialState),
+      ),
+      routes: getCachedMenuRoutes(),
+      firstPath: getCachedFirstPath(),
+    }),
+  );
+  return useMemo(
+    () => ({
+      dynamicRoute: loggedIn ? routes : [],
+      firstPath: loggedIn ? firstPath : undefined,
+    }),
+    [loggedIn, routes, firstPath],
+  );
 }

@@ -1,5 +1,4 @@
 import {
-  BellOutlined,
   GithubFilled,
   InfoCircleFilled,
   PlusCircleFilled,
@@ -17,21 +16,18 @@ import {
   WaterMark,
 } from '@ant-design/pro-components';
 import { history, Link, Outlet, useLocation, useModel } from '@umijs/max';
-import { Badge, Input, theme } from 'antd';
-import React, { type FC, useEffect, useMemo, useState } from 'react';
+import { Input, theme } from 'antd';
+import React, { type FC, useEffect, useMemo } from 'react';
 import defaultSettings from '@/../config/defaultSettings';
 import ChatFloat from '@/components/ChatFloat';
-import { DictProvider } from '@/components/Dict';
+import DictProvider from '@/components/Dict/DictProvider';
 import Footer from '@/components/Footer';
 import RouteAccess from '@/components/RouteAccess';
 import RouteTabs from '@/components/RouteTabs';
-import {
-  getUnreadCount,
-  getUnreadNoticeCount,
-} from '@/services/web/user-message';
+import UnreadBell from '@/components/UnreadBell';
 import { redirectToLogin } from '@/utils/LoginRedirect';
 import { getAuthorizedRoutes, isOfflinePath } from '@/utils/RouteUtils';
-import { isLogin, LayoutSetting } from '@/utils/Web';
+import { isLogin, LayoutSetting, Tenant } from '@/utils/Web';
 
 /**
  * BaseLayout Props
@@ -111,33 +107,29 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
   const { initialState, setInitialState } = useModel('@@initialState');
   useModel('authorization');
 
-  const authorizationKey = JSON.stringify([
-    initialState?.user?.id,
-    initialState?.user?.permissions,
-    initialState?.user?.roles,
-    getAuthorizedRoutes(),
-  ]);
+  const user = initialState?.user;
+  const authorizedRoutes = getAuthorizedRoutes();
+  const authorizationKey = useMemo(
+    () =>
+      JSON.stringify([
+        user?.id,
+        user?.permissions,
+        user?.roles,
+        authorizedRoutes,
+      ]),
+    [user?.id, user?.permissions, user?.roles, authorizedRoutes],
+  );
 
   const multiTab =
     (initialState?.settings as any)?.multiTab ?? defaultSettings.multiTab;
 
-  const [unreadCount, setUnreadCount] = useState(0);
+  const refreshUnread = useModel('unread', (model) => model.refreshUnread);
+  const loggedIn = isLogin(initialState);
 
   useEffect(() => {
-    if (!isLogin(initialState)) return;
-    // 铃铛角标 = 未读消息 + 未读公告，两者都是"当前登录用户"视角接口
-    void Promise.allSettled([getUnreadCount(), getUnreadNoticeCount()]).then(
-      ([messages, notices]) => {
-        const pick = (
-          result: PromiseSettledResult<{ data?: { total?: number } }>,
-        ) =>
-          result.status === 'fulfilled'
-            ? Number(result.value.data?.total) || 0
-            : 0;
-        setUnreadCount(pick(messages) + pick(notices));
-      },
-    );
-  }, [initialState, location.pathname]);
+    if (!loggedIn) return;
+    void refreshUnread();
+  }, [loggedIn, user?.id, location.pathname, refreshUnread]);
 
   /**
    * 动态菜单 model
@@ -186,7 +178,7 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
    */
 
   return (
-    <DictProvider>
+    <DictProvider key={`${Tenant.get()}:${user?.id}`}>
       <ProLayout
         title={defaultSettings.title}
         logo={defaultSettings.logo}
@@ -286,12 +278,7 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
             props.layout !== 'side' ? (
               <SearchInput key="SearchInput" />
             ) : undefined,
-            <Badge key="bell" count={unreadCount} size="small" offset={[-2, 2]}>
-              <BellOutlined
-                style={{ fontSize: 16, cursor: 'pointer' }}
-                onClick={() => history.push('/user/message')}
-              />
-            </Badge>,
+            <UnreadBell key="bell" />,
             <InfoCircleFilled key="InfoCircleFilled" />,
             <QuestionCircleFilled key="QuestionCircleFilled" />,
             <GithubFilled key="GithubFilled" />,

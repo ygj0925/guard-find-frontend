@@ -5,7 +5,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { SysDictVo } from '@/services/web/system';
 import { dict } from '@/services/web/system';
 
@@ -24,16 +24,6 @@ const DictForm: React.FC<DictFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
-
-  useEffect(() => {
-    if (visible) {
-      if (dictData) {
-        form.setFieldsValue(dictData);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, dictData, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -61,9 +51,13 @@ const DictForm: React.FC<DictFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
-      <ProForm form={form} onFinish={handleSubmit}>
+      <ProForm
+        form={form}
+        onFinish={handleSubmit}
+        initialValues={dictData || {}}
+      >
         <ProFormText
           name="code"
           label={intl.formatMessage({ id: 'system.dict.code' })}

@@ -4,7 +4,8 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import DictSelect from '@/components/Dict/DictSelect';
 import DictTag from '@/components/Dict/DictTag';
 import { queryNotices } from '@/services/web/user-message';
@@ -26,7 +27,7 @@ interface NoticeListProps {
  */
 const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
   const actionRef = useRef<ActionType>(null);
-  const [noticeId, setNoticeId] = useState<number | null>(null);
+  const detailDialog = useDialog<number>();
 
   const columns: ProColumns<UserNoticeVo>[] = [
     {
@@ -37,7 +38,7 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
       render: (_, record) => (
         <Space>
           {record.isTop && <Tag color="red">置顶</Tag>}
-          <a onClick={() => setNoticeId(record.id)}>{record.title}</a>
+          <a onClick={() => detailDialog.open(record.id)}>{record.title}</a>
         </Space>
       ),
     },
@@ -86,7 +87,11 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
       className: 'table-action-column',
       width: 80,
       render: (_, record) => (
-        <Button type="link" size="small" onClick={() => setNoticeId(record.id)}>
+        <Button
+          type="link"
+          size="small"
+          onClick={() => detailDialog.open(record.id)}
+        >
           查看
         </Button>
       ),
@@ -116,14 +121,18 @@ const NoticeList: React.FC<NoticeListProps> = ({ onChanged }) => {
         }}
       />
 
-      <NoticeDetail
-        noticeId={noticeId}
-        visible={noticeId !== null}
-        onCancel={() => {
-          setNoticeId(null);
-          onChanged?.();
-        }}
-      />
+      <DialogHost dialog={detailDialog}>
+        {({ visible, data }) => (
+          <NoticeDetail
+            noticeId={data}
+            visible={visible}
+            onCancel={() => {
+              detailDialog.close();
+              onChanged?.();
+            }}
+          />
+        )}
+      </DialogHost>
     </>
   );
 };

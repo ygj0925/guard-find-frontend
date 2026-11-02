@@ -17,8 +17,9 @@ import {
 } from '@ant-design/pro-components';
 import type { MenuProps } from 'antd';
 import { Button, Dropdown, message, Space, Tabs } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import { useAccess } from '@/hooks/useAccess';
 import {
   calcDirSize,
@@ -52,8 +53,8 @@ function openDownload(url: string, filename: string) {
 const FilePage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const { hasAnyPermission } = useAccess();
-  const [dirFormOpen, setDirFormOpen] = useState(false);
-  const [renameTarget, setRenameTarget] = useState<FileVo | null>(null);
+  const dirDialog = useDialog();
+  const renameDialog = useDialog<FileVo>();
 
   const reload = () => actionRef.current?.reload();
 
@@ -181,7 +182,7 @@ const FilePage: React.FC = () => {
               type="link"
               size="small"
               icon={<EditOutlined />}
-              onClick={() => setRenameTarget(record)}
+              onClick={() => renameDialog.open(record)}
             >
               重命名
             </Button>
@@ -223,7 +224,7 @@ const FilePage: React.FC = () => {
         >
           <Button
             icon={<FolderAddOutlined />}
-            onClick={() => setDirFormOpen(true)}
+            onClick={() => dirDialog.open(undefined)}
           >
             新建文件夹
           </Button>
@@ -257,79 +258,87 @@ const FilePage: React.FC = () => {
       />
 
       {/* 创建文件夹：后端 createDir 显式要求 parentPath 非空 */}
-      <ModalForm
-        title="新建文件夹"
-        open={dirFormOpen}
-        width={480}
-        modalProps={{
-          destroyOnHidden: true,
-          onCancel: () => setDirFormOpen(false),
-        }}
-        initialValues={{ parentPath: '/' }}
-        onFinish={async (values) => {
-          await createDir(values as FileReq);
-          message.success('文件夹创建成功');
-          setDirFormOpen(false);
-          reload();
-          return true;
-        }}
-      >
-        <ProFormText
-          name="originalName"
-          label="文件夹名称"
-          placeholder="请输入文件夹名称"
-          rules={[
-            { required: true, message: '请输入文件夹名称' },
-            {
-              pattern: /^[^/\\]{1,255}$/,
-              message: '不能包含 / \\，且长度不超过 255',
-            },
-          ]}
-        />
-        <ProFormText
-          name="parentPath"
-          label="上级目录"
-          placeholder="例如 / 或 /2026/09"
-          rules={[{ required: true, message: '上级目录不能为空' }]}
-        />
-      </ModalForm>
+      <DialogHost dialog={dirDialog}>
+        {({ visible }) => (
+          <ModalForm
+            title="新建文件夹"
+            open={visible}
+            width={480}
+            modalProps={{
+              destroyOnHidden: true,
+              onCancel: () => dirDialog.close(),
+            }}
+            initialValues={{ parentPath: '/' }}
+            onFinish={async (values) => {
+              await createDir(values as FileReq);
+              message.success('文件夹创建成功');
+              dirDialog.close();
+              reload();
+              return true;
+            }}
+          >
+            <ProFormText
+              name="originalName"
+              label="文件夹名称"
+              placeholder="请输入文件夹名称"
+              rules={[
+                { required: true, message: '请输入文件夹名称' },
+                {
+                  pattern: /^[^/\\]{1,255}$/,
+                  message: '不能包含 / \\，且长度不超过 255',
+                },
+              ]}
+            />
+            <ProFormText
+              name="parentPath"
+              label="上级目录"
+              placeholder="例如 / 或 /2026/09"
+              rules={[{ required: true, message: '上级目录不能为空' }]}
+            />
+          </ModalForm>
+        )}
+      </DialogHost>
 
       {/* 重命名：`PUT /system/file/{id}`，body 是 FileReq（originalName 必填） */}
-      <ModalForm
-        title="重命名"
-        open={renameTarget !== null}
-        width={480}
-        modalProps={{
-          destroyOnHidden: true,
-          onCancel: () => setRenameTarget(null),
-        }}
-        initialValues={{
-          originalName: renameTarget?.originalName || renameTarget?.name || '',
-          parentPath: renameTarget?.parentPath || '/',
-        }}
-        onFinish={async (values) => {
-          if (!renameTarget) return false;
-          await renameFile(renameTarget.id, values as FileReq);
-          message.success('重命名成功');
-          setRenameTarget(null);
-          reload();
-          return true;
-        }}
-      >
-        <ProFormText
-          name="originalName"
-          label="名称"
-          rules={[
-            { required: true, message: '请输入名称' },
-            { max: 255, message: '名称长度不能超过 255 个字符' },
-          ]}
-        />
-        <ProFormText
-          name="parentPath"
-          label="上级目录"
-          placeholder="留空表示不移动"
-        />
-      </ModalForm>
+      <DialogHost dialog={renameDialog}>
+        {({ visible, data }) => (
+          <ModalForm
+            title="重命名"
+            open={visible}
+            width={480}
+            modalProps={{
+              destroyOnHidden: true,
+              onCancel: () => renameDialog.close(),
+            }}
+            initialValues={{
+              originalName: data?.originalName || data?.name || '',
+              parentPath: data?.parentPath || '/',
+            }}
+            onFinish={async (values) => {
+              if (!data) return false;
+              await renameFile(data.id, values as FileReq);
+              message.success('重命名成功');
+              renameDialog.close();
+              reload();
+              return true;
+            }}
+          >
+            <ProFormText
+              name="originalName"
+              label="名称"
+              rules={[
+                { required: true, message: '请输入名称' },
+                { max: 255, message: '名称长度不能超过 255 个字符' },
+              ]}
+            />
+            <ProFormText
+              name="parentPath"
+              label="上级目录"
+              placeholder="留空表示不移动"
+            />
+          </ModalForm>
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

@@ -11,8 +11,9 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Switch } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import {
   deleteJob,
   listGroups,
@@ -26,8 +27,7 @@ import JobForm from './components/JobForm';
 
 const JobPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<JobVo | null>(null);
+  const formDialog = useDialog<JobVo | null>();
 
   const columns: ProColumns<JobVo>[] = [
     {
@@ -160,13 +160,11 @@ const JobPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentRecord(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: JobVo) => {
-    setCurrentRecord(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: JobVo) => {
@@ -199,7 +197,7 @@ const JobPage: React.FC = () => {
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -233,12 +231,16 @@ const JobPage: React.FC = () => {
         ]}
       />
 
-      <JobForm
-        visible={formVisible}
-        record={currentRecord}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <JobForm
+            visible={visible}
+            record={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

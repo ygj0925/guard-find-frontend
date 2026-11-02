@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { SysOrganizationVo } from '@/services/web/system';
 import { organization } from '@/services/web/system';
 
@@ -29,19 +29,6 @@ const OrgForm: React.FC<OrgFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
-
-  useEffect(() => {
-    if (visible) {
-      if (org) {
-        form.setFieldsValue(org);
-      } else {
-        form.resetFields();
-        if (parentOrg) {
-          form.setFieldsValue({ parentId: parentOrg.id });
-        }
-      }
-    }
-  }, [visible, org, parentOrg, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -74,9 +61,13 @@ const OrgForm: React.FC<OrgFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
-      <ProForm form={form} onFinish={handleSubmit} initialValues={{ sort: 0 }}>
+      <ProForm
+        form={form}
+        onFinish={handleSubmit}
+        initialValues={{ sort: 0, parentId: parentOrg?.id, ...org }}
+      >
         <ProFormTreeSelect
           name="parentId"
           label={intl.formatMessage({ id: 'system.organization.parent' })}

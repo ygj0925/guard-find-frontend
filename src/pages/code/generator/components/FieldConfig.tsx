@@ -1,6 +1,6 @@
 import { Button, Checkbox, Modal, message, Select, Spin, Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import React, { useEffect, useState } from 'react';
+import type { ColumnType } from 'antd/es/table';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getFieldConfig, saveFieldConfig } from '@/services/web/code/generator';
 import type {
   GeneratorFieldDto,
@@ -69,15 +69,16 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
     }
   };
 
-  const handleFieldChange = (
-    index: number,
-    key: keyof GeneratorFieldVo,
-    value: any,
-  ) => {
-    const newFields = [...fields];
-    (newFields[index] as any)[key] = value;
-    setFields(newFields);
-  };
+  const handleFieldChange = useCallback(
+    (index: number, key: keyof GeneratorFieldVo, value: any) => {
+      setFields((current) =>
+        current.map((field, position) =>
+          position === index ? { ...field, [key]: value } : field,
+        ),
+      );
+    },
+    [],
+  );
 
   const handleSave = async () => {
     if (!tableName) return;
@@ -104,115 +105,128 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
     }
   };
 
-  const columns: ColumnsType<GeneratorFieldVo> = [
-    {
-      title: '字段名',
-      dataIndex: 'columnName',
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: '字段注释',
-      dataIndex: 'comment',
-      width: 140,
-      render: (text, _, index) => (
-        <input
-          value={text}
-          onChange={(e) => handleFieldChange(index, 'comment', e.target.value)}
-          style={{
-            width: '100%',
-            border: '1px solid #d9d9d9',
-            borderRadius: 4,
-            padding: '4px 8px',
-          }}
-        />
-      ),
-    },
-    {
-      title: '表单类型',
-      dataIndex: 'formType',
-      width: 120,
-      render: (text, _, index) => (
-        <Select
-          value={text}
-          options={formTypeOptions}
-          onChange={(val) => handleFieldChange(index, 'formType', val)}
-          style={{ width: '100%' }}
-          size="small"
-        />
-      ),
-    },
-    {
-      title: '查询方式',
-      dataIndex: 'queryType',
-      width: 110,
-      render: (text, _, index) => (
-        <Select
-          value={text}
-          options={queryTypeOptions}
-          onChange={(val) => handleFieldChange(index, 'queryType', val)}
-          style={{ width: '100%' }}
-          size="small"
-        />
-      ),
-    },
-    {
-      title: '必填',
-      dataIndex: 'isRequired',
-      width: 60,
-      align: 'center',
-      render: (val, _, index) => (
-        <Checkbox
-          checked={val}
-          onChange={(e) =>
-            handleFieldChange(index, 'isRequired', e.target.checked)
-          }
-        />
-      ),
-    },
-    {
-      title: '列表',
-      dataIndex: 'showInList',
-      width: 60,
-      align: 'center',
-      render: (val, _, index) => (
-        <Checkbox
-          checked={val}
-          onChange={(e) =>
-            handleFieldChange(index, 'showInList', e.target.checked)
-          }
-        />
-      ),
-    },
-    {
-      title: '表单',
-      dataIndex: 'showInForm',
-      width: 60,
-      align: 'center',
-      render: (val, _, index) => (
-        <Checkbox
-          checked={val}
-          onChange={(e) =>
-            handleFieldChange(index, 'showInForm', e.target.checked)
-          }
-        />
-      ),
-    },
-    {
-      title: '查询',
-      dataIndex: 'showInQuery',
-      width: 60,
-      align: 'center',
-      render: (val, _, index) => (
-        <Checkbox
-          checked={val}
-          onChange={(e) =>
-            handleFieldChange(index, 'showInQuery', e.target.checked)
-          }
-        />
-      ),
-    },
-  ];
+  const columns = useMemo(() => {
+    const fieldColumns: ColumnType<GeneratorFieldVo>[] = [
+      {
+        title: '字段名',
+        dataIndex: 'columnName',
+        width: 120,
+        ellipsis: true,
+      },
+      {
+        title: '字段注释',
+        dataIndex: 'comment',
+        width: 140,
+        render: (text, _, index) => (
+          <input
+            value={text}
+            onChange={(e) =>
+              handleFieldChange(index, 'comment', e.target.value)
+            }
+            style={{
+              width: '100%',
+              border: '1px solid #d9d9d9',
+              borderRadius: 4,
+              padding: '4px 8px',
+            }}
+          />
+        ),
+      },
+      {
+        title: '表单类型',
+        dataIndex: 'formType',
+        width: 120,
+        render: (text, _, index) => (
+          <Select
+            value={text}
+            options={formTypeOptions}
+            onChange={(val) => handleFieldChange(index, 'formType', val)}
+            style={{ width: '100%' }}
+            size="small"
+          />
+        ),
+      },
+      {
+        title: '查询方式',
+        dataIndex: 'queryType',
+        width: 110,
+        render: (text, _, index) => (
+          <Select
+            value={text}
+            options={queryTypeOptions}
+            onChange={(val) => handleFieldChange(index, 'queryType', val)}
+            style={{ width: '100%' }}
+            size="small"
+          />
+        ),
+      },
+      {
+        title: '必填',
+        dataIndex: 'isRequired',
+        width: 60,
+        align: 'center',
+        render: (val, _, index) => (
+          <Checkbox
+            checked={val}
+            onChange={(e) =>
+              handleFieldChange(index, 'isRequired', e.target.checked)
+            }
+          />
+        ),
+      },
+      {
+        title: '列表',
+        dataIndex: 'showInList',
+        width: 60,
+        align: 'center',
+        render: (val, _, index) => (
+          <Checkbox
+            checked={val}
+            onChange={(e) =>
+              handleFieldChange(index, 'showInList', e.target.checked)
+            }
+          />
+        ),
+      },
+      {
+        title: '表单',
+        dataIndex: 'showInForm',
+        width: 60,
+        align: 'center',
+        render: (val, _, index) => (
+          <Checkbox
+            checked={val}
+            onChange={(e) =>
+              handleFieldChange(index, 'showInForm', e.target.checked)
+            }
+          />
+        ),
+      },
+      {
+        title: '查询',
+        dataIndex: 'showInQuery',
+        width: 60,
+        align: 'center',
+        render: (val, _, index) => (
+          <Checkbox
+            checked={val}
+            onChange={(e) =>
+              handleFieldChange(index, 'showInQuery', e.target.checked)
+            }
+          />
+        ),
+      },
+    ];
+    return fieldColumns.map((column) => ({
+      ...column,
+      shouldCellUpdate: (
+        record: GeneratorFieldVo,
+        previous: GeneratorFieldVo,
+      ) =>
+        record[column.dataIndex as keyof GeneratorFieldVo] !==
+        previous[column.dataIndex as keyof GeneratorFieldVo],
+    }));
+  }, [handleFieldChange]);
 
   return (
     <Modal
@@ -220,7 +234,7 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
       open={visible}
       onCancel={onCancel}
       width={900}
-      destroyOnClose
+      destroyOnHidden
       footer={[
         <Button key="cancel" onClick={onCancel}>
           取消
@@ -232,6 +246,7 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
     >
       <Spin spinning={loading}>
         <Table<GeneratorFieldVo>
+          virtual
           columns={columns}
           dataSource={fields}
           rowKey="id"

@@ -1,6 +1,6 @@
 import type { SelectProps } from 'antd';
 import { Select } from 'antd';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDict } from './useDict';
 
 interface DictSelectProps extends Omit<SelectProps, 'options' | 'loading'> {
@@ -19,13 +19,16 @@ const DictSelect: React.FC<DictSelectProps> = ({
 }) => {
   const { dictItems, loading } = useDict(dictCode);
 
-  const options = [
-    ...(showAll ? [{ label: allLabel, value: allValue }] : []),
-    ...dictItems.map((item) => ({
-      label: item.name,
-      value: item.realVal,
-    })),
-  ];
+  const options = useMemo(
+    () => [
+      ...(showAll ? [{ label: allLabel, value: allValue }] : []),
+      ...dictItems.map((item) => ({
+        label: item.name,
+        value: item.realVal,
+      })),
+    ],
+    [dictItems, showAll, allLabel, allValue],
+  );
 
   return <Select options={options} loading={loading} {...restProps} />;
 };

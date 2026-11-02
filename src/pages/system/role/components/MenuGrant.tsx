@@ -1,5 +1,5 @@
 import { useIntl, useModel } from '@umijs/max';
-import { Button, Drawer, message, Space, Tree } from 'antd';
+import { Button, Drawer, message, Space, Spin, Tree } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import { role } from '@/services/web/system';
 
@@ -91,6 +91,7 @@ const MenuGrant: React.FC<MenuGrantProps> = ({
       open={visible}
       onClose={onCancel}
       width={400}
+      destroyOnHidden
       extra={
         <Space>
           <Button onClick={onCancel}>
@@ -106,14 +107,20 @@ const MenuGrant: React.FC<MenuGrantProps> = ({
         </Space>
       }
     >
-      <Tree
-        checkable
-        checkStrictly
-        defaultExpandAll
-        treeData={treeData}
-        checkedKeys={checkedKeys}
-        onCheck={handleCheck}
-      />
+      <Spin spinning={loading}>
+        {treeData.length > 0 && (
+          <Tree
+            checkable
+            checkStrictly
+            defaultExpandAll
+            height={480}
+            virtual
+            treeData={treeData}
+            checkedKeys={checkedKeys}
+            onCheck={handleCheck}
+          />
+        )}
+      </Spin>
     </Drawer>
   );
 };

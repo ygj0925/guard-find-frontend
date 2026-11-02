@@ -89,11 +89,11 @@ const CodePreview: React.FC<CodePreviewProps> = ({
       onCancel={onCancel}
       footer={null}
       width={900}
-      destroyOnClose
+      destroyOnHidden
     >
       <Spin spinning={loading}>
         {codeFiles.length > 0 ? (
-          <Tabs items={tabItems} />
+          <Tabs items={tabItems} destroyOnHidden />
         ) : (
           !loading && (
             <div style={{ textAlign: 'center', padding: 24 }}>暂无预览内容</div>

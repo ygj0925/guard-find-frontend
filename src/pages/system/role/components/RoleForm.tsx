@@ -7,7 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { SysRoleVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
 
@@ -26,16 +26,6 @@ const RoleForm: React.FC<RoleFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
-
-  useEffect(() => {
-    if (visible) {
-      if (roleData) {
-        form.setFieldsValue(roleData);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, roleData, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -63,12 +53,12 @@ const RoleForm: React.FC<RoleFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ sort: 0, dataScope: 1 }}
+        initialValues={{ sort: 0, dataScope: 1, ...roleData }}
       >
         <ProFormText
           name="name"

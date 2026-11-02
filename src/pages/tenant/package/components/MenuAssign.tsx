@@ -89,13 +89,17 @@ const MenuAssign: React.FC<MenuAssignProps> = ({
       destroyOnClose
     >
       <Spin spinning={loading}>
-        <Tree
-          checkable
-          defaultExpandAll
-          treeData={treeData}
-          checkedKeys={checkedKeys}
-          onCheck={handleCheck}
-        />
+        {treeData.length > 0 && (
+          <Tree
+            checkable
+            defaultExpandAll
+            height={400}
+            virtual
+            treeData={treeData}
+            checkedKeys={checkedKeys}
+            onCheck={handleCheck}
+          />
+        )}
       </Spin>
     </Modal>
   );

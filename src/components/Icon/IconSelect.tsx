@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import Icon from '@/components/Icon';
 import { resolveIconComponent } from '@/components/Icon/Icon';
+import Icon from './Icon';
 import './IconSelect.less';
 import { Input, Modal, Tabs } from 'antd';
 
@@ -403,46 +403,30 @@ const IconSelect = (props: IconSelectProps) => {
   const { value, onChange = () => {} } = props;
   const [visible, setVisible] = useState(false);
   const [selectIcon, setSelectIcon] = useState(value);
+  const [activeTab, setActiveTab] = useState(iconTypeArray[0].key);
 
-  const tabPanes = useMemo(() => {
-    const tabs: React.ReactNode[] = [];
-    // 加载数据
-    iconTypeArray.forEach((iconType) => {
-      const iconNodes: React.ReactNode[] = [];
-      iconType.icons
-        .filter((icon) => resolveIconComponent(icon))
-        .forEach((icon) => {
-          iconNodes.push(
-            <li
-              className={`icon-select-li ${selectIcon && selectIcon === icon ? 'active' : ''}`}
-              key={`icon-select-li-${iconType.key}-${icon}`}
-              onClick={() => setSelectIcon(icon)}
-            >
-              <Icon
-                key={`icon-select-icon-${iconType.key}-${icon}`}
-                type={icon}
-                style={{ fontSize: 36 }}
-              />
-            </li>,
-          );
-        });
-
-      tabs.push(
-        <Tabs.TabPane
-          style={{ userSelect: 'none' }}
-          key={`icon-select-tp-${iconType.key}`}
-          tabKey={iconType.key}
-          tab={iconType.title}
+  const iconNodes = useMemo(() => {
+    // The menu form mounts this input before the picker opens. Build only the
+    // visible category, rather than allocating every icon on every selection.
+    if (!visible) return null;
+    return iconTypeArray
+      .find((tab) => tab.key === activeTab)
+      ?.icons.filter((icon) => resolveIconComponent(icon))
+      .map((icon) => (
+        <li
+          className={`icon-select-li ${selectIcon && selectIcon === icon ? 'active' : ''}`}
+          key={icon}
+          onClick={() => setSelectIcon(icon)}
         >
-          <ul className="icon-select-ul" key={`icon-select-ul-${iconType.key}`}>
-            {iconNodes}
-          </ul>
-        </Tabs.TabPane>,
-      );
-    });
+          <Icon type={icon} style={{ fontSize: 36 }} />
+        </li>
+      ));
+  }, [visible, activeTab, selectIcon]);
 
-    return tabs;
-  }, [selectIcon]);
+  const openPicker = () => {
+    setSelectIcon(value);
+    setVisible(true);
+  };
 
   return (
     <>
@@ -451,13 +435,7 @@ const IconSelect = (props: IconSelectProps) => {
         value={value}
         title={'选择'}
         placeholder={'选择'}
-        addonAfter={
-          <Icon
-            title={'选择'}
-            type="setting"
-            onClick={() => setVisible(true)}
-          />
-        }
+        addonAfter={<Icon title={'选择'} type="setting" onClick={openPicker} />}
         style={{ userSelect: 'none' }}
         prefix={value && value.length > 0 ? <Icon type={value} /> : ''}
         suffix={
@@ -469,7 +447,7 @@ const IconSelect = (props: IconSelectProps) => {
             }}
           />
         }
-        onClick={() => setVisible(true)}
+        onClick={openPicker}
       />
 
       <Modal
@@ -481,7 +459,19 @@ const IconSelect = (props: IconSelectProps) => {
         }}
         width="800px"
       >
-        <Tabs style={{ userSelect: 'none' }}>{tabPanes}</Tabs>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          style={{ userSelect: 'none' }}
+          items={iconTypeArray.map((tab) => ({
+            key: tab.key,
+            label: tab.title,
+            children:
+              tab.key === activeTab ? (
+                <ul className="icon-select-ul">{iconNodes}</ul>
+              ) : null,
+          }))}
+        />
       </Modal>
     </>
   );

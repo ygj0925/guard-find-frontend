@@ -18,6 +18,7 @@ import { useIntl, useModel } from '@umijs/max';
 import { Avatar, Button, message, Popconfirm, Space, Switch } from 'antd';
 import React, { useCallback, useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import OrganizationTree from '@/components/OrganizationTree';
 import type { SysUserVo } from '@/services/web/system';
 import { user } from '@/services/web/system';
@@ -32,14 +33,11 @@ const UserPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
   const { refreshAuthorization } = useModel('authorization');
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentUser, setCurrentUser] = useState<SysUserVo | null>(null);
-  const [grantVisible, setGrantVisible] = useState(false);
-  const [grantUser, setGrantUser] = useState<SysUserVo | null>(null);
-  const [passVisible, setPassVisible] = useState(false);
-  const [passUser, setPassUser] = useState<SysUserVo | null>(null);
+  const formDialog = useDialog<SysUserVo | null>();
+  const grantDialog = useDialog<SysUserVo>();
+  const passDialog = useDialog<SysUserVo>();
   const [selectedOrgId, setSelectedOrgId] = useState<number | undefined>();
-  const [importVisible, setImportVisible] = useState(false);
+  const importDialog = useDialog();
 
   const genderMap: Record<number, string> = {
     0: intl.formatMessage({ id: 'common.gender.unknown' }),
@@ -168,13 +166,11 @@ const UserPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentUser(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: SysUserVo) => {
-    setCurrentUser(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: SysUserVo) => {
@@ -188,13 +184,11 @@ const UserPage: React.FC = () => {
   };
 
   const handleGrant = (record: SysUserVo) => {
-    setGrantUser(record);
-    setGrantVisible(true);
+    grantDialog.open(record);
   };
 
   const handlePass = (record: SysUserVo) => {
-    setPassUser(record);
-    setPassVisible(true);
+    passDialog.open(record);
   };
 
   const handleStatusChange = async (record: SysUserVo, status: 1 | 2) => {
@@ -247,7 +241,7 @@ const UserPage: React.FC = () => {
     }
   };
 
-  const handleOpenImport = () => setImportVisible(true);
+  const handleOpenImport = () => importDialog.open(undefined);
 
   const handleExport = async () => {
     try {
@@ -259,24 +253,23 @@ const UserPage: React.FC = () => {
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
   const handleGrantSuccess = async () => {
     await refreshAuthorization();
-    setGrantVisible(false);
+    grantDialog.close();
     message.success(intl.formatMessage({ id: 'common.operation.success' }));
   };
 
   const handlePassSuccess = () => {
-    setPassVisible(false);
+    passDialog.close();
     message.success(intl.formatMessage({ id: 'common.operation.success' }));
   };
 
   const handleOrgSelect = useCallback((org: any) => {
     setSelectedOrgId(org?.id);
-    actionRef.current?.reload();
   }, []);
 
   return (
@@ -352,32 +345,48 @@ const UserPage: React.FC = () => {
         </div>
       </div>
 
-      <UserForm
-        visible={formVisible}
-        user={currentUser}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <UserForm
+            visible={visible}
+            user={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <Grant
-        visible={grantVisible}
-        user={grantUser}
-        onCancel={() => setGrantVisible(false)}
-        onSuccess={handleGrantSuccess}
-      />
+      <DialogHost dialog={grantDialog}>
+        {({ visible, data }) => (
+          <Grant
+            visible={visible}
+            user={data}
+            onCancel={() => grantDialog.close()}
+            onSuccess={handleGrantSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <Pass
-        visible={passVisible}
-        user={passUser}
-        onCancel={() => setPassVisible(false)}
-        onSuccess={handlePassSuccess}
-      />
+      <DialogHost dialog={passDialog}>
+        {({ visible, data }) => (
+          <Pass
+            visible={visible}
+            user={data}
+            onCancel={() => passDialog.close()}
+            onSuccess={handlePassSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <ImportModal
-        visible={importVisible}
-        onCancel={() => setImportVisible(false)}
-        onSuccess={() => actionRef.current?.reload()}
-      />
+      <DialogHost dialog={importDialog}>
+        {({ visible }) => (
+          <ImportModal
+            visible={visible}
+            onCancel={() => importDialog.close()}
+            onSuccess={() => actionRef.current?.reload()}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

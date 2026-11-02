@@ -6,7 +6,7 @@ import {
   ProFormTextArea,
 } from '@ant-design/pro-components';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createTenant, updateTenant } from '@/services/web/tenant/management';
 import type { TenantVo } from '@/services/web/tenant/typings';
 import { encryptByRsa } from '@/utils/Encrypt';
@@ -26,16 +26,6 @@ const TenantForm: React.FC<TenantFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const isEdit = !!record;
-
-  useEffect(() => {
-    if (visible) {
-      if (record) {
-        form.setFieldsValue(record);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, record, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -61,12 +51,12 @@ const TenantForm: React.FC<TenantFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ status: 1 }}
+        initialValues={{ status: 1, ...record }}
       >
         <ProFormText
           name="name"

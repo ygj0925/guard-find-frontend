@@ -12,8 +12,9 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import type { SysOrganizationVo } from '@/services/web/system';
 import { organization } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -22,9 +23,10 @@ import OrgForm from './components/OrgForm';
 const OrganizationPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentOrg, setCurrentOrg] = useState<SysOrganizationVo | null>(null);
-  const [parentOrg, setParentOrg] = useState<SysOrganizationVo | null>(null);
+  const formDialog = useDialog<{
+    record: SysOrganizationVo | null;
+    parent: SysOrganizationVo | null;
+  }>();
 
   const columns: ProColumns<SysOrganizationVo>[] = [
     {
@@ -110,21 +112,15 @@ const OrganizationPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentOrg(null);
-    setParentOrg(null);
-    setFormVisible(true);
+    formDialog.open({ record: null, parent: null });
   };
 
   const handleAddChild = (record: SysOrganizationVo) => {
-    setCurrentOrg(null);
-    setParentOrg(record);
-    setFormVisible(true);
+    formDialog.open({ record: null, parent: record });
   };
 
   const handleEdit = (record: SysOrganizationVo) => {
-    setCurrentOrg(record);
-    setParentOrg(null);
-    setFormVisible(true);
+    formDialog.open({ record, parent: null });
   };
 
   const handleDelete = async (record: SysOrganizationVo) => {
@@ -147,7 +143,7 @@ const OrganizationPage: React.FC = () => {
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -158,7 +154,8 @@ const OrganizationPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: getTableScrollX(columns) }}
+        virtual
+        scroll={{ x: getTableScrollX(columns), y: 480 }}
         search={false}
         pagination={false}
         request={async () => {
@@ -182,13 +179,17 @@ const OrganizationPage: React.FC = () => {
         ]}
       />
 
-      <OrgForm
-        visible={formVisible}
-        org={currentOrg}
-        parentOrg={parentOrg}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <OrgForm
+            visible={visible}
+            org={data.record}
+            parentOrg={data.parent}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

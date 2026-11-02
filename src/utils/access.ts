@@ -35,13 +35,15 @@ export function createAccessChecker(
 ): AccessChecker {
   const permissions = subject?.permissions || [];
   const roles = subject?.roles || [];
-  const hasAll = permissions.includes(ALL_PERMISSION);
+  const permissionSet = new Set(permissions);
+  const roleSet = new Set(roles);
+  const hasAll = permissionSet.has(ALL_PERMISSION);
   const isAdmin = hasAll;
 
   const hasPermission = (permission?: string) => {
     // 未声明权限要求 = 登录即可见（与后端"本人数据接口只校验登录"一致）
     if (!permission) return true;
-    return isAdmin || permissions.includes(permission);
+    return isAdmin || permissionSet.has(permission);
   };
 
   return {
@@ -53,6 +55,6 @@ export function createAccessChecker(
       !list || list.length === 0 ? true : list.some((p) => hasPermission(p)),
     hasAllPermissions: (list) =>
       !list || list.length === 0 ? true : list.every((p) => hasPermission(p)),
-    hasRole: (role) => !role || roles.includes(role),
+    hasRole: (role) => !role || roleSet.has(role),
   };
 }

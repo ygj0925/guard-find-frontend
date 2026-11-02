@@ -5,7 +5,7 @@ import {
   ProFormTextArea,
 } from '@ant-design/pro-components';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createPackage, updatePackage } from '@/services/web/tenant/package';
 import type { TenantPackageVo } from '@/services/web/tenant/typings';
 
@@ -23,16 +23,6 @@ const PackageForm: React.FC<PackageFormProps> = ({
   onSuccess,
 }) => {
   const [form] = ProForm.useForm();
-
-  useEffect(() => {
-    if (visible) {
-      if (record) {
-        form.setFieldsValue(record);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, record, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -54,12 +44,12 @@ const PackageForm: React.FC<PackageFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ status: 1 }}
+        initialValues={{ status: 1, ...record }}
       >
         <ProFormText
           name="name"

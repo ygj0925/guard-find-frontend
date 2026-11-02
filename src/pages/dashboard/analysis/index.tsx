@@ -1,6 +1,6 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { Card, Col, Row, Statistic, Table, Typography } from 'antd';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as dashboardService from '@/services/web/dashboard';
 import type {
   DashboardChartCommonResp,
@@ -22,6 +22,10 @@ const AnalysisPage: React.FC = () => {
     [],
   );
   const [geoData, setGeoData] = useState<DashboardChartCommonResp[]>([]);
+  const timeslotMax = useMemo(
+    () => timeslotData.reduce((max, item) => Math.max(max, item.value), 1),
+    [timeslotData],
+  );
 
   useEffect(() => {
     dashboardService.getDashboardOverviewPv().then((res) => {
@@ -167,11 +171,7 @@ const AnalysisPage: React.FC = () => {
                   dataIndex: 'value',
                   width: 180,
                   render: (val: number) => {
-                    const max = Math.max(
-                      ...timeslotData.map((d) => d.value),
-                      1,
-                    );
-                    const percent = Math.round((val / max) * 100);
+                    const percent = Math.round((val / timeslotMax) * 100);
                     return (
                       <div
                         style={{

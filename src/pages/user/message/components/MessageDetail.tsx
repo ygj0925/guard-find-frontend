@@ -34,11 +34,19 @@ const MessageDetail: React.FC<MessageDetailProps> = ({
       setDetail(null);
       return;
     }
+    let active = true;
     setLoading(true);
     getMessageDetail(messageId)
-      .then((res) => setDetail(res.data ?? null))
+      .then((res) => {
+        if (active) setDetail(res.data ?? null);
+      })
       .catch((error) => console.error('Fetch message detail failed:', error))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [open, messageId]);
 
   const safeContent = useMemo(

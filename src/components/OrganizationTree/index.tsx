@@ -162,6 +162,8 @@ const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         />
       )}
       <Tree
+        height={480}
+        virtual
         treeData={filteredTreeData}
         expandedKeys={expandedKeys}
         onExpand={(keys) => setExpandedKeys(keys)}
@@ -172,4 +174,4 @@ const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   );
 };
 
-export default OrganizationTree;
+export default React.memo(OrganizationTree);

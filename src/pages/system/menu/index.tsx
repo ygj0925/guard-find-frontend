@@ -12,8 +12,9 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl, useModel } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import type { SysMenuVo } from '@/services/web/system';
 import { menu } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -23,9 +24,10 @@ const MenuPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
   const { refreshAuthorization } = useModel('authorization');
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentMenu, setCurrentMenu] = useState<SysMenuVo | null>(null);
-  const [parentMenu, setParentMenu] = useState<SysMenuVo | null>(null);
+  const formDialog = useDialog<{
+    record: SysMenuVo | null;
+    parent: SysMenuVo | null;
+  }>();
 
   const typeMap: Record<number, { label: string; color: string }> = {
     1: {
@@ -143,21 +145,15 @@ const MenuPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentMenu(null);
-    setParentMenu(null);
-    setFormVisible(true);
+    formDialog.open({ record: null, parent: null });
   };
 
   const handleAddChild = (record: SysMenuVo) => {
-    setCurrentMenu(null);
-    setParentMenu(record);
-    setFormVisible(true);
+    formDialog.open({ record: null, parent: record });
   };
 
   const handleEdit = (record: SysMenuVo) => {
-    setCurrentMenu(record);
-    setParentMenu(null);
-    setFormVisible(true);
+    formDialog.open({ record, parent: null });
   };
 
   const handleDelete = async (record: SysMenuVo) => {
@@ -184,7 +180,7 @@ const MenuPage: React.FC = () => {
 
   const handleFormSuccess = async () => {
     await refreshAuthorization();
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -195,7 +191,8 @@ const MenuPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: getTableScrollX(columns) }}
+        virtual
+        scroll={{ x: getTableScrollX(columns), y: 480 }}
         search={false}
         pagination={false}
         request={async (params) => {
@@ -220,13 +217,17 @@ const MenuPage: React.FC = () => {
         ]}
       />
 
-      <MenuForm
-        visible={formVisible}
-        menu={currentMenu}
-        parentMenu={parentMenu}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <MenuForm
+            visible={visible}
+            menu={data.record}
+            parentMenu={data.parent}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

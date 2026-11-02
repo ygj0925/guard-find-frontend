@@ -5,7 +5,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAccess } from '@/hooks/useAccess';
 import type { SysConfigVo } from '@/services/web/system';
 import { config } from '@/services/web/system';
@@ -32,16 +32,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
       hasPermission(getOptionPermission(configData.category, 'update')),
   );
 
-  useEffect(() => {
-    if (visible) {
-      if (configData) {
-        form.setFieldsValue(configData);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, configData, form]);
-
   const handleSubmit = async (values: any) => {
     if (!configData || !canUpdate) return;
     try {
@@ -66,10 +56,11 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <ProForm
         form={form}
+        initialValues={configData || {}}
         onFinish={handleSubmit}
         disabled={!canUpdate}
         submitter={{ submitButtonProps: { disabled: !canUpdate } }}

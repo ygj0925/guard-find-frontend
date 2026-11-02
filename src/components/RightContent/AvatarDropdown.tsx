@@ -19,8 +19,7 @@ export type GlobalHeaderRightProps = {
 };
 
 export const AvatarName = () => {
-  const { initialState } = useModel('@@initialState');
-  const { user } = initialState || {};
+  const user = useModel('@@initialState', (model) => model.initialState?.user);
   return <span className="anticon">{user?.nickname || user?.username}</span>;
 };
 
@@ -72,7 +71,11 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   };
   const { styles } = useStyles();
 
-  const { initialState, setInitialState } = useModel('@@initialState');
+  const user = useModel('@@initialState', (model) => model.initialState?.user);
+  const setInitialState = useModel(
+    '@@initialState',
+    (model) => model.setInitialState,
+  );
 
   const onMenuClick: MenuProps['onClick'] = (event) => {
     const { key } = event;
@@ -98,13 +101,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
     </span>
   );
 
-  if (!initialState) {
-    return loading;
-  }
-
-  const { user } = initialState;
-
-  if (!user || !user.username) {
+  if (!user?.username) {
     return loading;
   }
 

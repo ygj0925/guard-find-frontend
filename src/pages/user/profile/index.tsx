@@ -8,8 +8,11 @@ import SecurityForm from './components/SecurityForm';
 import SocialBindings from './components/SocialBindings';
 
 const ProfilePage: React.FC = () => {
-  const { initialState, refresh } = useModel('@@initialState');
-  const userInfo = initialState?.user;
+  const userInfo = useModel(
+    '@@initialState',
+    (model) => model.initialState?.user,
+  );
+  const refresh = useModel('@@initialState', (model) => model.refresh);
 
   return (
     <PageContainer>

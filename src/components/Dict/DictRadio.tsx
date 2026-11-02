@@ -1,6 +1,6 @@
 import type { RadioGroupProps } from 'antd';
 import { Radio } from 'antd';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDict } from './useDict';
 
 interface DictRadioProps extends Omit<RadioGroupProps, 'options' | 'loading'> {
@@ -15,10 +15,14 @@ const DictRadio: React.FC<DictRadioProps> = ({
 }) => {
   const { dictItems, loading } = useDict(dictCode);
 
-  const options = dictItems.map((item) => ({
-    label: item.name,
-    value: item.realVal,
-  }));
+  const options = useMemo(
+    () =>
+      dictItems.map((item) => ({
+        label: item.name,
+        value: item.realVal,
+      })),
+    [dictItems],
+  );
 
   if (optionType === 'button') {
     return (

@@ -5,7 +5,7 @@ import {
   ProFormTextArea,
 } from '@ant-design/pro-components';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createJob, updateJob } from '@/services/web/schedule/job';
 import type { JobVo } from '@/services/web/schedule/typings';
 
@@ -23,16 +23,6 @@ const JobForm: React.FC<JobFormProps> = ({
   onSuccess,
 }) => {
   const [form] = ProForm.useForm();
-
-  useEffect(() => {
-    if (visible) {
-      if (record) {
-        form.setFieldsValue(record);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, record, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -54,12 +44,17 @@ const JobForm: React.FC<JobFormProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ jobStatus: 1, triggerType: 1, groupName: 'jgroup' }}
+        initialValues={{
+          jobStatus: 1,
+          triggerType: 1,
+          groupName: 'jgroup',
+          ...record,
+        }}
       >
         <ProFormText
           name="jobName"

@@ -1,5 +1,5 @@
 import { useModel } from '@umijs/max';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { GLOBAL } from '@/typings';
 import { getSessionIdentity, loadAuthorization } from '@/utils/AuthSession';
 import { Token } from '@/utils/Web';
@@ -7,8 +7,14 @@ import { Token } from '@/utils/Web';
 export default function useAuthorizationModel(): {
   refreshAuthorization: () => Promise<GLOBAL.UserInfo | undefined>;
 } {
-  const { initialState, setInitialState } = useModel('@@initialState');
-  const userId = initialState?.user?.id;
+  const userId = useModel(
+    '@@initialState',
+    (model) => model.initialState?.user?.id,
+  );
+  const setInitialState = useModel(
+    '@@initialState',
+    (model) => model.setInitialState,
+  );
 
   const refreshAuthorization = useCallback(async () => {
     if (!Token.get()) return;
@@ -44,5 +50,5 @@ export default function useAuthorizationModel(): {
     };
   }, [userId, refreshAuthorization]);
 
-  return { refreshAuthorization };
+  return useMemo(() => ({ refreshAuthorization }), [refreshAuthorization]);
 }

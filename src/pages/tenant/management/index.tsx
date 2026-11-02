@@ -11,8 +11,9 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import { deleteTenant, queryTenants } from '@/services/web/tenant/management';
 import type { TenantVo } from '@/services/web/tenant/typings';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -26,10 +27,8 @@ const statusMap: Record<number, { text: string; color: string }> = {
 
 const TenantPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<TenantVo | null>(null);
-  const [resetVisible, setResetVisible] = useState(false);
-  const [resetTenantId, setResetTenantId] = useState<number | null>(null);
+  const formDialog = useDialog<TenantVo | null>();
+  const resetDialog = useDialog<number>();
 
   const columns: ProColumns<TenantVo>[] = [
     {
@@ -125,13 +124,11 @@ const TenantPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentRecord(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: TenantVo) => {
-    setCurrentRecord(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: TenantVo) => {
@@ -145,17 +142,16 @@ const TenantPage: React.FC = () => {
   };
 
   const handleResetPassword = (record: TenantVo) => {
-    setResetTenantId(record.id);
-    setResetVisible(true);
+    resetDialog.open(record.id);
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
   const handleResetSuccess = () => {
-    setResetVisible(false);
+    resetDialog.close();
   };
 
   return (
@@ -188,19 +184,27 @@ const TenantPage: React.FC = () => {
         ]}
       />
 
-      <TenantForm
-        visible={formVisible}
-        record={currentRecord}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <TenantForm
+            visible={visible}
+            record={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <ResetPassword
-        visible={resetVisible}
-        tenantId={resetTenantId}
-        onCancel={() => setResetVisible(false)}
-        onSuccess={handleResetSuccess}
-      />
+      <DialogHost dialog={resetDialog}>
+        {({ visible, data }) => (
+          <ResetPassword
+            visible={visible}
+            tenantId={data}
+            onCancel={() => resetDialog.close()}
+            onSuccess={handleResetSuccess}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

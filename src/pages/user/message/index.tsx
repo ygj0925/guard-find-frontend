@@ -1,11 +1,8 @@
 import { BellOutlined, NotificationOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
+import { useModel } from '@umijs/max';
 import { Badge, Tabs } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  getUnreadCount,
-  getUnreadNoticeCount,
-} from '@/services/web/user-message';
 import MessageList from './components/MessageList';
 import NoticeList from './components/NoticeList';
 
@@ -18,22 +15,8 @@ import NoticeList from './components/NoticeList';
  */
 const MessagePage: React.FC = () => {
   const [activeKey, setActiveKey] = useState('message');
-  const [messageUnread, setMessageUnread] = useState(0);
-  const [noticeUnread, setNoticeUnread] = useState(0);
-
-  const refreshUnread = useCallback(async () => {
-    // 两个接口都只查当前用户，失败时保持上一次角标而不是归零
-    const [messages, notices] = await Promise.allSettled([
-      getUnreadCount(),
-      getUnreadNoticeCount(),
-    ]);
-    if (messages.status === 'fulfilled') {
-      setMessageUnread(Number(messages.value.data?.total) || 0);
-    }
-    if (notices.status === 'fulfilled') {
-      setNoticeUnread(Number(notices.value.data?.total) || 0);
-    }
-  }, []);
+  const { messageUnread, noticeUnread, refreshUnread } = useModel('unread');
+  const handleChanged = useCallback(() => refreshUnread(true), [refreshUnread]);
 
   useEffect(() => {
     void refreshUnread();
@@ -55,7 +38,7 @@ const MessagePage: React.FC = () => {
                 </span>
               </Badge>
             ),
-            children: <MessageList onChanged={refreshUnread} />,
+            children: <MessageList onChanged={handleChanged} />,
           },
           {
             key: 'notice',
@@ -66,7 +49,7 @@ const MessagePage: React.FC = () => {
                 </span>
               </Badge>
             ),
-            children: <NoticeList onChanged={refreshUnread} />,
+            children: <NoticeList onChanged={handleChanged} />,
           },
         ]}
       />

@@ -6,8 +6,9 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Button, Modal, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import type { SysDictItemVo } from '@/services/web/system';
 import { dictItem } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -26,8 +27,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
 }) => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentItem, setCurrentItem] = useState<SysDictItemVo | null>(null);
+  const formDialog = useDialog<SysDictItemVo | null>();
 
   const columns: ProColumns<SysDictItemVo>[] = [
     {
@@ -105,13 +105,11 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
   ];
 
   const handleAdd = () => {
-    setCurrentItem(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: SysDictItemVo) => {
-    setCurrentItem(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: SysDictItemVo) => {
@@ -125,7 +123,7 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -168,13 +166,17 @@ const DictItemModal: React.FC<DictItemModalProps> = ({
         ]}
       />
 
-      <DictItemForm
-        visible={formVisible}
-        dictId={dictId}
-        item={currentItem}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <DictItemForm
+            visible={visible}
+            dictId={dictId}
+            item={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
     </Modal>
   );
 };

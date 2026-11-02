@@ -7,8 +7,9 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Button, Space, Tabs } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import { useAccess } from '@/hooks/useAccess';
 import type { SysConfigQo, SysConfigVo } from '@/services/web/system';
 import { config } from '@/services/web/system';
@@ -25,8 +26,7 @@ const ConfigPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
   const { hasPermission, hasAnyPermission } = useAccess();
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentConfig, setCurrentConfig] = useState<SysConfigVo | null>(null);
+  const formDialog = useDialog<SysConfigVo | null>();
 
   const columns: ProColumns<SysConfigVo>[] = [
     {
@@ -82,12 +82,11 @@ const ConfigPage: React.FC = () => {
   ];
 
   const handleEdit = (record: SysConfigVo) => {
-    setCurrentConfig(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -126,12 +125,16 @@ const ConfigPage: React.FC = () => {
                   }}
                   toolBarRender={() => []}
                 />
-                <ConfigForm
-                  visible={formVisible}
-                  config={currentConfig}
-                  onCancel={() => setFormVisible(false)}
-                  onSuccess={handleFormSuccess}
-                />
+                <DialogHost dialog={formDialog}>
+                  {({ visible, data }) => (
+                    <ConfigForm
+                      visible={visible}
+                      config={data}
+                      onCancel={() => formDialog.close()}
+                      onSuccess={handleFormSuccess}
+                    />
+                  )}
+                </DialogHost>
               </>
             ),
           },

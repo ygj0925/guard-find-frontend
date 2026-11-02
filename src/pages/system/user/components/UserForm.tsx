@@ -6,7 +6,7 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Modal, message } from 'antd';
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { SysUserVo } from '@/services/web/system';
 import { organization, role, user } from '@/services/web/system';
 
@@ -25,16 +25,6 @@ const UserForm: React.FC<UserFormProps> = ({
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
-
-  useEffect(() => {
-    if (visible) {
-      if (userData) {
-        form.setFieldsValue(userData);
-      } else {
-        form.resetFields();
-      }
-    }
-  }, [visible, userData, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -82,12 +72,12 @@ const UserForm: React.FC<UserFormProps> = ({
       onCancel={onCancel}
       footer={null}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       <ProForm
         form={form}
         onFinish={handleSubmit}
-        initialValues={{ gender: 0, status: 1 }}
+        initialValues={{ gender: 0, status: 1, ...userData }}
       >
         <ProFormText
           name="username"

@@ -12,8 +12,9 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import { deleteApp, exportApps, queryApps } from '@/services/web/open/app';
 import type { AppVo } from '@/services/web/open/typings';
 import { saveBlob } from '@/utils/download';
@@ -23,10 +24,8 @@ import SecretModal from './components/SecretModal';
 
 const AppPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<AppVo | null>(null);
-  const [secretVisible, setSecretVisible] = useState(false);
-  const [secretApp, setSecretApp] = useState<AppVo | null>(null);
+  const formDialog = useDialog<AppVo | null>();
+  const secretDialog = useDialog<AppVo>();
 
   const columns: ProColumns<AppVo>[] = [
     {
@@ -111,18 +110,15 @@ const AppPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentRecord(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: AppVo) => {
-    setCurrentRecord(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleViewSecret = (record: AppVo) => {
-    setSecretApp(record);
-    setSecretVisible(true);
+    secretDialog.open(record);
   };
 
   const handleDelete = async (record: AppVo) => {
@@ -146,7 +142,7 @@ const AppPage: React.FC = () => {
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -185,18 +181,26 @@ const AppPage: React.FC = () => {
         ]}
       />
 
-      <AppForm
-        visible={formVisible}
-        record={currentRecord}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <AppForm
+            visible={visible}
+            record={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <SecretModal
-        visible={secretVisible}
-        app={secretApp}
-        onCancel={() => setSecretVisible(false)}
-      />
+      <DialogHost dialog={secretDialog}>
+        {({ visible, data }) => (
+          <SecretModal
+            visible={visible}
+            app={data}
+            onCancel={() => secretDialog.close()}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

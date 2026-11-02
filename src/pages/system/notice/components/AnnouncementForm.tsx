@@ -7,7 +7,7 @@ import {
   ProFormText,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
-import { Modal, message } from 'antd';
+import { Alert, Modal, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import Editor from '@/components/Editor';
 import { announcement as announcementApi } from '@/services/web/notify';
@@ -15,34 +15,55 @@ import type { AnnouncementDetailVo } from '@/services/web/notify/typings';
 
 interface AnnouncementFormProps {
   visible: boolean;
-  announcement: AnnouncementDetailVo | null;
+  announcementId: number | null;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
 const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   visible,
-  announcement,
+  announcementId,
   onCancel,
   onSuccess,
 }) => {
   const [form] = ProForm.useForm();
   const intl = useIntl();
+  const [announcement, setAnnouncement] = useState<AnnouncementDetailVo | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(announcementId !== null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [content, setContent] = useState('');
 
   useEffect(() => {
-    if (visible) {
-      if (announcement) {
-        form.setFieldsValue(announcement);
-        setContent(announcement.content || '');
-      } else {
-        form.resetFields();
-        setContent('');
-      }
-    }
-  }, [visible, announcement, form]);
+    if (!visible || announcementId === null) return;
+    let active = true;
+    setLoading(true);
+    setLoadFailed(false);
+    void announcementApi
+      .detail(announcementId)
+      .then((response) => {
+        if (!active) return;
+        if (!response.data) throw new Error('公告不存在');
+        setAnnouncement(response.data);
+        setContent(response.data.content || '');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setLoadFailed(true);
+        console.error('Load detail failed:', error);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [visible, announcementId]);
 
   const handleSubmit = async (values: any) => {
+    if (loading || loadFailed || (announcementId !== null && !announcement))
+      return;
     try {
       const data = { ...values, content };
       if (announcement) {
@@ -60,7 +81,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   return (
     <Modal
       title={
-        announcement
+        announcementId !== null
           ? intl.formatMessage({ id: 'common.operation.edit' })
           : intl.formatMessage({ id: 'common.operation.add' })
       }
@@ -68,146 +89,158 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
       onCancel={onCancel}
       footer={null}
       width={800}
-      destroyOnClose
+      destroyOnHidden
+      loading={loading}
     >
-      <ProForm
-        form={form}
-        onFinish={handleSubmit}
-        initialValues={{
-          noticeScope: 1,
-          noticeMethods: [1],
-          isTiming: false,
-          isTop: false,
-          status: 1,
-        }}
-      >
-        <ProFormText
-          name="title"
-          label={intl.formatMessage({ id: 'notify.announcement.name' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-            intl.formatMessage({ id: 'notify.announcement.name' })
-          }
-          rules={[
-            {
-              required: true,
-              message: intl.formatMessage({ id: 'common.form.required' }),
-            },
-          ]}
-        />
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ marginBottom: 8 }}>
-            {intl.formatMessage({ id: 'notify.announcement.content' })}
+      {loadFailed ? (
+        <Alert type="error" showIcon message="公告加载失败，请关闭后重试" />
+      ) : (
+        <ProForm
+          form={form}
+          onFinish={handleSubmit}
+          initialValues={{
+            noticeScope: 1,
+            noticeMethods: [1],
+            isTiming: false,
+            isTop: false,
+            status: 1,
+            ...announcement,
+          }}
+        >
+          <ProFormText
+            name="title"
+            label={intl.formatMessage({ id: 'notify.announcement.name' })}
+            placeholder={
+              intl.formatMessage({ id: 'common.form.placeholder.input' }) +
+              intl.formatMessage({ id: 'notify.announcement.name' })
+            }
+            rules={[
+              {
+                required: true,
+                message: intl.formatMessage({ id: 'common.form.required' }),
+              },
+            ]}
+          />
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8 }}>
+              {intl.formatMessage({ id: 'notify.announcement.content' })}
+            </div>
+            <Editor value={content} onChange={setContent} height={200} />
           </div>
-          <Editor value={content} onChange={setContent} height={200} />
-        </div>
-        <ProFormText
-          name="type"
-          label={intl.formatMessage({ id: 'notify.announcement.category' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-            intl.formatMessage({ id: 'notify.announcement.category' })
-          }
-          extra="公告分类，取值来自字典 notice_type"
-          rules={[
-            {
-              required: true,
-              message: intl.formatMessage({ id: 'common.form.required' }),
-            },
-          ]}
-        />
-        <ProFormSelect
-          name="noticeScope"
-          label={intl.formatMessage({ id: 'notify.announcement.scope' })}
-          options={[
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.scope.all',
+          <ProFormText
+            name="type"
+            label={intl.formatMessage({ id: 'notify.announcement.category' })}
+            placeholder={
+              intl.formatMessage({ id: 'common.form.placeholder.input' }) +
+              intl.formatMessage({ id: 'notify.announcement.category' })
+            }
+            extra="公告分类，取值来自字典 notice_type"
+            rules={[
+              {
+                required: true,
+                message: intl.formatMessage({ id: 'common.form.required' }),
+              },
+            ]}
+          />
+          <ProFormSelect
+            name="noticeScope"
+            label={intl.formatMessage({ id: 'notify.announcement.scope' })}
+            options={[
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.scope.all',
+                }),
+                value: 1,
+              },
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.scope.user',
+                }),
+                value: 2,
+              },
+            ]}
+            rules={[
+              {
+                required: true,
+                message: intl.formatMessage({ id: 'common.form.required' }),
+              },
+            ]}
+          />
+          <ProFormCheckbox.Group
+            name="noticeMethods"
+            label={intl.formatMessage({ id: 'notify.announcement.methods' })}
+            options={[
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.method.site',
+                }),
+                value: 1,
+              },
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.method.popup',
+                }),
+                value: 2,
+              },
+            ]}
+          />
+          <ProFormSwitch
+            name="isTiming"
+            label={intl.formatMessage({ id: 'notify.announcement.is.timing' })}
+            fieldProps={{
+              checkedChildren: intl.formatMessage({
+                id: 'common.operation.yes',
               }),
-              value: 1,
-            },
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.scope.user',
+              unCheckedChildren: intl.formatMessage({
+                id: 'common.operation.no',
               }),
-              value: 2,
-            },
-          ]}
-          rules={[
-            {
-              required: true,
-              message: intl.formatMessage({ id: 'common.form.required' }),
-            },
-          ]}
-        />
-        <ProFormCheckbox.Group
-          name="noticeMethods"
-          label={intl.formatMessage({ id: 'notify.announcement.methods' })}
-          options={[
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.method.site',
+            }}
+          />
+          <ProFormDateTimePicker
+            name="publishTime"
+            label={intl.formatMessage({
+              id: 'notify.announcement.publish.time',
+            })}
+            extra="仅在开启定时发布时必填（后端 SpelNotNull 校验）"
+          />
+          <ProFormSwitch
+            name="isTop"
+            label={intl.formatMessage({ id: 'notify.announcement.is.top' })}
+            fieldProps={{
+              checkedChildren: intl.formatMessage({
+                id: 'common.operation.yes',
               }),
-              value: 1,
-            },
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.method.popup',
+              unCheckedChildren: intl.formatMessage({
+                id: 'common.operation.no',
               }),
-              value: 2,
-            },
-          ]}
-        />
-        <ProFormSwitch
-          name="isTiming"
-          label={intl.formatMessage({ id: 'notify.announcement.is.timing' })}
-          fieldProps={{
-            checkedChildren: intl.formatMessage({ id: 'common.operation.yes' }),
-            unCheckedChildren: intl.formatMessage({
-              id: 'common.operation.no',
-            }),
-          }}
-        />
-        <ProFormDateTimePicker
-          name="publishTime"
-          label={intl.formatMessage({ id: 'notify.announcement.publish.time' })}
-          extra="仅在开启定时发布时必填（后端 SpelNotNull 校验）"
-        />
-        <ProFormSwitch
-          name="isTop"
-          label={intl.formatMessage({ id: 'notify.announcement.is.top' })}
-          fieldProps={{
-            checkedChildren: intl.formatMessage({ id: 'common.operation.yes' }),
-            unCheckedChildren: intl.formatMessage({
-              id: 'common.operation.no',
-            }),
-          }}
-        />
-        <ProFormSelect
-          name="status"
-          label={intl.formatMessage({ id: 'notify.announcement.status' })}
-          options={[
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.status.draft',
-              }),
-              value: 1,
-            },
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.status.pending',
-              }),
-              value: 2,
-            },
-            {
-              label: intl.formatMessage({
-                id: 'notify.announcement.status.published',
-              }),
-              value: 3,
-            },
-          ]}
-        />
-      </ProForm>
+            }}
+          />
+          <ProFormSelect
+            name="status"
+            label={intl.formatMessage({ id: 'notify.announcement.status' })}
+            options={[
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.status.draft',
+                }),
+                value: 1,
+              },
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.status.pending',
+                }),
+                value: 2,
+              },
+              {
+                label: intl.formatMessage({
+                  id: 'notify.announcement.status.published',
+                }),
+                value: 3,
+              },
+            ]}
+          />
+        </ProForm>
+      )}
     </Modal>
   );
 };

@@ -12,8 +12,9 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import type { SysDictQo, SysDictVo } from '@/services/web/system';
 import { dict } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -23,10 +24,8 @@ import DictItemModal from './components/DictItemModal';
 const DictPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentDict, setCurrentDict] = useState<SysDictVo | null>(null);
-  const [dictItemVisible, setDictItemVisible] = useState(false);
-  const [currentDictId, setCurrentDictId] = useState<number>(0);
+  const formDialog = useDialog<SysDictVo | null>();
+  const itemsDialog = useDialog<number>();
 
   const columns: ProColumns<SysDictVo>[] = [
     {
@@ -116,13 +115,11 @@ const DictPage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentDict(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: SysDictVo) => {
-    setCurrentDict(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: SysDictVo) => {
@@ -146,12 +143,11 @@ const DictPage: React.FC = () => {
   };
 
   const handleOpenDictItem = (record: SysDictVo) => {
-    setCurrentDictId(record.id);
-    setDictItemVisible(true);
+    itemsDialog.open(record.id);
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -182,18 +178,26 @@ const DictPage: React.FC = () => {
         ]}
       />
 
-      <DictForm
-        visible={formVisible}
-        dict={currentDict}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <DictForm
+            visible={visible}
+            dict={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <DictItemModal
-        visible={dictItemVisible}
-        dictId={currentDictId}
-        onCancel={() => setDictItemVisible(false)}
-      />
+      <DialogHost dialog={itemsDialog}>
+        {({ visible, data }) => (
+          <DictItemModal
+            visible={visible}
+            dictId={data}
+            onCancel={() => itemsDialog.close()}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

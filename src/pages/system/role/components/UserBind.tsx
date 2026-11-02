@@ -8,6 +8,7 @@ import { useIntl, useModel } from '@umijs/max';
 import { Button, Modal, message, Popconfirm, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import type { SysRoleBindVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -30,7 +31,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
   const { refreshAuthorization } = useModel('authorization');
-  const [selectVisible, setSelectVisible] = useState(false);
+  const selectDialog = useDialog<number>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const reload = () => actionRef.current?.reload();
@@ -166,7 +167,7 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
               type="primary"
               size="small"
               icon={<PlusOutlined />}
-              onClick={() => setSelectVisible(true)}
+              onClick={() => selectDialog.open(roleId)}
             >
               {intl.formatMessage({ id: 'system.role.user.add' })}
             </Button>
@@ -191,15 +192,19 @@ const UserBind: React.FC<UserBindProps> = ({ visible, roleId, onCancel }) => {
         ]}
       />
 
-      <UserSelect
-        visible={selectVisible}
-        roleId={roleId}
-        onCancel={() => setSelectVisible(false)}
-        onSuccess={() => {
-          setSelectVisible(false);
-          reload();
-        }}
-      />
+      <DialogHost dialog={selectDialog}>
+        {({ visible, data }) => (
+          <UserSelect
+            visible={visible}
+            roleId={data}
+            onCancel={() => selectDialog.close()}
+            onSuccess={() => {
+              selectDialog.close();
+              reload();
+            }}
+          />
+        )}
+      </DialogHost>
     </Modal>
   );
 };

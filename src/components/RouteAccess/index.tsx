@@ -6,9 +6,9 @@ import { canAccessRoute } from '@/utils/routeAccess';
 import { Token } from '@/utils/Web';
 
 export default function RouteAccess({ children }: { children: ReactNode }) {
-  const { initialState } = useModel('@@initialState');
+  const user = useModel('@@initialState', (model) => model.initialState?.user);
   const { pathname } = useLocation();
-  if (!Token.get() || !initialState?.user) return null;
+  if (!Token.get() || !user) return null;
   if (
     isOfflinePath(pathname) ||
     !canAccessRoute(pathname, getAuthorizedRoutes())

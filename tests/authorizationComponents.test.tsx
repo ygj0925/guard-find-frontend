@@ -12,7 +12,10 @@ let mockPermissions: string[] = [];
 let mockRoutes: AuthorizedRoute[] = [];
 let mockUploadProps: any;
 jest.mock('@umijs/max', () => ({
-  useModel: () => ({ initialState: { user: { id: 7 } } }),
+  useModel: (_name: string, select?: (model: any) => any) => {
+    const model = { initialState: { user: { id: 7 } } };
+    return select ? select(model) : model;
+  },
   useLocation: () => ({ pathname: '/system/user' }),
   Link: ({ children }: any) => <span>{children}</span>,
 }));

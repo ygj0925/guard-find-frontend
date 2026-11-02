@@ -11,8 +11,9 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Switch, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import {
   deleteStorage,
   queryStorages,
@@ -30,17 +31,14 @@ const storageTypeMap: Record<number, string> = {
 
 const StoragePage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<StorageVo | null>(null);
+  const formDialog = useDialog<StorageVo | null>();
 
   const handleAdd = () => {
-    setCurrentRecord(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: StorageVo) => {
-    setCurrentRecord(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: StorageVo) => {
@@ -74,7 +72,7 @@ const StoragePage: React.FC = () => {
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -215,12 +213,16 @@ const StoragePage: React.FC = () => {
         ]}
       />
 
-      <StorageForm
-        visible={formVisible}
-        record={currentRecord}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <StorageForm
+            visible={visible}
+            record={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

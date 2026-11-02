@@ -12,6 +12,7 @@ import {
 import { Button, message, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import {
   batchGenerate,
   downloadCode,
@@ -26,10 +27,9 @@ import TableConfig from './components/TableConfig';
 
 const GeneratorPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
-  const [tableConfigVisible, setTableConfigVisible] = useState(false);
-  const [fieldConfigVisible, setFieldConfigVisible] = useState(false);
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [currentTableName, setCurrentTableName] = useState<string | null>(null);
+  const tableConfigDialog = useDialog<string>();
+  const fieldConfigDialog = useDialog<string>();
+  const previewDialog = useDialog<string>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const columns: ProColumns<GeneratorTableVo>[] = [
@@ -107,13 +107,11 @@ const GeneratorPage: React.FC = () => {
   ];
 
   const handleConfigure = (record: GeneratorTableVo) => {
-    setCurrentTableName(record.tableName);
-    setTableConfigVisible(true);
+    tableConfigDialog.open(record.tableName);
   };
 
   const handlePreview = (record: GeneratorTableVo) => {
-    setCurrentTableName(record.tableName);
-    setPreviewVisible(true);
+    previewDialog.open(record.tableName);
   };
 
   const handleDownload = async (record: GeneratorTableVo) => {
@@ -142,14 +140,12 @@ const GeneratorPage: React.FC = () => {
   };
 
   const handleTableConfigSuccess = () => {
-    setTableConfigVisible(false);
-    setCurrentTableName(null);
+    tableConfigDialog.close();
     actionRef.current?.reload();
   };
 
   const handleFieldConfigSuccess = () => {
-    setFieldConfigVisible(false);
-    setCurrentTableName(null);
+    fieldConfigDialog.close();
     actionRef.current?.reload();
   };
 
@@ -192,34 +188,43 @@ const GeneratorPage: React.FC = () => {
         ]}
       />
 
-      <TableConfig
-        visible={tableConfigVisible}
-        tableName={currentTableName}
-        onCancel={() => {
-          setTableConfigVisible(false);
-          setCurrentTableName(null);
-        }}
-        onSuccess={handleTableConfigSuccess}
-      />
+      <DialogHost dialog={tableConfigDialog}>
+        {({ visible, data }) => (
+          <TableConfig
+            visible={visible}
+            tableName={data}
+            onCancel={() => {
+              tableConfigDialog.close();
+            }}
+            onSuccess={handleTableConfigSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <FieldConfig
-        visible={fieldConfigVisible}
-        tableName={currentTableName}
-        onCancel={() => {
-          setFieldConfigVisible(false);
-          setCurrentTableName(null);
-        }}
-        onSuccess={handleFieldConfigSuccess}
-      />
+      <DialogHost dialog={fieldConfigDialog}>
+        {({ visible, data }) => (
+          <FieldConfig
+            visible={visible}
+            tableName={data}
+            onCancel={() => {
+              fieldConfigDialog.close();
+            }}
+            onSuccess={handleFieldConfigSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <CodePreview
-        visible={previewVisible}
-        tableName={currentTableName}
-        onCancel={() => {
-          setPreviewVisible(false);
-          setCurrentTableName(null);
-        }}
-      />
+      <DialogHost dialog={previewDialog}>
+        {({ visible, data }) => (
+          <CodePreview
+            visible={visible}
+            tableName={data}
+            onCancel={() => {
+              previewDialog.close();
+            }}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

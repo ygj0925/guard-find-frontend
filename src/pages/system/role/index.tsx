@@ -13,8 +13,9 @@ import {
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
+import DialogHost, { useDialog } from '@/components/DialogHost';
 import type { SysRoleQo, SysRoleVo } from '@/services/web/system';
 import { role } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -25,12 +26,9 @@ import UserBind from './components/UserBind';
 const RolePage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const intl = useIntl();
-  const [formVisible, setFormVisible] = useState(false);
-  const [currentRole, setCurrentRole] = useState<SysRoleVo | null>(null);
-  const [grantVisible, setGrantVisible] = useState(false);
-  const [grantRoleId, setGrantRoleId] = useState(0);
-  const [userBindVisible, setUserBindVisible] = useState(false);
-  const [userBindRoleId, setUserBindRoleId] = useState(0);
+  const formDialog = useDialog<SysRoleVo | null>();
+  const grantDialog = useDialog<number>();
+  const bindDialog = useDialog<number>();
 
   const columns: ProColumns<SysRoleVo>[] = [
     {
@@ -122,13 +120,11 @@ const RolePage: React.FC = () => {
   ];
 
   const handleAdd = () => {
-    setCurrentRole(null);
-    setFormVisible(true);
+    formDialog.open(null);
   };
 
   const handleEdit = (record: SysRoleVo) => {
-    setCurrentRole(record);
-    setFormVisible(true);
+    formDialog.open(record);
   };
 
   const handleDelete = async (record: SysRoleVo) => {
@@ -142,17 +138,15 @@ const RolePage: React.FC = () => {
   };
 
   const handleGrant = (record: SysRoleVo) => {
-    setGrantRoleId(record.id);
-    setGrantVisible(true);
+    grantDialog.open(record.id);
   };
 
   const handleUserBind = (record: SysRoleVo) => {
-    setUserBindRoleId(record.id);
-    setUserBindVisible(true);
+    bindDialog.open(record.id);
   };
 
   const handleFormSuccess = () => {
-    setFormVisible(false);
+    formDialog.close();
     actionRef.current?.reload();
   };
 
@@ -183,24 +177,36 @@ const RolePage: React.FC = () => {
         ]}
       />
 
-      <RoleForm
-        visible={formVisible}
-        role={currentRole}
-        onCancel={() => setFormVisible(false)}
-        onSuccess={handleFormSuccess}
-      />
+      <DialogHost dialog={formDialog}>
+        {({ visible, data }) => (
+          <RoleForm
+            visible={visible}
+            role={data}
+            onCancel={() => formDialog.close()}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+      </DialogHost>
 
-      <MenuGrant
-        visible={grantVisible}
-        roleId={grantRoleId}
-        onCancel={() => setGrantVisible(false)}
-      />
+      <DialogHost dialog={grantDialog}>
+        {({ visible, data }) => (
+          <MenuGrant
+            visible={visible}
+            roleId={data}
+            onCancel={() => grantDialog.close()}
+          />
+        )}
+      </DialogHost>
 
-      <UserBind
-        visible={userBindVisible}
-        roleId={userBindRoleId}
-        onCancel={() => setUserBindVisible(false)}
-      />
+      <DialogHost dialog={bindDialog}>
+        {({ visible, data }) => (
+          <UserBind
+            visible={visible}
+            roleId={data}
+            onCancel={() => bindDialog.close()}
+          />
+        )}
+      </DialogHost>
     </PageContainer>
   );
 };

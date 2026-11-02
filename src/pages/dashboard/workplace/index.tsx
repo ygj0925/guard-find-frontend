@@ -58,8 +58,10 @@ const shortcuts = [
 ];
 
 const WorkplacePage: React.FC = () => {
-  const { initialState } = useModel('@@initialState');
-  const userInfo = initialState?.user;
+  const userInfo = useModel(
+    '@@initialState',
+    (model) => model.initialState?.user,
+  );
   const [pvOverview, setPvOverview] = useState<DashboardOverviewCommonResp>();
   const [ipOverview, setIpOverview] = useState<DashboardOverviewCommonResp>();
   const [notices, setNotices] = useState<DashboardNoticeResp[]>([]);
