@@ -20,10 +20,11 @@ import process from 'node:process';
 import ts from 'typescript';
 
 const FE_ROOT = path.resolve(process.cwd());
-const BE_ROOT = path.resolve(
-  process.env.API_CONTRACT_BACKEND ||
-    path.join(FE_ROOT, '..', 'guard-find-backend'),
-);
+/** 权威后端:管理后台 shell(guard-find-backend)与业务服务(guard-find-server,含 /system/moderation、/system/property、/system/im 等);
+ *  API_CONTRACT_BACKEND 指定时退回单后端模式。 */
+const BE_ROOTS = [process.env.API_CONTRACT_BACKEND || path.join(FE_ROOT, '..', 'guard-find-backend'), path.join(FE_ROOT, '..', 'guard-find-server')]
+  .map((p) => path.resolve(p))
+  .filter((p) => fs.existsSync(p));
 
 const SKIP_DIRS = new Set([
   'node_modules',
@@ -63,8 +64,9 @@ function walk(dir, match, acc = []) {
 
 /** 从 Java 源码提取路由：注解可跨行，注释里出现的 @XxxMapping 需要剔除 */
 function collectBackendRoutes() {
-  const files = walk(BE_ROOT, (n) => n.endsWith('Controller.java'));
   const routes = new Map();
+  for (const BE_ROOT of BE_ROOTS) {
+  const files = walk(BE_ROOT, (n) => n.endsWith('Controller.java'));
 
   for (const file of files) {
     const source = fs
@@ -108,6 +110,7 @@ function collectBackendRoutes() {
       const sub = m[2] ? (m[2].match(/"([^"]*)"/)?.[1] ?? '') : '';
       add(verb, base + sub);
     }
+  }
   }
   return routes;
 }
@@ -303,11 +306,13 @@ const unusedBackend = [...backend.values()]
 /** 后端可校验的权限码：sys_menu.permission 种子数据 + @SaCheckPermission 字面量 */
 function collectBackendPermissions() {
   const perms = new Set();
-  const files = walk(BE_ROOT, (n) => n.endsWith('.sql') || n.endsWith('Controller.java'));
-  const CODE = /['"]([a-z][a-zA-Z]*:[a-zA-Z:]+)['"]/g;
-  for (const f of files) {
-    const text = fs.readFileSync(f, 'utf8');
-    for (const m of text.matchAll(CODE)) perms.add(m[1]);
+  for (const BE_ROOT of BE_ROOTS) {
+    const files = walk(BE_ROOT, (n) => n.endsWith('.sql') || n.endsWith('Controller.java'));
+    const CODE = /['"]([a-z][a-zA-Z]*:[a-zA-Z:]+)['"]/g;
+    for (const f of files) {
+      const text = fs.readFileSync(f, 'utf8');
+      for (const m of text.matchAll(CODE)) perms.add(m[1]);
+    }
   }
   return perms;
 }
@@ -433,7 +438,7 @@ if (asFlag('--json')) {
   );
   console.log(
     `后端路由 ${summary.backendRoutes} 条 / 前端调用点 ${summary.frontendCallSites} 处` +
-      `（扫描范围 ${path.relative(FE_ROOT, BE_ROOT)} 与 src/）`,
+      `（扫描范围 ${BE_ROOTS.map((r) => path.relative(FE_ROOT, r)).join(' + ')} 与 src/）`,
   );
   section('已匹配', matched);
   section(
@@ -466,7 +471,15 @@ if (asFlag('--json')) {
  * 已知局限：以种子 SQL 为准，若线上库被人手工改过菜单会漏判；那属于数据治理问题。
  */
 function collectMenuPageGaps() {
-  const sqlFiles = walk(path.join(BE_ROOT, 'guard-find-backend-api/src/main/resources/db/changelog'), (n) => n.endsWith('.sql'));
+  const sqlFiles = BE_ROOTS.flatMap((root) => {
+    // 各后端的 Liquibase 目录:guard-find-backend-api / guard-find-server-api 等 *-api 模块
+    const apiModules = fs
+      .readdirSync(root, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && d.name.endsWith('-api'))
+      .map((d) => path.join(root, d.name, 'src/main/resources/db/changelog'))
+      .filter((p) => fs.existsSync(p));
+    return apiModules.flatMap((dir) => walk(dir, (n) => n.endsWith('.sql')));
+  });
   const menus = new Map();
   for (const f of sqlFiles) {
     const text = fs.readFileSync(f, 'utf8');
