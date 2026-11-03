@@ -6,6 +6,7 @@ export interface AdminConversationVo {
   nickname: string | null;
   avatar: string | null;
   lastMessage: string | null;
+  lastMessageId: string | number;
   lastTime: string;
   unreadCount: number;
 }
@@ -18,7 +19,14 @@ export interface AdminMessageVo {
   createTime: string;
 }
 
-export async function queryConversations(params: QueryParam<{}>) {
+export interface AdminConversationQuery {
+  /** 昵称模糊匹配，或完整用户 ID 精确匹配。 */
+  keyword?: string;
+  onlyUnread?: boolean;
+  beforeId?: string | number;
+}
+
+export async function queryConversations(params: QueryParam<AdminConversationQuery>) {
   return request<R<PageResult<AdminConversationVo>>>('system/im/conversations', {
     method: 'GET',
     params,
