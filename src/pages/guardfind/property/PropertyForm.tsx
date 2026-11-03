@@ -1,7 +1,11 @@
+import { PlusOutlined } from '@ant-design/icons';
+import type { UploadFile, UploadProps } from 'antd';
 import {
   Button,
   Col,
+  DatePicker,
   Form,
+  Image,
   Input,
   InputNumber,
   Modal,
@@ -10,13 +14,22 @@ import {
   Select,
   Upload,
 } from 'antd';
+import dayjs from 'dayjs';
 import React, { useState } from 'react';
+import type {
+  PropertyInput,
+  PropertyVo,
+} from '@/services/web/guardfind/property';
 import {
-  type PropertyInput,
-  type PropertyVo,
   saveProperty,
   uploadPropertyImage,
 } from '@/services/web/guardfind/property';
+
+type ImageFile = UploadFile<{ url: string }>;
+type PropertyFormValues = Omit<PropertyInput, 'images'> & {
+  ownerId?: string;
+  imageFiles: ImageFile[];
+};
 
 export default function PropertyForm({
   open,
@@ -29,39 +42,40 @@ export default function PropertyForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [form] = Form.useForm<
-    PropertyInput & { ownerId?: string; imageUrls?: string }
-  >();
+  const [form] = Form.useForm<PropertyFormValues>();
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState({ open: false, url: '' });
+  const imageFiles: ImageFile[] = Form.useWatch('imageFiles', form) || [];
+  const uploading = imageFiles.some((file) => file.status === 'uploading');
   const priceType = Form.useWatch('priceType', form);
-  const upload = async (file: File) => {
-    if (uploading || saving) return;
-    const urls = String(form.getFieldValue('imageUrls') || '')
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (urls.length >= 9 || file.size > 5 * 1024 * 1024) {
-      message.warning('最多9张图片，每张不超过5MB');
-      return;
+  const beforeUpload: UploadProps['beforeUpload'] = (file) => {
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      message.warning('请上传 JPG 或 PNG 格式的图片');
+      return Upload.LIST_IGNORE;
     }
-    setUploading(true);
+    if (imageFiles.length >= 9 || file.size > 5 * 1024 * 1024) {
+      message.warning('最多9张图片，每张不超过5MB');
+      return Upload.LIST_IGNORE;
+    }
+    return true;
+  };
+  const upload: UploadProps['customRequest'] = async ({
+    file,
+    onSuccess,
+    onError,
+  }) => {
     try {
-      const response = await uploadPropertyImage(file);
-      if (response.data?.url)
-        form.setFieldValue(
-          'imageUrls',
-          [...urls, response.data.url].join('\n'),
-        );
-    } catch {
+      const response = await uploadPropertyImage(file as File);
+      if (!response.data?.url) throw new Error('图片上传未返回地址');
+      onSuccess?.(response.data);
+    } catch (error) {
+      onError?.(error instanceof Error ? error : new Error('图片上传失败'));
       message.error('图片上传失败，请重试');
-    } finally {
-      setUploading(false);
     }
   };
   const submit = async () => {
-    if (uploading) return;
-    let values: PropertyInput & { ownerId?: string; imageUrls?: string };
+    if (uploading || saving) return;
+    let values: PropertyFormValues;
     try {
       values = await form.validateFields();
     } catch {
@@ -69,13 +83,10 @@ export default function PropertyForm({
     }
     setSaving(true);
     try {
-      const { imageUrls, ...rest } = values;
+      const { imageFiles: files, ...rest } = values;
       await saveProperty(record?.id, {
         ...rest,
-        images: (imageUrls || '')
-          .split(/\r?\n/)
-          .map((s) => s.trim())
-          .filter(Boolean),
+        images: files.map((file) => file.url || file.response?.url || ''),
         availableFrom: values.availableFrom || null,
         rentalMode: values.priceType === 'rent' ? values.rentalMode : null,
         facilities: values.facilities || [],
@@ -113,12 +124,23 @@ export default function PropertyForm({
         layout="vertical"
         initialValues={
           record
-            ? { ...record, imageUrls: record.images.join('\n') }
+            ? {
+                ...record,
+                imageFiles: record.images.map(
+                  (url, index): ImageFile => ({
+                    uid: `saved-${index}`,
+                    name: `房源图片 ${index + 1}`,
+                    status: 'done',
+                    url,
+                  }),
+                ),
+              }
             : {
                 propertyType: 'house',
                 priceType: 'rent',
                 status: 1,
                 facilities: [],
+                imageFiles: [],
               }
         }
       >
@@ -270,8 +292,21 @@ export default function PropertyForm({
             </Col>
           ))}
           <Col xs={24} sm={8}>
-            <Form.Item name="availableFrom" label="可入住日期">
-              <Input type="date" />
+            <Form.Item
+              name="availableFrom"
+              label="可入住日期"
+              getValueProps={(value: string | null) => ({
+                value: value ? dayjs(value) : null,
+              })}
+              normalize={(value: dayjs.Dayjs | null) =>
+                value?.format('YYYY-MM-DD') || null
+              }
+            >
+              <DatePicker
+                format="YYYY-MM-DD"
+                placeholder="请选择可入住日期"
+                style={{ width: '100%' }}
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -294,42 +329,75 @@ export default function PropertyForm({
         <Form.Item name="description" label="房源描述">
           <Input.TextArea rows={3} maxLength={2000} showCount />
         </Form.Item>
-        <Upload
-          accept="image/jpeg,image/png"
-          showUploadList={false}
-          disabled={uploading || saving}
-          beforeUpload={(file) => {
-            void upload(file);
-            return false;
-          }}
-        >
-          <Button loading={uploading}>上传房源图片</Button>
-        </Upload>
         <Form.Item
-          name="imageUrls"
-          label="图片链接"
-          extra="每行一个 HTTP(S) 图片地址，最多 9 张；清空后移除全部图片。"
+          name="imageFiles"
+          label="房源图片"
+          extra="支持 JPG、PNG，最多 9 张，每张不超过 5MB；点击缩略图可预览，首张图片用作封面。"
+          valuePropName="fileList"
+          getValueFromEvent={({ fileList }: { fileList: ImageFile[] }) =>
+            fileList.map((file) => ({
+              ...file,
+              url: file.url || file.response?.url,
+            }))
+          }
           rules={[
             {
-              validator: async (_, value: string) => {
-                const urls = (value || '')
-                  .split(/\r?\n/)
-                  .map((s) => s.trim())
-                  .filter(Boolean);
+              validator: async (_, files: ImageFile[] = []) => {
+                if (files.some((file) => file.status === 'uploading'))
+                  throw new Error('请等待图片上传完成');
+                if (files.some((file) => file.status === 'error'))
+                  throw new Error('请移除上传失败的图片并重新上传');
                 if (
-                  urls.length > 9 ||
-                  urls.some(
-                    (s) => !/^https?:\/\/[^\s]+$/.test(s) || s.length > 1000,
+                  files.length > 9 ||
+                  files.some(
+                    (file) =>
+                      !file.url ||
+                      !/^https?:\/\/[^\s]+$/.test(file.url) ||
+                      file.url.length > 1000,
                   )
                 )
-                  throw new Error('最多 9 个有效 HTTP(S) 图片地址');
+                  throw new Error('图片无效，请移除后重新上传');
               },
             },
           ]}
         >
-          <Input.TextArea disabled={uploading} rows={3} />
+          <Upload<{ url: string }>
+            accept="image/jpeg,image/png"
+            listType="picture-card"
+            maxCount={9}
+            disabled={saving}
+            beforeUpload={beforeUpload}
+            customRequest={upload}
+            showUploadList={{ showRemoveIcon: !saving }}
+            onPreview={(file) => {
+              const url = file.url || file.thumbUrl;
+              if (url) setPreview({ open: true, url });
+            }}
+          >
+            {imageFiles.length < 9 && (
+              <button
+                type="button"
+                disabled={uploading || saving}
+                style={{ border: 0, background: 'none', cursor: 'pointer' }}
+              >
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>上传图片</div>
+              </button>
+            )}
+          </Upload>
         </Form.Item>
       </Form>
+      {preview.url && (
+        <Image
+          src={preview.url}
+          style={{ display: 'none' }}
+          preview={{
+            visible: preview.open,
+            onVisibleChange: (visible) =>
+              setPreview((current) => ({ ...current, open: visible })),
+          }}
+        />
+      )}
     </Modal>
   );
 }

@@ -2,7 +2,6 @@ import {
   CrownOutlined,
   DeleteOutlined,
   DownOutlined,
-  TeamOutlined,
   UpOutlined,
 } from '@ant-design/icons';
 import {
@@ -11,24 +10,13 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import {
-  Button,
-  Input,
-  Modal,
-  message,
-  Pagination,
-  Popconfirm,
-  Space,
-  Tag,
-} from 'antd';
-import React, { lazy, Suspense, useRef, useState } from 'react';
+import { Button, message, Popconfirm, Space, Tag } from 'antd';
+import React, { lazy, Suspense, useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
 import DialogHost, { useDialog } from '@/components/DialogHost';
 import {
   deleteProperty,
-  type ManagerVo,
   type PropertyVo,
-  queryManagers,
   queryPropertyPage,
   setManager,
   updatePropertyStatus,
@@ -36,7 +24,6 @@ import {
 
 const PropertyDetails = lazy(() => import('./PropertyDetails'));
 const PropertyForm = lazy(() => import('./PropertyForm'));
-const Bookings = lazy(() => import('./Bookings'));
 
 const STATUS_META: Record<number, { text: string; color: string }> = {
   1: { text: '草稿', color: 'default' },
@@ -54,20 +41,7 @@ const TYPE_LABEL: Record<string, string> = {
 const PropertyPage: React.FC = () => {
   const details = useDialog<PropertyVo>();
   const editor = useDialog<PropertyVo | undefined>();
-  const bookings = useDialog<undefined>();
   const actionRef = useRef<ActionType>(null);
-  const [managerModalVisible, setManagerModalVisible] = useState(false);
-  const [managerPage, setManagerPage] = useState(1);
-  const [managerTotal, setManagerTotal] = useState(0);
-  const [managers, setManagers] = useState<ManagerVo[]>([]);
-  const [managerUserId, setManagerUserId] = useState<string>('');
-
-  const loadManagers = async (page = managerPage) => {
-    const response = await queryManagers({ page, size: 20 });
-    setManagers(response.data?.list || []);
-    setManagerPage(page);
-    setManagerTotal(response.data?.total || 0);
-  };
 
   const handleStatus = async (record: PropertyVo, status: number) => {
     await updatePropertyStatus(record.id, status);
@@ -80,19 +54,6 @@ const PropertyPage: React.FC = () => {
   const handleDelete = async (record: PropertyVo) => {
     await deleteProperty(record.id);
     message.success('已删除');
-    actionRef.current?.reload();
-  };
-
-  const handleSetManager = async (isManager: boolean) => {
-    const userId = managerUserId.trim();
-    if (!/^[1-9]\d*$/.test(userId)) {
-      message.warning('请输入用户 ID');
-      return;
-    }
-    await setManager(userId, isManager);
-    message.success(isManager ? '已设为认证管家' : '已取消管家');
-    setManagerUserId('');
-    await loadManagers();
     actionRef.current?.reload();
   };
 
@@ -275,26 +236,6 @@ const PropertyPage: React.FC = () => {
               新增房源
             </Button>
           </AccessControl>,
-          <AccessControl
-            key="bookings"
-            permission="system:property:booking:list"
-          >
-            <Button onClick={() => bookings.open(undefined)}>看房预约</Button>
-          </AccessControl>,
-          <AccessControl
-            key="managers"
-            permission="system:property:manager:list"
-          >
-            <Button
-              icon={<TeamOutlined />}
-              onClick={() => {
-                setManagerModalVisible(true);
-                void loadManagers(1);
-              }}
-            >
-              管家列表
-            </Button>
-          </AccessControl>,
         ]}
       />
 
@@ -321,73 +262,6 @@ const PropertyPage: React.FC = () => {
           </Suspense>
         )}
       </DialogHost>
-      <DialogHost dialog={bookings}>
-        {({ visible }) => (
-          <Modal
-            title="看房预约"
-            open={visible}
-            onCancel={bookings.close}
-            footer={null}
-            width={1100}
-            destroyOnClose
-          >
-            <Suspense fallback={null}>
-              <Bookings />
-            </Suspense>
-          </Modal>
-        )}
-      </DialogHost>
-      <Modal
-        title="房源管家"
-        open={managerModalVisible}
-        footer={null}
-        onCancel={() => setManagerModalVisible(false)}
-        width={520}
-      >
-        <AccessControl permission="system:property:manager:set">
-          <Space.Compact style={{ width: '100%', marginBottom: 16 }}>
-            <Input
-              placeholder="输入用户 ID"
-              value={managerUserId}
-              onChange={(e) => setManagerUserId(e.target.value)}
-            />
-            <Button type="primary" onClick={() => void handleSetManager(true)}>
-              设为管家
-            </Button>
-            <Button danger onClick={() => void handleSetManager(false)}>
-              取消管家
-            </Button>
-          </Space.Compact>
-        </AccessControl>
-        <Pagination
-          size="small"
-          current={managerPage}
-          total={managerTotal}
-          pageSize={20}
-          showSizeChanger={false}
-          onChange={(page) => void loadManagers(page)}
-        />
-        {managers.length === 0 ? (
-          <div style={{ color: '#999' }}>暂无认证管家</div>
-        ) : (
-          managers.map((m) => (
-            <div
-              key={m.userId}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0',
-                borderBottom: '1px solid #f0f0f0',
-              }}
-            >
-              <span>
-                {m.nickname}（ID: {m.userId}）
-              </span>
-              <span style={{ color: '#999' }}>{m.phone || ''}</span>
-            </div>
-          ))
-        )}
-      </Modal>
     </PageContainer>
   );
 };

@@ -1,109 +1,62 @@
-import { SendOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
+import { useLocation } from '@umijs/max';
 import {
+  Alert,
   Avatar,
   Badge,
   Button,
   Empty,
   Input,
-  List,
-  message,
   Pagination,
-  Space,
-  Tabs,
+  Segmented,
+  Skeleton,
+  Tooltip,
 } from 'antd';
-import React, { useEffect, useRef, useState } from 'react';
-import AccessControl from '@/components/AccessControl';
-import {
-  type AdminConversationVo,
-  type AdminMessageVo,
-  queryConversations,
-  queryMessages,
-  sendMessage,
-} from '@/services/web/guardfind/im';
-import { mergeMessages } from '@/utils/messageCursor';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { AdminConversationVo } from '@/services/web/guardfind/im';
+import { queryConversations } from '@/services/web/guardfind/im';
+import ChatSession from './components/ChatSession';
+import styles from './index.less';
 
-const POLL_INTERVAL = 3000;
-
-const formatTime = (value?: string) => {
-  if (!value) return '';
-  return value.replace('T', ' ').slice(5, 16);
-};
-
-const AdminImPage: React.FC = () => {
+export default function AdminImPage() {
+  const { pathname } = useLocation();
+  const [visible, setVisible] = useState(() => !document.hidden);
+  const active = visible && pathname.replace(/\/$/, '') === '/guardfind/im';
   const [conversations, setConversations] = useState<AdminConversationVo[]>([]);
-  const [activeUserId, setActiveUserId] = useState<string | number | null>(
-    null,
-  );
-  const [messages, setMessages] = useState<AdminMessageVo[]>([]);
-  const [draft, setDraft] = useState('');
-  const [sending, setSending] = useState(false);
-  const listBodyRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef(activeUserId);
-  activeRef.current = activeUserId;
-  const [conversationPage, setConversationPage] = useState(1);
-  const [conversationTotal, setConversationTotal] = useState(0);
-
+  const [selected, setSelected] = useState<AdminConversationVo | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refresh, setRefresh] = useState(0);
+  const [keyword, setKeyword] = useState('');
+  const [onlyUnread, setOnlyUnread] = useState(false);
+  const drafts = useRef(new Map<string, string>());
   useEffect(() => {
+    const changed = () => setVisible(!document.hidden);
+    document.addEventListener('visibilitychange', changed);
+    return () => document.removeEventListener('visibilitychange', changed);
+  }, []);
+  useEffect(() => {
+    if (!active) return;
     let canceled = false;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setLoading(true);
     const poll = async () => {
       try {
-        const response = await queryConversations({
-          page: conversationPage,
-          size: 30,
-        });
-        if (!canceled) {
-          setConversations(response.data?.list || []);
-          setConversationTotal(response.data?.total || 0);
-        }
-      } catch {
-        /* retry on the next poll */
-      } finally {
-        if (!canceled) timer = setTimeout(() => void poll(), 10000);
-      }
-    };
-    void poll();
-    return () => {
-      canceled = true;
-      clearTimeout(timer);
-    };
-  }, [conversationPage]);
-
-  useEffect(() => {
-    if (!activeUserId) return;
-    const userId = activeUserId;
-    let canceled = false;
-    let cursor: string | number | undefined;
-    let timer: ReturnType<typeof setTimeout>;
-    setMessages([]);
-    setDraft('');
-    const poll = async () => {
-      let count = 0;
-      try {
-        const response = await queryMessages(userId, cursor);
+        const response = await queryConversations({ page, size: 30 });
         if (canceled) return;
-        const incoming = response.data || [];
-        count = incoming.length;
-        if (incoming.length) {
-          cursor = incoming[incoming.length - 1].id;
-          setMessages((prev) => mergeMessages(prev, incoming));
-          setConversations((prev) =>
-            prev.map((c) =>
-              String(c.userId) === String(userId)
-                ? { ...c, unreadCount: 0 }
-                : c,
-            ),
-          );
-        }
+        setConversations(response.data?.list || []);
+        setTotal(response.data?.total || 0);
+        setError('');
       } catch {
-        /* retry on the next poll */
+        if (!canceled) setError('会话加载失败，请重试');
       } finally {
-        if (!canceled)
-          timer = setTimeout(
-            () => void poll(),
-            count === 100 ? 50 : POLL_INTERVAL,
-          );
+        if (!canceled) {
+          setLoading(false);
+          timer = setTimeout(() => void poll(), 10000);
+        }
       }
     };
     void poll();
@@ -111,225 +64,163 @@ const AdminImPage: React.FC = () => {
       canceled = true;
       clearTimeout(timer);
     };
-  }, [activeUserId]);
-
-  useEffect(() => {
-    if (listBodyRef.current)
-      listBodyRef.current.scrollTop = listBodyRef.current.scrollHeight;
-  }, [messages]);
-
-  const handleSend = async () => {
-    const content = draft.trim();
-    const userId = activeUserId;
-    if (!content || !userId || sending) return;
-    setSending(true);
-    try {
-      const response = await sendMessage(userId, content);
-      if (String(activeRef.current) !== String(userId)) return;
-      if (response.data)
-        setMessages((prev) =>
-          mergeMessages(prev, [response.data as AdminMessageVo]),
-        );
-      setDraft((prev) => (prev.trim() === content ? '' : prev));
-    } catch {
-      if (String(activeRef.current) === String(userId))
-        message.error('发送失败，请重试');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const activeConversation =
-    conversations.find((c) => String(c.userId) === String(activeUserId)) ||
-    null;
-
+  }, [active, page, refresh]);
+  const markRead = useCallback((userId: string | number) => {
+    setConversations((previous) =>
+      previous.some(
+        (item) =>
+          String(item.userId) === String(userId) && item.unreadCount > 0,
+      )
+        ? previous.map((item) =>
+            String(item.userId) === String(userId)
+              ? { ...item, unreadCount: 0 }
+              : item,
+          )
+        : previous,
+    );
+  }, []);
+  const query = keyword.trim().toLowerCase();
+  const filtered = conversations.filter(
+    (item) =>
+      (!onlyUnread || item.unreadCount > 0) &&
+      (!query ||
+        `${item.nickname || ''} ${item.userId}`.toLowerCase().includes(query)),
+  );
+  const current =
+    conversations.find(
+      (item) => String(item.userId) === String(selected?.userId),
+    ) || selected;
   return (
-    <PageContainer>
-      <div style={{ display: 'flex', gap: 16, minHeight: 480 }}>
-        {/* 左侧会话列表 */}
-        <div
-          style={{
-            width: 320,
-            border: '1px solid #f0f0f0',
-            borderRadius: 8,
-            background: '#fff',
-          }}
-        >
-          <Pagination
-            size="small"
-            current={conversationPage}
-            pageSize={30}
-            total={conversationTotal}
-            onChange={setConversationPage}
-            showSizeChanger={false}
-          />
-          <Tabs
-            items={[
-              {
-                key: 'all',
-                label: `会话(${conversations.length})`,
-                children: (
-                  <List
-                    dataSource={conversations}
-                    locale={{ emptyText: '暂无会话' }}
-                    renderItem={(item) => (
-                      <List.Item
-                        style={{
-                          cursor: 'pointer',
-                          background:
-                            String(item.userId) === String(activeUserId)
-                              ? '#e6f4ff'
-                              : undefined,
-                          padding: '10px 14px',
-                        }}
-                        onClick={() => setActiveUserId(item.userId)}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Badge count={item.unreadCount} size="small">
-                              <Avatar src={item.avatar || undefined}>
-                                {(item.nickname || '用户').slice(0, 1)}
-                              </Avatar>
-                            </Badge>
-                          }
-                          title={
-                            <span style={{ fontSize: 14 }}>
-                              {item.nickname || `用户 ${item.userId}`}
-                            </span>
-                          }
-                          description={
-                            <span
-                              style={{
-                                fontSize: 12,
-                                color: '#999',
-                                display: 'block',
-                                maxWidth: 200,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {item.lastMessage || ''}
-                            </span>
-                          }
-                        />
-                        <span style={{ fontSize: 12, color: '#bbb' }}>
-                          {formatTime(item.lastTime)}
-                        </span>
-                      </List.Item>
-                    )}
-                  />
-                ),
-              },
-            ]}
-          />
-        </div>
-
-        {/* 右侧聊天窗口 */}
-        <div
-          style={{
-            flex: 1,
-            border: '1px solid #f0f0f0',
-            borderRadius: 8,
-            background: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {activeUserId ? (
-            <>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderBottom: '1px solid #f0f0f0',
-                  fontWeight: 600,
-                }}
-              >
-                {activeConversation?.nickname || `用户 ${activeUserId}`}
-              </div>
-              <div
-                ref={listBodyRef}
-                style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  padding: 16,
-                  maxHeight: 460,
-                }}
-              >
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent:
-                        msg.senderType === 'ADMIN' ? 'flex-end' : 'flex-start',
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div
-                      style={{
-                        maxWidth: '70%',
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        background:
-                          msg.senderType === 'ADMIN' ? '#1677ff' : '#f4f4f5',
-                        color: msg.senderType === 'ADMIN' ? '#fff' : '#333',
-                      }}
-                    >
-                      <div style={{ fontSize: 14, wordBreak: 'break-word' }}>
-                        {msg.content}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          marginTop: 4,
-                          opacity: 0.7,
-                          textAlign: 'right',
-                        }}
-                      >
-                        {msg.senderType === 'ADMIN'
-                          ? msg.adminName || '客服'
-                          : '用户'}{' '}
-                        {formatTime(msg.createTime)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {messages.length === 0 ? (
-                  <Empty description="暂无消息" style={{ marginTop: 80 }} />
-                ) : null}
-              </div>
-              <div style={{ padding: 12, borderTop: '1px solid #f0f0f0' }}>
-                <AccessControl permission="system:im:send">
-                  <Space.Compact style={{ width: '100%' }}>
-                    <Input
-                      placeholder="输入回复内容,回车发送"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onPressEnter={() => void handleSend()}
-                    />
-                    <Button
-                      type="primary"
-                      icon={<SendOutlined />}
-                      disabled={!draft.trim() || sending}
-                      onClick={() => void handleSend()}
-                    >
-                      发送
-                    </Button>
-                  </Space.Compact>
-                </AccessControl>
-              </div>
-            </>
-          ) : (
-            <Empty
-              description="选择左侧用户开始沟通"
-              style={{ margin: 'auto' }}
+    <PageContainer title="用户沟通">
+      <div className={styles.workspace}>
+        <aside className={styles.sidebar} aria-label="用户会话">
+          <div className={styles.sidebarHeader}>
+            <div className={styles.sidebarTitle}>
+              <strong>
+                用户会话 <span className={styles.secondary}>({total})</span>
+              </strong>
+              <Tooltip title="刷新会话">
+                <Button
+                  type="text"
+                  icon={<ReloadOutlined />}
+                  aria-label="刷新会话"
+                  loading={loading}
+                  onClick={() => setRefresh((value) => value + 1)}
+                />
+              </Tooltip>
+            </div>
+            <Input
+              prefix={<SearchOutlined />}
+              allowClear
+              placeholder="搜索本页姓名 / 用户 ID"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <Segmented
+              block
+              value={onlyUnread ? 'unread' : 'all'}
+              options={[
+                { label: '全部', value: 'all' },
+                { label: '未读', value: 'unread' },
+              ]}
+              onChange={(value) => setOnlyUnread(value === 'unread')}
+            />
+          </div>
+          {error && (
+            <Alert
+              type="error"
+              showIcon
+              message={error}
+              action={
+                <Button
+                  size="small"
+                  onClick={() => setRefresh((value) => value + 1)}
+                >
+                  重试
+                </Button>
+              }
             />
           )}
-        </div>
+          <div className={styles.conversationList}>
+            {loading ? (
+              <div className={styles.listLoading}>
+                <Skeleton active avatar paragraph={{ rows: 1 }} />
+                <Skeleton active avatar paragraph={{ rows: 1 }} />
+                <Skeleton active avatar paragraph={{ rows: 1 }} />
+              </div>
+            ) : filtered.length ? (
+              filtered.map((item) => (
+                <button
+                  type="button"
+                  key={item.userId}
+                  className={`${styles.conversation} ${String(item.userId) === String(selected?.userId) ? styles.selected : ''}`}
+                  aria-pressed={
+                    String(item.userId) === String(selected?.userId)
+                  }
+                  onClick={() => setSelected(item)}
+                >
+                  <Badge
+                    count={item.unreadCount}
+                    size="small"
+                    overflowCount={99}
+                  >
+                    <Avatar size={40} src={item.avatar || undefined}>
+                      {(item.nickname || '用户').slice(0, 1)}
+                    </Avatar>
+                  </Badge>
+                  <span className={styles.conversationSummary}>
+                    <span className={styles.conversationTitle}>
+                      <strong>{item.nickname || `用户 ${item.userId}`}</strong>
+                      <time>
+                        {item.lastTime?.replace('T', ' ').slice(5, 16)}
+                      </time>
+                    </span>
+                    <span className={styles.lastMessage}>
+                      {item.lastMessage || '暂无消息'}
+                    </span>
+                  </span>
+                </button>
+              ))
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  query || onlyUnread ? '没有符合条件的会话' : '暂无会话'
+                }
+              />
+            )}
+          </div>
+          <div className={styles.pagination}>
+            <Pagination
+              simple
+              size="small"
+              current={page}
+              total={total}
+              pageSize={30}
+              showSizeChanger={false}
+              onChange={(next) => {
+                setPage(next);
+                setKeyword('');
+              }}
+            />
+          </div>
+        </aside>
+        <section className={styles.chatPanel} aria-label="对话窗口">
+          {current ? (
+            <ChatSession
+              key={current.userId}
+              conversation={current}
+              active={active}
+              onRead={markRead}
+              drafts={drafts.current}
+            />
+          ) : (
+            <div className={styles.emptyChat}>
+              <Empty description="选择左侧用户，开始沟通" />
+            </div>
+          )}
+        </section>
       </div>
     </PageContainer>
   );
-};
-
-export default AdminImPage;
+}
