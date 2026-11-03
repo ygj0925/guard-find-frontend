@@ -33,6 +33,7 @@ import {
 import { encryptByRsa } from '@/utils/Encrypt';
 import { CLIENT_ID } from '@/utils/env';
 import { isPasswordLoginEnabled, redirectToLogin } from '@/utils/LoginRedirect';
+import { loadSiteSettings, type SiteSettings } from '@/utils/siteSettings';
 import Settings from '../../../config/defaultSettings';
 
 type LoginMode = 'account' | 'phone' | 'email';
@@ -50,6 +51,13 @@ const AuthLogin: React.FC = () => {
   const { setInitialState } = useModel('@@initialState');
   const passwordLoginEnabled = isPasswordLoginEnabled();
   const searchParams = new URLSearchParams(history.location.search);
+  // 站点配置(系统名称/LOGO/版权/备案号):后台“站点配置”保存后登录页实时生效
+  const [site, setSite] = useState<SiteSettings>(() => ({
+    title: typeof Settings.title === 'string' ? Settings.title : undefined,
+  }));
+  useEffect(() => {
+    void loadSiteSettings().then(setSite);
+  }, []);
   const ssoError = searchParams.get('ssoError') === '1';
   const loginRedirect = searchParams.get('redirect') || '/';
   const [form] = Form.useForm<LoginFormValues>();
@@ -202,12 +210,32 @@ const AuthLogin: React.FC = () => {
     <main className="login-page">
       <section className="login-panel">
         <div className="login-brand">
-          <Typography.Title level={2}>{Settings.title}</Typography.Title>
+          <div>
+            {site.logo ? (
+              <img
+                src={site.logo}
+                alt="logo"
+                style={{
+                  maxWidth: 160,
+                  maxHeight: 48,
+                  marginBottom: 12,
+                  objectFit: 'contain',
+                }}
+              />
+            ) : null}
+            <Typography.Title level={2}>
+              {site.title || Settings.title}
+            </Typography.Title>
+          </div>
           <div>
             <Typography.Title level={1}>高效协同，从空间开始</Typography.Title>
             <Typography.Paragraph>
               统一会议室预约、权限与组织资源，让每一次会议更简单。
             </Typography.Paragraph>
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)' }}>
+            {site.copyright ? <div>{site.copyright}</div> : null}
+            {site.beian ? <div>{site.beian}</div> : null}
           </div>
         </div>
         <div className="login-form-area">
