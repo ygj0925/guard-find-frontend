@@ -1,22 +1,29 @@
 import { Modal } from 'antd';
 import { history } from 'umi';
+import { cacheRoutes } from './RouteUtils';
 import { clearAuthStorage, login_uri, Token } from './Web';
 
 let logoutModal: any;
-let cleanCache: any = () => {};
+let cleanCache: () => void = () => {};
 
-const logoutHandler = () => {
-  cleanCache();
-  const { pathname } = history.location;
+const clearSession = () => {
   clearAuthStorage();
-  import('./LoginRedirect').then(({ redirectToLogin }) =>
-    redirectToLogin(pathname),
-  );
+  cacheRoutes([]);
+  cleanCache();
   logoutModal = undefined;
   Modal.destroyAll();
 };
 
+const logoutHandler = () => {
+  const { pathname } = history.location;
+  clearSession();
+  import('./LoginRedirect').then(({ redirectToLogin }) =>
+    redirectToLogin(pathname),
+  );
+};
+
 const Notify = {
+  clearSession,
   setCleanCache: (clean: any) => {
     cleanCache = clean;
   },

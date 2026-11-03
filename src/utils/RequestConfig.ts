@@ -136,7 +136,8 @@ function dispatchByCode(
     );
   }
   if (code === '401') {
-    Notify.logout();
+    // 主动退出由调用方清理会话，避免再弹出“登录过期”提示。
+    if (!url?.endsWith('/auth/logout')) Notify.logout();
     return;
   }
   if (code === '403' && !url?.includes('/auth/user/')) {

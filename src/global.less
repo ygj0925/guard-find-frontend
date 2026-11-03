@@ -21,6 +21,43 @@ body,
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {
   left: unset;
 }
+
+// 侧栏用户区独占一行，工具图标另起一行，避免挤占昵称和头像空间。
+.ant-pro-sider.ant-pro-sider-layout-side {
+  .ant-pro-sider-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-block: 12px 4px;
+  }
+
+  .ant-pro-sider-actions-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    margin: 0;
+
+    .ant-space-item {
+      min-width: 0;
+      text-align: center;
+    }
+  }
+
+  &.ant-pro-sider-collapsed {
+    .ant-pro-sider-actions {
+      padding-inline: 0;
+    }
+
+    .ant-pro-sider-actions-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ant-pro-sider-actions-list-item {
+      padding: 3px;
+    }
+  }
+}
+
 canvas {
   display: block;
 }

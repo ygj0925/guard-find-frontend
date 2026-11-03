@@ -4,6 +4,7 @@ import {
   PlusCircleFilled,
   QuestionCircleFilled,
   SearchOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import type {
   MenuDataItem,
@@ -22,6 +23,7 @@ import defaultSettings from '@/../config/defaultSettings';
 import ChatFloat from '@/components/ChatFloat';
 import DictProvider from '@/components/Dict/DictProvider';
 import Footer from '@/components/Footer';
+import { AvatarDropdown } from '@/components/RightContent/AvatarDropdown';
 import RouteAccess from '@/components/RouteAccess';
 import RouteTabs from '@/components/RouteTabs';
 import UnreadBell from '@/components/UnreadBell';
@@ -282,16 +284,26 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
             <InfoCircleFilled key="InfoCircleFilled" />,
             <QuestionCircleFilled key="QuestionCircleFilled" />,
             <GithubFilled key="GithubFilled" />,
-          ];
+          ].filter(Boolean);
         }}
         /**
          * 头像
          */
 
         avatarProps={{
-          src: initialState?.user?.avatar || 'https://i.pravatar.cc/40',
+          src: initialState?.user?.avatar,
+          icon: <UserOutlined />,
           size: 'small',
           title: initialState?.user?.nickname || initialState?.user?.username,
+          render: (_, dom, props) => (
+            <AvatarDropdown
+              menu
+              sider={props.layout === 'side' && !props.isMobile}
+              collapsed={props.collapsed}
+            >
+              {dom}
+            </AvatarDropdown>
+          ),
         }}
         /**
          * footer

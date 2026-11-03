@@ -19,6 +19,9 @@ export * from './typings';
 export async function logout() {
   return request<R<unknown>>('/auth/logout', {
     method: 'POST',
+    silent: true,
+    skipErrorHandler: true,
+    timeout: 10000,
   });
 }
 

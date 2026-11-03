@@ -93,6 +93,18 @@ describe('响应拦截器：业务失败要显示后端 msg', () => {
     expect(message.error).not.toHaveBeenCalled();
   });
 
+  it('主动退出收到业务 401 时交由调用方处理，不弹登录过期提示', async () => {
+    const response = jsonResponse({
+      code: '401',
+      msg: '登录状态已过期',
+      success: false,
+    });
+    response.config.url = '/dev-api/auth/logout';
+    await expect(intercept()(response)).rejects.toThrow();
+    expect(Notify.logout).not.toHaveBeenCalled();
+    expect(message.error).not.toHaveBeenCalled();
+  });
+
   it('未知码（后端默认错误码 1）走 notification', async () => {
     await expect(
       intercept()(
