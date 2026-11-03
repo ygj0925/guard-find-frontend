@@ -5,9 +5,9 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import { history, useIntl, useSearchParams } from '@umijs/max';
 import { Button, Space, Tabs } from 'antd';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import DialogHost, { useDialog } from '@/components/DialogHost';
 import { useAccess } from '@/hooks/useAccess';
@@ -24,6 +24,9 @@ import SiteConfig from './components/SiteConfig';
 
 const ConfigPage: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
+  // 深链 /system/config?tab=xxx 直达对应 tab(sys_menu 隐藏菜单/浏览器刷新场景)
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<string>();
   const intl = useIntl();
   const { hasPermission, hasAnyPermission } = useAccess();
   const formDialog = useDialog<SysConfigVo | null>();
@@ -90,90 +93,93 @@ const ConfigPage: React.FC = () => {
     actionRef.current?.reload();
   };
 
+  // tab 清单:深链 /system/config?tab=xxx 直达对应 tab(sys_menu 隐藏菜单/浏览器刷新场景)
+  const tabItems = [
+    {
+      key: 'params',
+      allowed: hasAnyPermission([
+        'system:siteConfig:get',
+        'system:securityConfig:get',
+        'system:mailConfig:get',
+        'system:loginConfig:get',
+      ]),
+      label: '参数配置',
+      children: (
+        <>
+          <ProTable<SysConfigVo>
+            headerTitle={intl.formatMessage({
+              id: 'system.config.title',
+            })}
+            actionRef={actionRef}
+            rowKey="id"
+            columns={columns}
+            scroll={{ x: getTableScrollX(columns) }}
+            pagination={false}
+            request={async (params) => {
+              const { name, code } = params as Partial<SysConfigQo>;
+              const response = await config.query({ name, code });
+              // 后端 `GET /system/option` 返回全量参数，不分页
+              return {
+                data: response.data || [],
+                success: true,
+              };
+            }}
+            toolBarRender={() => []}
+          />
+          <DialogHost dialog={formDialog}>
+            {({ visible, data }) => (
+              <ConfigForm
+                visible={visible}
+                config={data}
+                onCancel={() => formDialog.close()}
+                onSuccess={handleFormSuccess}
+              />
+            )}
+          </DialogHost>
+        </>
+      ),
+    },
+    {
+      key: 'site',
+      label: '站点配置',
+      children: <SiteConfig />,
+      allowed: hasPermission('system:siteConfig:get'),
+    },
+    {
+      key: 'security',
+      label: '安全配置',
+      children: <SecurityConfig />,
+      allowed: hasPermission('system:securityConfig:get'),
+    },
+    {
+      key: 'mail',
+      label: '邮件配置',
+      children: <MailConfig />,
+      allowed: hasPermission('system:mailConfig:get'),
+    },
+    {
+      key: 'login',
+      label: '登录配置',
+      children: <LoginConfig />,
+      allowed: hasPermission('system:loginConfig:get'),
+    },
+    // 存储配置/短信配置的管理页在独立路由 /system/storage、/system/sms-config。
+    // 客户端配置对接后端 /system/client(CRUD)。
+    {
+      key: 'client',
+      label: '客户端配置',
+      children: <ClientConfig />,
+      allowed: hasPermission('system:client:list'),
+    },
+  ];
+  const currentTab = tabItems.some((item) => item.key === activeTab)
+    ? activeTab
+    : (tabItems.find((item) => item.key === searchParams.get('tab'))?.key ??
+      tabItems[0]?.key);
+
   return (
     <PageContainer>
-      <Tabs
-        items={[
-          {
-            key: 'params',
-            allowed: hasAnyPermission([
-              'system:siteConfig:get',
-              'system:securityConfig:get',
-              'system:mailConfig:get',
-              'system:loginConfig:get',
-            ]),
-            label: '参数配置',
-            children: (
-              <>
-                <ProTable<SysConfigVo>
-                  headerTitle={intl.formatMessage({
-                    id: 'system.config.title',
-                  })}
-                  actionRef={actionRef}
-                  rowKey="id"
-                  columns={columns}
-                  scroll={{ x: getTableScrollX(columns) }}
-                  pagination={false}
-                  request={async (params) => {
-                    const { name, code } = params as Partial<SysConfigQo>;
-                    const response = await config.query({ name, code });
-                    // 后端 `GET /system/option` 返回全量参数，不分页
-                    return {
-                      data: response.data || [],
-                      success: true,
-                    };
-                  }}
-                  toolBarRender={() => []}
-                />
-                <DialogHost dialog={formDialog}>
-                  {({ visible, data }) => (
-                    <ConfigForm
-                      visible={visible}
-                      config={data}
-                      onCancel={() => formDialog.close()}
-                      onSuccess={handleFormSuccess}
-                    />
-                  )}
-                </DialogHost>
-              </>
-            ),
-          },
-          {
-            key: 'site',
-            label: '站点配置',
-            children: <SiteConfig />,
-            allowed: hasPermission('system:siteConfig:get'),
-          },
-          {
-            key: 'security',
-            label: '安全配置',
-            children: <SecurityConfig />,
-            allowed: hasPermission('system:securityConfig:get'),
-          },
-          {
-            key: 'mail',
-            label: '邮件配置',
-            children: <MailConfig />,
-            allowed: hasPermission('system:mailConfig:get'),
-          },
-          {
-            key: 'login',
-            label: '登录配置',
-            children: <LoginConfig />,
-            allowed: hasPermission('system:loginConfig:get'),
-          },
-          // 原先这里的"存储配置/短信配置"是伪装成 sys_option 的占位表单
-          // （category=storage/sms 不属于后端 OptionCategoryEnum，请求必然 400）；
-          // 真正的管理页已在各自路由：/system/storage、/system/sms-config。
-          // "客户端配置"属后端 /system/client，尚未接入，见 align-backend-contract 阶段 6.1。
-          {
-            key: 'client',
-            label: '客户端配置',
-            children: <ClientConfig />,
-            allowed: hasPermission('system:client:list'),
-          },
-        ].filter((item) => item.allowed)}
-      />
+      <Tabs activeKey={currentTab} onChange={setActiveTab} items={tabItems} />
     </PageContainer>
   );
 };
