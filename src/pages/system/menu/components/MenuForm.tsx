@@ -1,17 +1,19 @@
 import {
   ProForm,
   ProFormDigit,
+  ProFormRadio,
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
   ProFormTreeSelect,
 } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
-import { Modal, message } from 'antd';
-import React, { useState } from 'react';
+import { Col, Form, Modal, message, Row } from 'antd';
+import React, { useId, useState } from 'react';
 import IconSelect from '@/components/Icon/IconSelect';
-import type { SysMenuVo } from '@/services/web/system';
+import type { SysMenuDto, SysMenuVo } from '@/services/web/system';
 import { menu } from '@/services/web/system';
+import './MenuForm.less';
 
 interface MenuFormProps {
   visible: boolean;
@@ -33,76 +35,101 @@ const MenuForm: React.FC<MenuFormProps> = ({
   onCancel,
   onSuccess,
 }) => {
-  const [form] = ProForm.useForm();
+  const [form] = ProForm.useForm<SysMenuDto>();
+  const formId = useId();
   const intl = useIntl();
+  const [submitting, setSubmitting] = useState(false);
   const defaultType = parentMenu
     ? parentMenu.type === TYPE_DIR
       ? TYPE_MENU
       : TYPE_BUTTON
     : TYPE_DIR;
   const [menuType, setMenuType] = useState(menuData?.type ?? defaultType);
+  const label = (id: string) => intl.formatMessage({ id });
+  const isButton = menuType === TYPE_BUTTON;
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: SysMenuDto) => {
+    setSubmitting(true);
     try {
       if (menuData) {
         await menu.edit({ ...values, id: menuData.id });
       } else {
         await menu.create(values);
       }
-      message.success(intl.formatMessage({ id: 'common.operation.success' }));
+      message.success(label('common.operation.success'));
       await onSuccess();
+      return true;
     } catch (error) {
       console.error('Submit failed:', error);
+      return false;
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleTypeChange = (value: number) => setMenuType(value);
-
   const loadTreeData = async () => {
     const response = await menu.query({});
-    const convertToTreeData = (items: SysMenuVo[]): any[] =>
+    type TreeOption = { title: string; value: number; children: TreeOption[] };
+    const convertToTreeData = (items: SysMenuVo[]): TreeOption[] =>
       items
-        // 按钮不能作为上级
-        .filter((item) => item.type !== TYPE_BUTTON)
+        // A button, the edited node and its descendants cannot be parents.
+        .filter((item) => item.type !== TYPE_BUTTON && item.id !== menuData?.id)
         .map((item) => ({
           title: item.title,
           value: item.id,
-          children: item.children ? convertToTreeData(item.children) : [],
+          children: convertToTreeData(item.children || []),
         }));
-    return convertToTreeData(response.data || []);
+    return [
+      {
+        title: '顶级菜单',
+        value: 0,
+        children: convertToTreeData(response.data || []),
+      },
+    ];
   };
 
   const notEmptyRule = (labelId: string) => [
     {
       required: true,
-      message:
-        intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-        intl.formatMessage({ id: labelId }),
+      message: label('common.form.placeholder.input') + label(labelId),
     },
   ];
+  const switchProps = {
+    checkedChildren: label('common.operation.yes'),
+    unCheckedChildren: label('common.operation.no'),
+  };
 
   return (
     <Modal
-      title={
-        menuData
-          ? intl.formatMessage({ id: 'common.operation.edit' }) +
-            intl.formatMessage({ id: 'system.menu.title' })
-          : intl.formatMessage({ id: 'common.operation.add' }) +
-            intl.formatMessage({ id: 'system.menu.title' })
-      }
+      title={`${label(menuData ? 'common.operation.edit' : 'common.operation.add')}${label('system.menu.title')}`}
       open={visible}
-      onCancel={onCancel}
-      footer={null}
-      width={600}
+      width={800}
+      centered
       destroyOnHidden
+      styles={{
+        body: {
+          maxHeight: 'calc(100dvh - 200px)',
+          overflowY: 'auto',
+          paddingRight: 4,
+        },
+      }}
+      onCancel={onCancel}
+      onOk={() => form.submit()}
+      okText="保存"
+      cancelText="取消"
+      confirmLoading={submitting}
     >
-      <ProForm
+      <ProForm<SysMenuDto>
+        id={formId}
+        className="menu-edit-form"
+        layout="vertical"
         form={form}
+        submitter={false}
         onFinish={handleSubmit}
         initialValues={{
           type: defaultType,
-          parentId: parentMenu?.id,
-          sort: 0,
+          parentId: parentMenu?.id ?? 0,
+          sort: 1,
           status: 1,
           isExternal: false,
           isCache: false,
@@ -110,168 +137,166 @@ const MenuForm: React.FC<MenuFormProps> = ({
           ...menuData,
         }}
       >
-        <ProFormTreeSelect
-          name="parentId"
-          label={intl.formatMessage({ id: 'system.menu.parent' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.select' }) +
-            intl.formatMessage({ id: 'system.menu.parent' })
-          }
-          allowClear
-          request={loadTreeData}
-          fieldProps={{ treeDefaultExpandAll: true }}
-        />
-        <ProFormSelect
-          name="type"
-          label={intl.formatMessage({ id: 'system.menu.type' })}
-          options={[
-            {
-              label: intl.formatMessage({ id: 'system.menu.type.directory' }),
-              value: TYPE_DIR,
-            },
-            {
-              label: intl.formatMessage({ id: 'system.menu.type.menu' }),
-              value: TYPE_MENU,
-            },
-            {
-              label: intl.formatMessage({ id: 'system.menu.type.button' }),
-              value: TYPE_BUTTON,
-            },
-          ]}
-          rules={notEmptyRule('system.menu.type')}
-          fieldProps={{ onChange: handleTypeChange }}
-        />
-        <ProFormText
-          name="title"
-          label={intl.formatMessage({ id: 'system.menu.name' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-            intl.formatMessage({ id: 'system.menu.name' })
-          }
-          rules={notEmptyRule('system.menu.name')}
-        />
-        {menuType !== TYPE_BUTTON && (
-          <ProForm.Item
-            name="icon"
-            label={intl.formatMessage({ id: 'system.menu.icon' })}
-          >
-            <IconSelect
-              value={form.getFieldValue('icon')}
-              onChange={(value) => form.setFieldValue('icon', value)}
-            />
-          </ProForm.Item>
-        )}
-        {menuType !== TYPE_BUTTON && (
-          <ProFormText
-            name="path"
-            label={intl.formatMessage({ id: 'system.menu.path' })}
-            placeholder={
-              intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-              intl.formatMessage({ id: 'system.menu.path' })
-            }
-            rules={notEmptyRule('system.menu.path')}
+        <section
+          className="menu-edit-section"
+          aria-labelledby={`${formId}-basic`}
+        >
+          <h3 id={`${formId}-basic`}>基本信息</h3>
+          <ProFormRadio.Group
+            name="type"
+            label={label('system.menu.type')}
+            radioType="button"
+            options={[
+              { label: label('system.menu.type.directory'), value: TYPE_DIR },
+              { label: label('system.menu.type.menu'), value: TYPE_MENU },
+              { label: label('system.menu.type.button'), value: TYPE_BUTTON },
+            ]}
+            rules={notEmptyRule('system.menu.type')}
+            fieldProps={{
+              onChange: (event) => setMenuType(event.target.value),
+            }}
           />
-        )}
-        {menuType === TYPE_MENU && (
-          <>
+          <Row gutter={20}>
+            <Col xs={24} sm={12}>
+              <ProFormTreeSelect
+                name="parentId"
+                label={label('system.menu.parent')}
+                placeholder="请选择上级菜单，留空为顶级"
+                allowClear
+                request={loadTreeData}
+                fieldProps={{ treeDefaultExpandAll: true }}
+              />
+            </Col>
+            <Col xs={24} sm={12}>
+              <ProFormText
+                name="title"
+                label={label('system.menu.name')}
+                placeholder="请输入名称"
+                fieldProps={{ maxLength: 30, showCount: true }}
+                rules={notEmptyRule('system.menu.name')}
+              />
+            </Col>
+            {!isButton && (
+              <Col xs={24} sm={12}>
+                <Form.Item name="icon" label={label('system.menu.icon')}>
+                  <IconSelect />
+                </Form.Item>
+              </Col>
+            )}
+            <Col xs={24} sm={12}>
+              <ProFormDigit
+                name="sort"
+                label={label('common.field.sort')}
+                min={1}
+                fieldProps={{ precision: 0 }}
+                rules={notEmptyRule('common.field.sort')}
+              />
+            </Col>
+          </Row>
+        </section>
+
+        <section
+          className="menu-edit-section"
+          aria-labelledby={`${formId}-route`}
+        >
+          <h3 id={`${formId}-route`}>{isButton ? '权限配置' : '路由配置'}</h3>
+          {isButton ? (
             <ProFormText
-              name="name"
-              label={intl.formatMessage({ id: 'system.menu.component.name' })}
-              placeholder={
-                intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-                intl.formatMessage({ id: 'system.menu.component.name' })
-              }
+              name="permission"
+              label={label('system.menu.permission')}
+              placeholder="如 system:user:create"
+              rules={notEmptyRule('system.menu.permission')}
             />
-            <ProFormText
-              name="component"
-              label={intl.formatMessage({ id: 'system.menu.component.path' })}
-              placeholder={
-                intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-                intl.formatMessage({ id: 'system.menu.component.path' })
-              }
-              extra="相对 src/pages 的约定式路由文件路径，如 system/user/index"
-            />
-            <ProFormText
-              name="redirect"
-              label={intl.formatMessage({ id: 'system.menu.redirect' })}
-              placeholder={
-                intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-                intl.formatMessage({ id: 'system.menu.redirect' })
-              }
-            />
-            <ProFormSwitch
-              name="isExternal"
-              label={intl.formatMessage({ id: 'system.menu.external' })}
-              fieldProps={{
-                checkedChildren: intl.formatMessage({
-                  id: 'common.operation.yes',
-                }),
-                unCheckedChildren: intl.formatMessage({
-                  id: 'common.operation.no',
-                }),
-              }}
-            />
-            <ProFormSwitch
-              name="isCache"
-              label={intl.formatMessage({ id: 'system.menu.keepalive' })}
-              fieldProps={{
-                checkedChildren: intl.formatMessage({
-                  id: 'common.operation.yes',
-                }),
-                unCheckedChildren: intl.formatMessage({
-                  id: 'common.operation.no',
-                }),
-              }}
-            />
-          </>
-        )}
-        {menuType === TYPE_BUTTON && (
-          <ProFormText
-            name="permission"
-            label={intl.formatMessage({ id: 'system.menu.permission' })}
-            placeholder={
-              intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-              intl.formatMessage({ id: 'system.menu.permission' })
-            }
-            rules={notEmptyRule('system.menu.permission')}
-          />
-        )}
-        <ProFormSwitch
-          name="isHidden"
-          label={intl.formatMessage({ id: 'system.menu.hidden' })}
-          fieldProps={{
-            checkedChildren: intl.formatMessage({ id: 'common.operation.yes' }),
-            unCheckedChildren: intl.formatMessage({
-              id: 'common.operation.no',
-            }),
-          }}
-        />
-        <ProFormSelect
-          name="status"
-          label={intl.formatMessage({ id: 'common.field.status' })}
-          options={[
-            {
-              label: intl.formatMessage({ id: 'common.status.normal' }),
-              value: 1,
-            },
-            {
-              label: intl.formatMessage({ id: 'common.status.frozen' }),
-              value: 2,
-            },
-          ]}
-          rules={notEmptyRule('common.field.status')}
-        />
-        <ProFormDigit
-          name="sort"
-          label={intl.formatMessage({ id: 'common.field.sort' })}
-          placeholder={
-            intl.formatMessage({ id: 'common.form.placeholder.input' }) +
-            intl.formatMessage({ id: 'common.field.sort' })
-          }
-          min={0}
-          fieldProps={{ precision: 0 }}
-          rules={notEmptyRule('common.field.sort')}
-        />
+          ) : (
+            <Row gutter={20}>
+              <Col xs={24} sm={12}>
+                <ProFormText
+                  name="path"
+                  label={label('system.menu.path')}
+                  placeholder="如 /system/user"
+                  rules={notEmptyRule('system.menu.path')}
+                />
+              </Col>
+              {menuType === TYPE_MENU && (
+                <Col xs={24} sm={12}>
+                  <ProFormText
+                    name="name"
+                    label={label('system.menu.component.name')}
+                    placeholder="如 SystemUser"
+                  />
+                </Col>
+              )}
+              {menuType === TYPE_MENU && (
+                <>
+                  <Col xs={24} sm={12}>
+                    <ProFormText
+                      name="component"
+                      label={label('system.menu.component.path')}
+                      placeholder="如 system/user/index"
+                      tooltip="填写对应页面的组件路径，不含文件扩展名"
+                    />
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <ProFormText
+                      name="redirect"
+                      label={label('system.menu.redirect')}
+                      placeholder="可选，填写跳转的路由地址"
+                    />
+                  </Col>
+                </>
+              )}
+            </Row>
+          )}
+        </section>
+
+        <section
+          className="menu-edit-section"
+          aria-labelledby={`${formId}-display`}
+        >
+          <h3 id={`${formId}-display`}>显示设置</h3>
+          <Row gutter={20}>
+            <Col xs={24} sm={menuType === TYPE_MENU ? 6 : 12}>
+              <ProFormSelect
+                name="status"
+                label={label('common.field.status')}
+                options={[
+                  { label: label('common.status.normal'), value: 1 },
+                  { label: label('common.status.frozen'), value: 2 },
+                ]}
+                rules={notEmptyRule('common.field.status')}
+                allowClear={false}
+              />
+            </Col>
+            <Col
+              xs={menuType === TYPE_MENU ? 8 : 24}
+              sm={menuType === TYPE_MENU ? 6 : 12}
+            >
+              <ProFormSwitch
+                name="isHidden"
+                label={label('system.menu.hidden')}
+                fieldProps={switchProps}
+              />
+            </Col>
+            {menuType === TYPE_MENU && (
+              <>
+                <Col xs={8} sm={6}>
+                  <ProFormSwitch
+                    name="isExternal"
+                    label={label('system.menu.external')}
+                    fieldProps={switchProps}
+                  />
+                </Col>
+                <Col xs={8} sm={6}>
+                  <ProFormSwitch
+                    name="isCache"
+                    label={label('system.menu.keepalive')}
+                    fieldProps={switchProps}
+                  />
+                </Col>
+              </>
+            )}
+          </Row>
+        </section>
       </ProForm>
     </Modal>
   );

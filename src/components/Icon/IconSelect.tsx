@@ -1,477 +1,201 @@
+import { Button, Empty, Input, Modal, Tabs, theme } from 'antd';
 import React, { useMemo, useState } from 'react';
-import { resolveIconComponent } from '@/components/Icon/Icon';
-import Icon from './Icon';
+import Icon, { normalizeIconName, resolveIconComponent } from './Icon';
+import icons from './icons';
 import './IconSelect.less';
-import { Input, Modal, Tabs } from 'antd';
 
-const iconTypeArray: { key: string; title: string; icons: string[] }[] = [
-  {
-    key: 'directional',
-    title: '方向性图标',
-    icons: [
-      'step-backward',
-      'step-forward',
-      'fast-backward',
-      'fast-forward',
-      'shrink',
-      'arrows-alt',
-      'down',
-      'up',
-      'left',
-      'right',
-      'caret-up',
-      'caret-down',
-      'caret-left',
-      'caret-right',
-      'up-circle',
-      'down-circle',
-      'left-circle',
-      'right-circle',
-      'double-right',
-      'double-left',
-      'vertical-left',
-      'vertical-right',
-      'forward',
-      'backward',
-      'rollback',
-      'enter',
-      'retweet',
-      'swap',
-      'swap-left',
-      'swap-right',
-      'arrow-up',
-      'arrow-down',
-      'arrow-left',
-      'arrow-right',
-      'play-circle',
-      'up-square',
-      'down-square',
-      'left-square',
-      'right-square',
-      'login',
-      'logout',
-      'menu-fold',
-      'menu-unfold',
-      'border-bottom',
-      'border-inner',
-      'border-outer',
-      'border-left',
-      'border-right',
-      'border-top',
-      'pic-center',
-      'pic-left',
-      'pic-right',
-      'radius-upleft',
-      'radius-upright',
-      'fullscreen',
-      'fullscreen-exit',
-    ],
-  },
-  {
-    key: 'suggested',
-    title: '提示建议性图标',
-    icons: [
-      'question',
-      'question-circle',
-      'plus',
-      'plus-circle',
-      'pause',
-      'pause-circle',
-      'minus',
-      'minus-circle',
-      'plus-square',
-      'minus-square',
-      'info',
-      'info-circle',
-      'exclamation',
-      'close',
-      'close-circle',
-      'close-square',
-      'check',
-      'check-circle',
-      'check-square',
-      'clock-circle',
-      'warning',
-      'issues-close',
-      'stop',
-    ],
-  },
-  {
-    key: 'editor',
-    title: '编辑类图标',
-    icons: [
-      'edit',
-      'form',
-      'copy',
-      'scissor',
-      'delete',
-      'snippets',
-      'diff',
-      'highlight',
-      'align-center',
-      'align-left',
-      'align-right',
-      'bg-colors',
-      'bold',
-      'italic',
-      'underline',
-      'strikethrough',
-      'redo',
-      'undo',
-      'zoom-in',
-      'zoom-out',
-      'font-colors',
-      'font-size',
-      'line-height',
-      'dash',
-      'small-dash',
-      'sort-ascending',
-      'drag',
-      'ordered-list',
-      'unordered-list',
-      'radius-setting',
-      'column-width',
-      'column-height',
-    ],
-  },
-  {
-    key: 'data',
-    title: '数据类图标',
-    icons: [
-      'area-chart',
-      'pie-chart',
-      'bar-chart',
-      'dot-chart',
-      'line-chart',
-      'radar-chart',
-      'heat-map',
-      'fall',
-      'rise',
-      'stock',
-      'box-plot',
-      'fund',
-      'sliders',
-    ],
-  },
-  {
-    key: 'brand_logo',
-    title: '网站通用图标',
-    icons: [
-      'account-book',
-      'alert',
-      'api',
-      'appstore',
-      'audio',
-      'bank',
-      'bell',
-      'book',
-      'bug',
-      'bulb',
-      'calculator',
-      'build',
-      'calendar',
-      'camera',
-      'car',
-      'carry-out',
-      'cloud',
-      'code',
-      'compass',
-      'contacts',
-      'container',
-      'control',
-      'credit-card',
-      'crown',
-      'dashboard',
-      'database',
-      'dislike',
-      'environment',
-      'experiment',
-      'eye-invisible',
-      'eye',
-      'file-add',
-      'file-excel',
-      'file-image',
-      'file-markdown',
-      'file-pdf',
-      'file-ppt',
-      'file-text',
-      'file-unknown',
-      'file-word',
-      'file-zip',
-      'file',
-      'filter',
-      'fire',
-      'flag',
-      'folder-add',
-      'folder',
-      'folder-open',
-      'frown',
-      'funnel-plot',
-      'gift',
-      'hdd',
-      'heart',
-      'home',
-      'hourglass',
-      'idcard',
-      'insurance',
-      'interaction',
-      'layout',
-      'like',
-      'lock',
-      'mail',
-      'medicine-box',
-      'meh',
-      'message',
-      'mobile',
-      'money-collect',
-      'pay-circle',
-      'notification',
-      'phone',
-      'picture',
-      'play-square',
-      'printer',
-      'profile',
-      'project',
-      'pushpin',
-      'property-safety',
-      'read',
-      'reconciliation',
-      'red-envelope',
-      'rest',
-      'rocket',
-      'save',
-      'schedule',
-      'security-scan',
-      'setting',
-      'shop',
-      'shopping',
-      'skin',
-      'smile',
-      'sound',
-      'star',
-      'switcher',
-      'tablet',
-      'tag',
-      'tags',
-      'tool',
-      'thunderbolt',
-      'trophy',
-      'unlock',
-      'usb',
-      'video-camera',
-      'wallet',
-      'apartment',
-      'audit',
-      'barcode',
-      'bars',
-      'block',
-      'border',
-      'branches',
-      'ci',
-      'cloud-download',
-      'cloud-server',
-      'cloud-sync',
-      'cloud-upload',
-      'cluster',
-      'coffee',
-      'copyright',
-      'deployment-unit',
-      'desktop',
-      'disconnect',
-      'dollar',
-      'download',
-      'ellipsis',
-      'euro',
-      'exception',
-      'export',
-      'file-done',
-      'file-jpg',
-      'file-protect',
-      'file-sync',
-      'file-search',
-      'fork',
-      'gateway',
-      'global',
-      'gold',
-      'history',
-      'import',
-      'inbox',
-      'key',
-      'laptop',
-      'link',
-      'line',
-      'loading',
-      'man',
-      'menu',
-      'monitor',
-      'more',
-      'number',
-      'percentage',
-      'paper-clip',
-      'pound',
-      'poweroff',
-      'pull-request',
-      'qrcode',
-      'reload',
-      'safety',
-      'robot',
-      'scan',
-      'search',
-      'select',
-      'shake',
-      'share-alt',
-      'shopping-cart',
-      'solution',
-      'sync',
-      'table',
-      'team',
-      'to-top',
-      'trademark',
-      'transaction',
-      'upload',
-      'user-add',
-      'user-delete',
-      'usergroup-add',
-      'user',
-      'wifi',
-      'woman',
-    ],
-  },
-  {
-    key: 'application',
-    title: '品牌和标识',
-    icons: [
-      'android',
-      'apple',
-      'windows',
-      'ie',
-      'chrome',
-      'github',
-      'aliwangwang',
-      'dingding',
-      'weibo-square',
-      'weibo-circle',
-      'taobao-circle',
-      'html5',
-      'weibo',
-      'twitter',
-      'wechat',
-      'youtube',
-      'alipay-circle',
-      'taobao',
-      'skype',
-      'qq',
-      'medium-workmark',
-      'gitlab',
-      'medium',
-      'linkedin',
-      'google-plus',
-      'dropbox',
-      'facebook',
-      'codepen',
-      'code-sandbox',
-      'amazon',
-      'google',
-      'codepen-circle',
-      'alipay',
-      'ant-design',
-      'ant-cloud',
-      'aliyun',
-      'zhihu',
-      'slack',
-      'slack-square',
-      'behance',
-      'behance-square',
-      'dribbble',
-      'dribbble-square',
-      'instagram',
-      'yuque',
-      'alibaba',
-      'yahoo',
-      'reddit',
-      'sketch',
-    ],
-  },
+// Derive the palette from the same registry as the sidebar: every offered icon
+// can render, and registered icons cannot disappear from the picker.
+const allIcons = Object.keys(icons).map(normalizeIconName).sort();
+const commonIcons = [
+  'home',
+  'appstore',
+  'menu',
+  'setting',
+  'user',
+  'team',
+  'apartment',
+  'dashboard',
+  'folder',
+  'file',
+  'table',
+  'database',
+  'calendar',
+  'notification',
+  'mail',
+  'safety',
+  'tool',
+  'code',
+  'cloud',
+  'shop',
+];
+const categories = [
+  { key: 'common', label: '常用图标', icons: commonIcons },
+  { key: 'all', label: '全部图标', icons: allIcons },
 ];
 
 export type IconSelectProps = {
-  value?: string;
-  onChange?: (val?: string) => void;
+  id?: string;
+  value?: string | null;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
 };
 
-const IconSelect = (props: IconSelectProps) => {
-  const { value, onChange = () => {} } = props;
-  const [visible, setVisible] = useState(false);
-  const [selectIcon, setSelectIcon] = useState(value);
-  const [activeTab, setActiveTab] = useState(iconTypeArray[0].key);
-
-  const iconNodes = useMemo(() => {
-    // The menu form mounts this input before the picker opens. Build only the
-    // visible category, rather than allocating every icon on every selection.
-    if (!visible) return null;
-    return iconTypeArray
-      .find((tab) => tab.key === activeTab)
-      ?.icons.filter((icon) => resolveIconComponent(icon))
-      .map((icon) => (
-        <li
-          className={`icon-select-li ${selectIcon && selectIcon === icon ? 'active' : ''}`}
-          key={icon}
-          onClick={() => setSelectIcon(icon)}
-        >
-          <Icon type={icon} style={{ fontSize: 36 }} />
-        </li>
-      ));
-  }, [visible, activeTab, selectIcon]);
+const IconSelect = ({ id, value, onChange, disabled }: IconSelectProps) => {
+  const { token } = theme.useToken();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [activeTab, setActiveTab] = useState('common');
+  const [search, setSearch] = useState('');
+  const selectedName = normalizeIconName(value);
+  const validValue = resolveIconComponent(value);
+  const query = search.trim().toLowerCase();
+  const filteredIcons = useMemo(() => {
+    if (!open) return [];
+    // Searching always covers the entire registry, regardless of the tab.
+    const source = query
+      ? allIcons
+      : categories.find((category) => category.key === activeTab)?.icons || [];
+    return source.filter(
+      (name) =>
+        !query ||
+        `${name} ${name.replaceAll('-', '')}Outlined`
+          .toLowerCase()
+          .includes(query),
+    );
+  }, [open, activeTab, query]);
 
   const openPicker = () => {
-    setSelectIcon(value);
-    setVisible(true);
+    if (disabled) return;
+    setDraft(validValue ? selectedName : '');
+    setActiveTab(
+      commonIcons.includes(selectedName) || !selectedName ? 'common' : 'all',
+    );
+    setSearch('');
+    setOpen(true);
   };
 
   return (
     <>
       <Input
+        id={id}
         readOnly
-        value={value}
-        title={'选择'}
-        placeholder={'选择'}
-        addonAfter={<Icon title={'选择'} type="setting" onClick={openPicker} />}
-        style={{ userSelect: 'none' }}
-        prefix={value && value.length > 0 ? <Icon type={value} /> : ''}
+        value={value || ''}
+        disabled={disabled}
+        placeholder="请选择图标"
+        title={value && !validValue ? '当前图标不可用，请重新选择' : '选择图标'}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        prefix={validValue ? <Icon type={selectedName} /> : undefined}
         suffix={
-          <Icon
-            title={'清空'}
-            type="close"
-            onClick={() => {
-              onChange(undefined);
-            }}
-          />
+          <>
+            {value && (
+              <Button
+                type="text"
+                size="small"
+                aria-label="清空图标"
+                disabled={disabled}
+                icon={<Icon type="close" />}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onChange?.('');
+                }}
+              />
+            )}
+            <Button
+              type="text"
+              size="small"
+              aria-label="选择图标"
+              disabled={disabled}
+              icon={<Icon type="appstore" />}
+              onClick={(event) => {
+                event.stopPropagation();
+                openPicker();
+              }}
+            />
+          </>
         }
         onClick={openPicker}
-      />
-
-      <Modal
-        open={visible}
-        onCancel={() => setVisible(false)}
-        onOk={() => {
-          onChange(selectIcon);
-          setVisible(false);
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPicker();
+          }
         }}
-        width="800px"
+      />
+      <Modal
+        title="选择图标"
+        open={open}
+        width={760}
+        destroyOnHidden
+        okText="确定"
+        cancelText="取消"
+        okButtonProps={{ disabled: !draft }}
+        onCancel={() => setOpen(false)}
+        onOk={() => {
+          onChange?.(draft);
+          setOpen(false);
+        }}
       >
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          style={{ userSelect: 'none' }}
-          items={iconTypeArray.map((tab) => ({
-            key: tab.key,
-            label: tab.title,
-            children:
-              tab.key === activeTab ? (
-                <ul className="icon-select-ul">{iconNodes}</ul>
-              ) : null,
-          }))}
-        />
+        <div
+          className="icon-picker"
+          style={
+            {
+              '--icon-picker-primary': token.colorPrimary,
+              '--icon-picker-selected': token.colorPrimaryBg,
+              '--icon-picker-border': token.colorBorderSecondary,
+              '--icon-picker-hover': token.colorFillTertiary,
+            } as React.CSSProperties
+          }
+        >
+          <Input
+            placeholder="搜索图标名称，如 user、setting"
+            value={search}
+            allowClear
+            prefix={<Icon type="search" />}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={categories.map(({ key, label }) => ({ key, label }))}
+          />
+          <fieldset className="icon-picker-grid" aria-label="可选图标">
+            {filteredIcons.map((name) => (
+              <button
+                type="button"
+                key={name}
+                className="icon-picker-option"
+                title={name}
+                aria-label={name}
+                aria-pressed={draft === name}
+                onClick={() => setDraft(name)}
+              >
+                <Icon type={name} />
+                <span className="icon-picker-name">{name}</span>
+                {draft === name && (
+                  <Icon className="icon-picker-check" type="check-circle" />
+                )}
+              </button>
+            ))}
+          </fieldset>
+          {filteredIcons.length === 0 && (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="未找到匹配的图标"
+            />
+          )}
+          <div className="icon-picker-preview" aria-live="polite">
+            {draft ? (
+              <>
+                <Icon type={draft} />
+                <span>已选：{draft}</span>
+              </>
+            ) : (
+              <span>请选择一个图标</span>
+            )}
+          </div>
+        </div>
       </Modal>
     </>
   );

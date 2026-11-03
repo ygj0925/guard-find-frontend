@@ -8,10 +8,12 @@ import {
   Input,
   List,
   message,
+  Pagination,
   Space,
   Tabs,
 } from 'antd';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import AccessControl from '@/components/AccessControl';
 import {
   type AdminConversationVo,
   type AdminMessageVo,
@@ -19,6 +21,7 @@ import {
   queryMessages,
   sendMessage,
 } from '@/services/web/guardfind/im';
+import { mergeMessages } from '@/utils/messageCursor';
 
 const POLL_INTERVAL = 3000;
 
@@ -29,101 +32,116 @@ const formatTime = (value?: string) => {
 
 const AdminImPage: React.FC = () => {
   const [conversations, setConversations] = useState<AdminConversationVo[]>([]);
-  const [activeUserId, setActiveUserId] = useState<number | null>(null);
+  const [activeUserId, setActiveUserId] = useState<string | number | null>(
+    null,
+  );
   const [messages, setMessages] = useState<AdminMessageVo[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
-  const lastIdRef = useRef<number>(0);
   const listBodyRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(activeUserId);
+  activeRef.current = activeUserId;
+  const [conversationPage, setConversationPage] = useState(1);
+  const [conversationTotal, setConversationTotal] = useState(0);
 
-  const loadConversations = useCallback(async () => {
-    try {
-      const response = await queryConversations({ page: 1, size: 100 });
-      setConversations(response.data?.list || []);
-    } catch {
-      // 静默:下次轮询重试
-    }
-  }, []);
-
-  const loadMessages = useCallback(
-    async (userId: number, incremental: boolean) => {
+  useEffect(() => {
+    let canceled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
       try {
-        const response = await queryMessages(
-          userId,
-          incremental && lastIdRef.current > 0 ? lastIdRef.current : undefined,
-        );
-        const msgs = response.data || [];
-        if (msgs.length > 0) {
-          lastIdRef.current = msgs[msgs.length - 1].id;
-          setMessages((prev) => {
-            const merged = incremental ? [...prev, ...msgs] : msgs;
-            // 拉取即标已读,主动把本会话未读清零
-            setConversations((prevConvs) =>
-              prevConvs.map((c) =>
-                c.userId === userId ? { ...c, unreadCount: 0 } : c,
-              ),
-            );
-            return merged;
-          });
-        } else if (!incremental) {
-          setMessages([]);
+        const response = await queryConversations({
+          page: conversationPage,
+          size: 30,
+        });
+        if (!canceled) {
+          setConversations(response.data?.list || []);
+          setConversationTotal(response.data?.total || 0);
         }
       } catch {
-        // 静默:下次轮询重试
+        /* retry on the next poll */
+      } finally {
+        if (!canceled) timer = setTimeout(() => void poll(), 10000);
       }
-    },
-    [],
-  );
+    };
+    void poll();
+    return () => {
+      canceled = true;
+      clearTimeout(timer);
+    };
+  }, [conversationPage]);
 
-  // 会话列表 10 秒轮询
-  useEffect(() => {
-    void loadConversations();
-    const timer = setInterval(() => void loadConversations(), 10000);
-    return () => clearInterval(timer);
-  }, [loadConversations]);
-
-  // 当前会话 3 秒轮询(增量)
   useEffect(() => {
     if (!activeUserId) return;
-    lastIdRef.current = 0;
+    const userId = activeUserId;
+    let canceled = false;
+    let cursor: string | number | undefined;
+    let timer: ReturnType<typeof setTimeout>;
     setMessages([]);
-    void loadMessages(activeUserId, false);
-    const timer = setInterval(
-      () => void loadMessages(activeUserId, true),
-      POLL_INTERVAL,
-    );
-    return () => clearInterval(timer);
-  }, [activeUserId, loadMessages]);
+    setDraft('');
+    const poll = async () => {
+      let count = 0;
+      try {
+        const response = await queryMessages(userId, cursor);
+        if (canceled) return;
+        const incoming = response.data || [];
+        count = incoming.length;
+        if (incoming.length) {
+          cursor = incoming[incoming.length - 1].id;
+          setMessages((prev) => mergeMessages(prev, incoming));
+          setConversations((prev) =>
+            prev.map((c) =>
+              String(c.userId) === String(userId)
+                ? { ...c, unreadCount: 0 }
+                : c,
+            ),
+          );
+        }
+      } catch {
+        /* retry on the next poll */
+      } finally {
+        if (!canceled)
+          timer = setTimeout(
+            () => void poll(),
+            count === 100 ? 50 : POLL_INTERVAL,
+          );
+      }
+    };
+    void poll();
+    return () => {
+      canceled = true;
+      clearTimeout(timer);
+    };
+  }, [activeUserId]);
 
-  // 新消息滚动到底部
   useEffect(() => {
-    if (listBodyRef.current) {
+    if (listBodyRef.current)
       listBodyRef.current.scrollTop = listBodyRef.current.scrollHeight;
-    }
   }, [messages]);
 
   const handleSend = async () => {
     const content = draft.trim();
-    if (!content || !activeUserId || sending) return;
+    const userId = activeUserId;
+    if (!content || !userId || sending) return;
     setSending(true);
-    setDraft('');
     try {
-      const response = await sendMessage(activeUserId, content);
-      if (response.data) {
-        setMessages((prev) => [...prev, response.data as AdminMessageVo]);
-        lastIdRef.current = Math.max(lastIdRef.current, response.data.id);
-      }
-      void loadConversations();
+      const response = await sendMessage(userId, content);
+      if (String(activeRef.current) !== String(userId)) return;
+      if (response.data)
+        setMessages((prev) =>
+          mergeMessages(prev, [response.data as AdminMessageVo]),
+        );
+      setDraft((prev) => (prev.trim() === content ? '' : prev));
     } catch {
-      setDraft(content);
-      message.error('发送失败,请稍后再试');
+      if (String(activeRef.current) === String(userId))
+        message.error('发送失败，请重试');
     } finally {
       setSending(false);
     }
   };
 
   const activeConversation =
-    conversations.find((c) => c.userId === activeUserId) || null;
+    conversations.find((c) => String(c.userId) === String(activeUserId)) ||
+    null;
 
   return (
     <PageContainer>
@@ -137,6 +155,14 @@ const AdminImPage: React.FC = () => {
             background: '#fff',
           }}
         >
+          <Pagination
+            size="small"
+            current={conversationPage}
+            pageSize={30}
+            total={conversationTotal}
+            onChange={setConversationPage}
+            showSizeChanger={false}
+          />
           <Tabs
             items={[
               {
@@ -151,7 +177,7 @@ const AdminImPage: React.FC = () => {
                         style={{
                           cursor: 'pointer',
                           background:
-                            item.userId === activeUserId
+                            String(item.userId) === String(activeUserId)
                               ? '#e6f4ff'
                               : undefined,
                           padding: '10px 14px',
@@ -274,22 +300,24 @@ const AdminImPage: React.FC = () => {
                 ) : null}
               </div>
               <div style={{ padding: 12, borderTop: '1px solid #f0f0f0' }}>
-                <Space.Compact style={{ width: '100%' }}>
-                  <Input
-                    placeholder="输入回复内容,回车发送"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onPressEnter={() => void handleSend()}
-                  />
-                  <Button
-                    type="primary"
-                    icon={<SendOutlined />}
-                    disabled={!draft.trim() || sending}
-                    onClick={() => void handleSend()}
-                  >
-                    发送
-                  </Button>
-                </Space.Compact>
+                <AccessControl permission="system:im:send">
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      placeholder="输入回复内容,回车发送"
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onPressEnter={() => void handleSend()}
+                    />
+                    <Button
+                      type="primary"
+                      icon={<SendOutlined />}
+                      disabled={!draft.trim() || sending}
+                      onClick={() => void handleSend()}
+                    >
+                      发送
+                    </Button>
+                  </Space.Compact>
+                </AccessControl>
               </div>
             </>
           ) : (

@@ -20,9 +20,8 @@ import process from 'node:process';
 import ts from 'typescript';
 
 const FE_ROOT = path.resolve(process.cwd());
-/** 权威后端:管理后台 shell(guard-find-backend)与业务服务(guard-find-server,含 /system/moderation、/system/property、/system/im 等);
- *  API_CONTRACT_BACKEND 指定时退回单后端模式。 */
-const BE_ROOTS = [process.env.API_CONTRACT_BACKEND || path.join(FE_ROOT, '..', 'guard-find-backend'), path.join(FE_ROOT, '..', 'guard-find-server')]
+/** 管理端与小程序统一使用 backend；可显式指定其他仓库进行单独审阅。 */
+const BE_ROOTS = [process.env.API_CONTRACT_BACKEND || path.join(FE_ROOT, '..', 'guard-find-backend')]
   .map((p) => path.resolve(p))
   .filter((p) => fs.existsSync(p));
 

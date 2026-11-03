@@ -2,8 +2,8 @@ import { request } from 'umi';
 import type { PageResult, QueryParam, R } from '@/typings';
 
 export interface PropertyVo {
-  id: number;
-  userId: number;
+  id: string | number;
+  userId: string | number;
   ownerNickname: string | null;
   ownerIsManager: boolean | null;
   title: string;
@@ -16,6 +16,9 @@ export interface PropertyVo {
   decoration: string | null;
   price: number;
   priceType: string;
+  community: string | null;
+  availableFrom: string | null;
+  rentalMode: string | null;
   address: string;
   district: string | null;
   city: string | null;
@@ -29,7 +32,7 @@ export interface PropertyVo {
 }
 
 export interface ManagerVo {
-  userId: number;
+  userId: string | number;
   nickname: string;
   avatar: string | null;
   phone: string | null;
@@ -48,14 +51,14 @@ export async function queryPropertyPage(params: QueryParam<PropertyPageQuery>) {
   });
 }
 
-export async function updatePropertyStatus(id: number, status: number) {
+export async function updatePropertyStatus(id: string | number, status: number) {
   return request<R<any>>(`system/property/${id}/status`, {
     method: 'POST',
     params: { status },
   });
 }
 
-export async function deleteProperty(id: number) {
+export async function deleteProperty(id: string | number) {
   return request<R<any>>(`system/property/${id}`, {
     method: 'DELETE',
   });
@@ -68,9 +71,31 @@ export async function queryManagers(params: QueryParam<{}>) {
   });
 }
 
-export async function setManager(userId: number, isManager: boolean) {
+export async function setManager(userId: string | number, isManager: boolean) {
   return request<R<any>>(`system/property/manager/${userId}`, {
     method: 'POST',
     params: { isManager },
   });
+}
+
+export type PropertyInput = Pick<PropertyVo, 'title' | 'description' | 'propertyType' | 'layout' | 'areaSqm' | 'floorInfo' | 'orientation' | 'decoration' | 'price' | 'priceType' | 'community' | 'availableFrom' | 'rentalMode' | 'address' | 'district' | 'city' | 'facilities' | 'contactName' | 'contactPhone' | 'status' | 'images'>;
+export function saveProperty(id: string | number | undefined, data: PropertyInput & { ownerId?: string }) {
+  if (id) return request<R<void>>(`system/property/${id}`, { method: 'PUT', data });
+  return request<R<string>>('system/property', { method: 'POST', data });
+}
+export interface BookingVo {
+  id: string | number; propertyId: string | number; propertyTitle: string;
+  userId: string | number; ownerId: string | number; userNickname: string;
+  bookingTime: string; contactName: string; contactPhone: string; remark: string; status: number;
+}
+export function queryBookings(params: QueryParam<{ status?: number; propertyId?: string | number }>) {
+  return request<R<PageResult<BookingVo>>>('system/property/bookings', { params });
+}
+export function updateBooking(id: string | number, status: number) {
+  return request<R<void>>(`system/property/booking/${id}/status`, { method: 'POST', params: { status } });
+}
+
+export function uploadPropertyImage(file: File) {
+  const data = new FormData(); data.append('file',file);
+  return request<R<{ url: string }>>('system/property/images', { method: 'POST', data });
 }

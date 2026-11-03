@@ -15,6 +15,7 @@ import { Button, message, Popconfirm, Space, Tag } from 'antd';
 import React, { useRef } from 'react';
 import AccessControl from '@/components/AccessControl';
 import DialogHost, { useDialog } from '@/components/DialogHost';
+import Icon from '@/components/Icon/Icon';
 import type { SysMenuVo } from '@/services/web/system';
 import { menu } from '@/services/web/system';
 import { getTableScrollX } from '@/utils/tableLayout';
@@ -69,6 +70,16 @@ const MenuPage: React.FC = () => {
       dataIndex: 'icon',
       width: 80,
       hideInSearch: true,
+      render: (_, record) =>
+        record.icon ? (
+          <Icon
+            type={record.icon}
+            title={record.icon}
+            style={{ fontSize: 18 }}
+          />
+        ) : (
+          '-'
+        ),
     },
     {
       title: intl.formatMessage({ id: 'system.menu.path' }),

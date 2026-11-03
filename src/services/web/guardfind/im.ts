@@ -2,7 +2,7 @@ import { request } from 'umi';
 import type { PageResult, QueryParam, R } from '@/typings';
 
 export interface AdminConversationVo {
-  userId: number;
+  userId: string | number;
   nickname: string | null;
   avatar: string | null;
   lastMessage: string | null;
@@ -11,7 +11,7 @@ export interface AdminConversationVo {
 }
 
 export interface AdminMessageVo {
-  id: number;
+  id: string | number;
   senderType: 'ADMIN' | 'USER';
   adminName: string | null;
   content: string;
@@ -25,14 +25,14 @@ export async function queryConversations(params: QueryParam<{}>) {
   });
 }
 
-export async function queryMessages(userId: number, afterId?: number) {
+export async function queryMessages(userId: string | number, afterId?: string | number) {
   return request<R<AdminMessageVo[]>>(`system/im/conversation/${userId}/messages`, {
     method: 'GET',
     params: afterId ? { afterId } : undefined,
   });
 }
 
-export async function sendMessage(userId: number, content: string) {
+export async function sendMessage(userId: string | number, content: string) {
   return request<R<AdminMessageVo>>(`system/im/conversation/${userId}/message`, {
     method: 'POST',
     data: { content },
