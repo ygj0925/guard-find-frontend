@@ -3,7 +3,7 @@ import type { PageResult, QueryParam, R } from '@/typings';
 
 export interface PropertyVo {
   id: string | number;
-  userId: string | number;
+  userId?: string | number | null;
   ownerNickname: string | null;
   ownerIsManager: boolean | null;
   title: string;
@@ -85,7 +85,7 @@ export function saveProperty(id: string | number | undefined, data: PropertyInpu
 }
 export interface BookingVo {
   id: string | number; propertyId: string | number; propertyTitle: string;
-  userId: string | number; ownerId: string | number; userNickname: string;
+  userId: string | number; ownerId?: string | number | null; userNickname: string;
   bookingTime: string; contactName: string; contactPhone: string; remark: string; status: number;
 }
 export function queryBookings(params: QueryParam<{ status?: number; propertyId?: string | number }>) {

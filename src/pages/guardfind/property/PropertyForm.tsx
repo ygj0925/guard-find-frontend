@@ -83,9 +83,10 @@ export default function PropertyForm({
     }
     setSaving(true);
     try {
-      const { imageFiles: files, ...rest } = values;
+      const { imageFiles: files, ownerId, ...rest } = values;
       await saveProperty(record?.id, {
         ...rest,
+        ownerId: record ? undefined : ownerId?.trim() || undefined,
         images: files.map((file) => file.url || file.response?.url || ''),
         availableFrom: values.availableFrom || null,
         rentalMode: values.priceType === 'rent' ? values.rentalMode : null,
@@ -148,13 +149,10 @@ export default function PropertyForm({
           <Form.Item
             name="ownerId"
             label="房东的小程序用户 ID"
-            extra="可在小程序「我的」查看；房源和预约将归属此用户。"
-            rules={[
-              { required: true },
-              { pattern: /^[1-9]\d*$/, message: '请输入有效用户 ID' },
-            ]}
+            extra="选填，可在小程序「我的」查看；留空由后台管理，填写后房源和预约将归属该用户。"
+            rules={[{ pattern: /^[1-9]\d*$/, message: '请输入有效用户 ID' }]}
           >
-            <Input />
+            <Input allowClear placeholder="选填，请输入房东的小程序用户 ID" />
           </Form.Item>
         )}
         <Form.Item
@@ -162,7 +160,10 @@ export default function PropertyForm({
           label="房源标题"
           rules={[{ required: true, whitespace: true }]}
         >
-          <Input maxLength={100} />
+          <Input
+            maxLength={100}
+            placeholder="请输入房源标题，如：泊之湾公寓·精装一室户"
+          />
         </Form.Item>
         <Row gutter={20}>
           <Col xs={24} sm={8}>
@@ -172,6 +173,7 @@ export default function PropertyForm({
               rules={[{ required: true }]}
             >
               <Select
+                placeholder="请选择房源类型"
                 options={Object.entries({
                   house: '住宅',
                   apartment: '公寓',
@@ -188,6 +190,7 @@ export default function PropertyForm({
               rules={[{ required: true }]}
             >
               <Select
+                placeholder="请选择出租或出售"
                 options={[
                   { value: 'rent', label: '出租' },
                   { value: 'sale', label: '出售' },
@@ -198,6 +201,7 @@ export default function PropertyForm({
           <Col xs={24} sm={8}>
             <Form.Item name="status" label="状态" rules={[{ required: true }]}>
               <Select
+                placeholder="请选择房源状态"
                 options={[
                   { value: 1, label: '草稿' },
                   { value: 2, label: '已上架' },
@@ -213,6 +217,9 @@ export default function PropertyForm({
               rules={[{ required: true }]}
             >
               <InputNumber
+                placeholder={
+                  priceType === 'rent' ? '请输入每月租金' : '请输入出售总价'
+                }
                 min={1}
                 max={9999999999.99}
                 precision={2}
@@ -223,6 +230,7 @@ export default function PropertyForm({
           <Col xs={24} sm={8}>
             <Form.Item name="areaSqm" label="面积（㎡）">
               <InputNumber
+                placeholder="请输入房屋面积，如：45"
                 min={1}
                 max={999999.99}
                 precision={2}
@@ -234,6 +242,7 @@ export default function PropertyForm({
             <Col xs={24} sm={8}>
               <Form.Item name="rentalMode" label="租赁方式">
                 <Select
+                  placeholder="请选择整租或合租（选填）"
                   allowClear
                   options={[
                     { value: 'whole', label: '整租' },
@@ -274,6 +283,19 @@ export default function PropertyForm({
                 }
               >
                 <Input
+                  placeholder={
+                    [
+                      '请输入户型，如：2室1厅1卫',
+                      '请输入楼层，如：5层/共18层',
+                      '请输入朝向，如：朝南、南北通透',
+                      '请输入装修情况，如：精装修',
+                      '请输入城市，如：上海市',
+                      '请输入区域，如：浦东新区',
+                      '请输入小区或公寓名称',
+                      '请输入联系人姓名',
+                      '请输入联系电话',
+                    ][i]
+                  }
                   maxLength={
                     name === 'community'
                       ? 100
@@ -315,10 +337,14 @@ export default function PropertyForm({
           label="详细地址"
           rules={[{ required: true, whitespace: true }]}
         >
-          <Input maxLength={200} />
+          <Input
+            maxLength={200}
+            placeholder="请输入详细地址，包括街道、门牌号及房间号"
+          />
         </Form.Item>
         <Form.Item name="facilities" label="设施">
           <Select
+            placeholder="请选择或输入设施，多个设施可用逗号分隔"
             mode="tags"
             tokenSeparators={['，', ',']}
             options={['空调', '冰箱', '洗衣机', '热水器', '宽带', '电梯'].map(
@@ -327,7 +353,12 @@ export default function PropertyForm({
           />
         </Form.Item>
         <Form.Item name="description" label="房源描述">
-          <Input.TextArea rows={3} maxLength={2000} showCount />
+          <Input.TextArea
+            rows={3}
+            maxLength={2000}
+            showCount
+            placeholder="请介绍房源亮点、周边交通、配套设施及入住要求等"
+          />
         </Form.Item>
         <Form.Item
           name="imageFiles"

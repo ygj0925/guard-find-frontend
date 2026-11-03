@@ -11,7 +11,12 @@ export default function PropertyDetails({
   onClose: () => void;
 }) {
   const items: [string, string | null][] = [
-    ['房东', `${record.ownerNickname || ''}（${record.userId}）`],
+    [
+      '房东',
+      record.userId == null
+        ? '未绑定房东，由后台管理'
+        : `${record.ownerNickname || ''}（${record.userId}）`,
+    ],
     ['价格', `¥${record.price}${record.priceType === 'rent' ? '/月' : ''}`],
     ['小区', record.community],
     [

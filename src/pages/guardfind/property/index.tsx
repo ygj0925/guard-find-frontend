@@ -79,7 +79,7 @@ const PropertyPage: React.FC = () => {
             <Tag color="blue">管家</Tag>
           </Space>
         ) : (
-          record.ownerNickname
+          record.ownerNickname || (record.userId == null ? '后台管理' : '—')
         ),
     },
     {
@@ -181,6 +181,7 @@ const PropertyPage: React.FC = () => {
               type="link"
               size="small"
               icon={<CrownOutlined />}
+              disabled={record.userId == null}
               onClick={() => void handleToggleManager(record)}
             >
               {record.ownerIsManager ? '取消管家' : '设为管家'}
@@ -202,6 +203,7 @@ const PropertyPage: React.FC = () => {
   ];
 
   const handleToggleManager = async (record: PropertyVo) => {
+    if (record.userId == null) return;
     await setManager(record.userId, !record.ownerIsManager);
     message.success(record.ownerIsManager ? '已取消管家' : '已设为认证管家');
     actionRef.current?.reload();

@@ -169,3 +169,42 @@ test('oversized images are rejected before uploading', async () => {
   expect(uploadPropertyImage).not.toHaveBeenCalled();
   warning.mockRestore();
 });
+
+function createForm() {
+  render(<PropertyForm open onClose={jest.fn()} onSaved={jest.fn()} />);
+  fireEvent.change(screen.getByLabelText('房源标题'), {
+    target: { value: '泊之湾公寓' },
+  });
+  fireEvent.change(screen.getByLabelText('月租（元）'), {
+    target: { value: '3000' },
+  });
+  fireEvent.change(screen.getByLabelText('详细地址'), {
+    target: { value: '上海市浦东新区公寓101室' },
+  });
+}
+
+test('admin can create a property without binding a miniapp owner', async () => {
+  createForm();
+  fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }));
+  await waitFor(() =>
+    expect(saveProperty).toHaveBeenCalledWith(
+      undefined,
+      expect.objectContaining({
+        title: '泊之湾公寓',
+        ownerId: undefined,
+        price: 3000,
+        images: [],
+      }),
+    ),
+  );
+});
+
+test('an optional owner still rejects invalid IDs before saving', async () => {
+  createForm();
+  fireEvent.change(screen.getByLabelText('房东的小程序用户 ID'), {
+    target: { value: 'invalid' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }));
+  expect(await screen.findByText('请输入有效用户 ID')).toBeTruthy();
+  expect(saveProperty).not.toHaveBeenCalled();
+});
