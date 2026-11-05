@@ -56,6 +56,8 @@
 - [ ] 6.4 实现受支持的原生能力并记录每项支持/不支持，不改写托管文件绕过 CLI
 - [ ] 6.5 鸿蒙真机验证签名包冷启动、存储、导航、媒体、分享、弱网和脱离 Metro 运行
 
+6.1 部分进展：安全随机数已改为拒绝采样，缺少 `crypto.getRandomValues` 时直接返回 null，不再降级 `Math.random`；密码页在无安全源时提示“已停止生成”。新增无安全源单测。持久化仍是 `kv` 内存/web 驱动：项目未安装任何原生存储包，`pnpm dlx expo-harmony-cli install @react-native-async-storage/async-storage` 在本机长时间无输出后终止，未产生依赖或原生工程改动。已给驱动增加 `persistent` 标记与 `isKvPersistent()`，内存态不再被诊断标签伪装成已落盘；原生驱动注册与杀进程重启验证仍阻塞于 CLI/网络环境。App 类型检查、17 套件 113 项测试与改动文件 ESLint 通过。
+
 ## 7. B2 App 小工具
 
 - [x] 7.1 server 添加便笺表/分页CRUD/归属与版本冲突测试
