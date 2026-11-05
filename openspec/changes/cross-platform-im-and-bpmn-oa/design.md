@@ -105,9 +105,9 @@ server 在 /app/tool 下提供分页 CRUD，user_id 从认证上下文取得；�
 
 候选首选 Flowable 嵌入式引擎：便于同 Java 事务中处理审批与业务状态；bpmn-js 负责画布和图形查看，服务器负责 XML 校验/部署/权限。自研状态机不满足标准 BPMN 需求；独立工作流服务增加本期运维与跨服务一致性成本。
 
-版本尚未锁定：已实际执行 java -version、mvn -version 及离线 help:evaluate，本机为 JDK 21.0.10 / Maven 3.9.14，backend 解析到 spring-boot.version=3.4.10（不能沿用 README 的 Java17 概述代替实测）。继续核对 Jakarta、引擎官方支持与许可证，在隔离测试库跑 schema 创建、部署、启动、完成、定时器、重启恢复。验证不过不得通过随意降级核心框架硬装引擎。
+版本已锁定候选 Flowable 7.2.0：本机实测 JDK 21.0.10 / Maven 3.9.14，backend 解析到 spring-boot.version=3.4.10（不能沿用 README 的 Java17 概述代替实测）。7.2.0 的 BOM 基于 Boot 3.5.4 / Spring 6.2.10，与本项目 Boot 3.4.10 / Spring 6.2 同代，Jar 清单声明 Apache-2.0；隔离测试已在 H2 上完成建表、部署、启动、完成、计时器与引擎重启恢复，Spring 自动配置亦能创建 ProcessEngine。注意 7.2.0 的 `flowable-spring-boot-starter-process` 在干净类路径上缺失 `flowable-spring-configurator` 与 `flowable-app-engine-spring`，必须显式补齐或用全量 starter；9.2 接入时必须保留该回归。8.0.0 面向 Boot 4，不得使用；本批不升级核心框架。
 
-已查官方当前集成文档 https://www.flowable.com/open-source/docs/bpmn/ch05a-Spring-Boot ，页面声明支持 Spring Boot 4.x，不能据此认定最新版本可用于本项目 Boot 3.4.10。须选择仍受支持且匹配 Boot 3 的引擎版本并实测，或另立后台大版本升级批次；本批不擅自升级核心框架。文档亦提示引擎可能影响 spring.liquibase.enabled，必须确认项目已有 Liquibase 迁移仍正常执行，不能照抄自动建表配置上线。
+官方当前集成文档 https://www.flowable.com/open-source/docs/bpmn/ch05a-Spring-Boot 页面对应 8.x / Boot 4，不能据此认定最新版本可用于本项目。文档亦提示引擎可能影响 spring.liquibase.enabled，必须确认项目已有 Liquibase 迁移仍正常执行，不能照抄自动建表配置上线；上述测试使用独立 H2，未动项目 schema。
 
 首批节点白名单：开始/结束、用户任务、排他网关、并行网关、受控服务任务、定时边界事件。引擎版本验证后补多实例会签；子流程/调用活动作为后续可启用节点，未实现节点发布时明确拒绝。
 

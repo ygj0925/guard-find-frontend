@@ -81,7 +81,7 @@
 
 ## 9. C2 BPMN 技术底座
 
-- [ ] 9.1 核验 Flowable 候选版本与 Boot/Jakarta/JDK、数据库和许可证，隔离运行最小引擎集成测试
+- [x] 9.1 核验 Flowable 候选版本与 Boot/Jakarta/JDK、数据库和许可证，隔离运行最小引擎集成测试
 - [ ] 9.2 确定迁移所有权，接入引擎及事务/租户适配，验证重启和定时器恢复
 - [ ] 9.3 建立流程模型/发布/表单版本/申请/审计/outbox/幂等表迁移与索引
 - [ ] 9.4 接通员工、岗位、主管与候选解析；空审批人/离职员工的发布或执行拦截
@@ -89,6 +89,8 @@
 - [ ] 9.6 前端集成懒加载 bpmn-js 画布、属性、导入导出、校验与预览
 - [ ] 9.7 模型发布/停用与版本绑定API/页面，验证旧实例不迁移
 - [ ] 9.8 表单设计/渲染/前后端校验及字段可见/可写策略，冻结发布版本
+
+9.1 证据：候选版本锁定 Flowable 7.2.0（BOM 对应 Boot 3.5.4 / Spring 6.2.10，与本项目 Boot 3.4.10 / Spring 6.2 同代；Jar 清单声明 Apache-2.0；8.0.0 面向 Boot 4 不可用，7.1.0 落后一代）。以 test 范围依赖在 `guard-find-backend-system` 增加隔离测试：`FlowableEngineCompatibilityTest` 3 项通过（H2 建表+部署+排他网关完成+历史、计时器 Job 转可执行并推进、文件库引擎重启后任务仍在并可完成）；`FlowableSpringBootCompatibilityTest` 1 项通过（Boot 自动配置在只装 DataSource + 事务管理器时创建 ProcessEngine）。同时发现 7.2.0 的 process starter 在干净类路径缺少 `flowable-spring-configurator` 与 `flowable-app-engine-spring`，启动即 `NoClassDefFoundError`，已显式补齐并在 design.md 记录，9.2 生产接入必须保留该回归。未连接项目 MySQL/Liquibase，未做多副本或长稳测试；生产模块归属与事务/租户适配仍在 9.2。
 
 ## 10. D1 审批中心
 
