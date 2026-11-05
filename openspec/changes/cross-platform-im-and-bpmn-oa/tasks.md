@@ -83,7 +83,7 @@
 
 - [x] 9.1 核验 Flowable 候选版本与 Boot/Jakarta/JDK、数据库和许可证，隔离运行最小引擎集成测试
 - [x] 9.2 确定迁移所有权，接入引擎及事务/租户适配，验证重启和定时器恢复
-- [ ] 9.3 建立流程模型/发布/表单版本/申请/审计/outbox/幂等表迁移与索引
+- [x] 9.3 建立流程模型/发布/表单版本/申请/审计/outbox/幂等表迁移与索引
 - [ ] 9.4 接通员工、岗位、主管与候选解析；空审批人/离职员工的发布或执行拦截
 - [ ] 9.5 实现 XML 安全校验、节点白名单、条件规则编译与受控服务任务
 - [ ] 9.6 前端集成懒加载 bpmn-js 画布、属性、导入导出、校验与预览
@@ -94,7 +94,7 @@
 
 9.2 证据：迁移所有权归 Liquibase，应用侧关闭引擎自动建表。新增 `guard-find-backend-plugin-oa` 模块（api 依赖），把 Flowable 7.2.0 官方 MySQL 建表脚本原样纳入 `db/changelog/mysql/oa/{common,process,history}.sql` 并加入 master changelog；配置 `flowable.database-schema-update=false`，仅启用 process 引擎，app/cmmn/dmn/idm/eventregistry 关闭；`OaFlowableConfiguration` 设置历史级别 FULL、禁用 IDM 与事件注册，并用 BFPP 给 `springProcessEngineConfiguration`/`processEngine` 追加 `depends-on=liquibase`，保证迁移先于引擎初始化；`OaEngineTemplate` 所有入口强制显式 tenantId，任务查询/完成/领取均带租户条件且领取幂等。`OaEngineIntegrationTest` 7 项通过：仅建 process 表且无 ACT_ID 表、无 AppEngine；租户 A/B 任务互不可见且跨租户完成被拒；跨租户领取被拒、重复领取幂等；外层事务回滚后无流程实例与任务；文件库重启且在 `schema-update=false` 下仍可读取并办结任务；重启后定时器 Job 仍在库中、转可执行并推进到用户任务；存在 liquibase Bean 时 processEngine 的 dependsOn 生效。`OaEngineLiquibaseMySqlTest` 在本地 MySQL 8.4 隔离库 `guard_find_oa_verify` 实测：3 个 changeset 成功，`common.schema.version` 与 `schema.version` 均为 7.2.0.2，关闭自动建表后引擎启动并完成部署/发起/办结，验证后已删除该库。边界：异步执行器仍关闭，定时器恢复为引擎级手工执行验证，未开启自动触发；未用项目开发库启动完整应用，多副本与长稳未验证。
 
-9.3 进度（未完成）：已落地流程/表单/申请/审计/抄送表迁移。`db/changelog/mysql/oa/oa_process.sql`：`oa_process_model`（租户内 model_key 唯一、草稿 XML/摘要、生效版本指针、绑定表单版本、乐观锁）、`oa_process_release`（发布 XML 冻结、引擎定义 ID 全局唯一、租户+模型+版本唯一、表单版本绑定、可发起范围、不可变无 update/delete 列）。`oa_form.sql`：`oa_form`（租户内 form_key 唯一、当前版本指针、乐观锁）、`oa_form_version`（租户+表单+版本唯一、schema 快照与摘要、不可变）。`oa_application.sql`：`oa_application`（租户+业务类型+业务单号唯一、流程实例 ID 全局唯一、发布/表单版本绑定、申请人及部门快照、提交数据快照、状态与乐观锁）。`oa_approval_audit.sql`：`oa_approval_audit`（不可变、租户+request_id 唯一防重试重复轨迹、记录实际操作人/原审批人/理由/决策明细）。`oa_cc_receipt.sql`：`oa_cc_receipt`（租户+申请+接收人唯一、未读/已读与读取时间）。master changelog 与验证 changelog 均已接入；MySQL 8.4 隔离库实测 8 个 changeset 全部成功，`OaEngineLiquibaseMySqlTest` 2 项通过（引擎启动/办结；七表字段与关键索引存在，重复业务单号/流程实例/request_id/抄送接收人及全局重复引擎定义 ID 被拒，跨租户同名允许）。尚未创建 `oa_attachment_link`、`oa_outbox`、`oa_request_dedup` 及各业务表，也未编写实体/Mapper/API；9.3 保持未完成。
+9.3 证据：10 张 OA 业务表迁移全部落地并接入 master changelog。`oa_process.sql`：`oa_process_model`（租户内 model_key 唯一、草稿 XML/摘要、生效版本指针、绑定表单版本、乐观锁）、`oa_process_release`（发布 XML 冻结、引擎定义 ID 全局唯一、租户+模型+版本唯一、表单版本绑定、可发起范围、不可变无 update/delete 列）。`oa_form.sql`：`oa_form`（租户内 form_key 唯一、当前版本指针、乐观锁）、`oa_form_version`（租户+表单+版本唯一、schema 快照与摘要、不可变）。`oa_application.sql`：`oa_application`（租户+业务类型+业务单号唯一、流程实例 ID 全局唯一、发布/表单版本绑定、申请人及部门快照、提交数据快照、状态与乐观锁）。`oa_approval_audit.sql`：`oa_approval_audit`（不可变、租户+request_id 唯一防重试重复轨迹、记录实际操作人/原审批人/理由/决策明细）。`oa_cc_receipt.sql`：`oa_cc_receipt`（租户+申请+接收人唯一、未读/已读与读取时间）。`oa_attachment.sql`：`oa_attachment_link`（租户+file_id+deleted 唯一、申请/业务单号归属、扫描状态与可下载标记，裸 fileId 不构成授权）。`oa_outbox.sql`：`oa_outbox`（event_id 全局唯一、聚合与事件类型、PENDING/FAILED 重试时间、租户+聚合索引）。`oa_request_dedup.sql`：`oa_request_dedup`（租户+操作人+命令+request_id 唯一、结果快照与过期时间）。master changelog 与验证 changelog 均已接入；MySQL 8.4 隔离库实测 11 个 changeset 全部成功、10 张表字段/索引齐全，`OaEngineLiquibaseMySqlTest` 2 项通过（引擎启动/办结；租户内 model_key/form_key/表单版本、全局引擎定义 ID/流程实例 ID/outbox event_id、申请业务单号、审计 request_id、抄送接收人、附件 file_id、幂等四元组重复均被拒，跨租户重复 model_key/form_key/申请业务单号/附件 fileId/幂等请求被允许，全局 event_id 跨租户重复被拒）。边界：实体/Mapper/API 与清理、重试作业尚未编写（由 9.4 起及 10.x 承接）；未在项目开发库启动完整应用，多副本与长稳未验证。
 
 ## 10. D1 审批中心
 
