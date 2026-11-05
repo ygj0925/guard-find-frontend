@@ -109,6 +109,8 @@ server 在 /app/tool 下提供分页 CRUD，user_id 从认证上下文取得；�
 
 官方当前集成文档 https://www.flowable.com/open-source/docs/bpmn/ch05a-Spring-Boot 页面对应 8.x / Boot 4，不能据此认定最新版本可用于本项目。文档亦提示引擎可能影响 spring.liquibase.enabled，必须确认项目已有 Liquibase 迁移仍正常执行，不能照抄自动建表配置上线；上述测试使用独立 H2，未动项目 schema。
 
+生产接入按“Liquibase 独占迁移”落地：Flowable 7.2.0 的 MySQL 建表脚本（common/process/history）原样 vendored 到 `guard-find-backend-plugin-oa` 的 Liquibase changelog 并加入 master；应用配置 `flowable.database-schema-update=false`，仅 process 引擎启用，app/cmmn/dmn/idm/eventregistry 关闭。`OaFlowableConfiguration` 通过 BFPP 声明 `processEngine` 的 `depends-on=liquibase`，避免引擎先于迁移校验 schema；历史级别 FULL 以保留审批变量轨迹；`OaEngineTemplate` 所有入口强制 tenantId，跨租户查询/完成/领取直接拒绝。真实 MySQL 8.4 隔离库验证：3 个 changeset、schema.version=7.2.0.2，关闭自动建表后引擎可启动并跑通部署/发起/办结；重启后定时器 Job 仍在库中且可转可执行并推进。异步执行器暂未启用，定时器自动触发、多副本归属与长稳留待后续批次。
+
 首批节点白名单：开始/结束、用户任务、排他网关、并行网关、受控服务任务、定时边界事件。引擎版本验证后补多实例会签；子流程/调用活动作为后续可启用节点，未实现节点发布时明确拒绝。
 
 模型设计：画布、属性面板、审批人选择器、条件构造器、校验提示、模拟预览、版本差异。支持导入/导出 BPMN XML，但服务端限制文件大小、节点数、禁 DTD/外部实体、脚本和任意表达式/类引用。bpmn-js 自定义属性必须与引擎解析器一致，不能直接套用另一引擎属性面板。

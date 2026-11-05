@@ -82,7 +82,7 @@
 ## 9. C2 BPMN 技术底座
 
 - [x] 9.1 核验 Flowable 候选版本与 Boot/Jakarta/JDK、数据库和许可证，隔离运行最小引擎集成测试
-- [ ] 9.2 确定迁移所有权，接入引擎及事务/租户适配，验证重启和定时器恢复
+- [x] 9.2 确定迁移所有权，接入引擎及事务/租户适配，验证重启和定时器恢复
 - [ ] 9.3 建立流程模型/发布/表单版本/申请/审计/outbox/幂等表迁移与索引
 - [ ] 9.4 接通员工、岗位、主管与候选解析；空审批人/离职员工的发布或执行拦截
 - [ ] 9.5 实现 XML 安全校验、节点白名单、条件规则编译与受控服务任务
@@ -91,6 +91,8 @@
 - [ ] 9.8 表单设计/渲染/前后端校验及字段可见/可写策略，冻结发布版本
 
 9.1 证据：候选版本锁定 Flowable 7.2.0（BOM 对应 Boot 3.5.4 / Spring 6.2.10，与本项目 Boot 3.4.10 / Spring 6.2 同代；Jar 清单声明 Apache-2.0；8.0.0 面向 Boot 4 不可用，7.1.0 落后一代）。以 test 范围依赖在 `guard-find-backend-system` 增加隔离测试：`FlowableEngineCompatibilityTest` 3 项通过（H2 建表+部署+排他网关完成+历史、计时器 Job 转可执行并推进、文件库引擎重启后任务仍在并可完成）；`FlowableSpringBootCompatibilityTest` 1 项通过（Boot 自动配置在只装 DataSource + 事务管理器时创建 ProcessEngine）。同时发现 7.2.0 的 process starter 在干净类路径缺少 `flowable-spring-configurator` 与 `flowable-app-engine-spring`，启动即 `NoClassDefFoundError`，已显式补齐并在 design.md 记录，9.2 生产接入必须保留该回归。未连接项目 MySQL/Liquibase，未做多副本或长稳测试；生产模块归属与事务/租户适配仍在 9.2。
+
+9.2 证据：迁移所有权归 Liquibase，应用侧关闭引擎自动建表。新增 `guard-find-backend-plugin-oa` 模块（api 依赖），把 Flowable 7.2.0 官方 MySQL 建表脚本原样纳入 `db/changelog/mysql/oa/{common,process,history}.sql` 并加入 master changelog；配置 `flowable.database-schema-update=false`，仅启用 process 引擎，app/cmmn/dmn/idm/eventregistry 关闭；`OaFlowableConfiguration` 设置历史级别 FULL、禁用 IDM 与事件注册，并用 BFPP 给 `springProcessEngineConfiguration`/`processEngine` 追加 `depends-on=liquibase`，保证迁移先于引擎初始化；`OaEngineTemplate` 所有入口强制显式 tenantId，任务查询/完成/领取均带租户条件且领取幂等。`OaEngineIntegrationTest` 7 项通过：仅建 process 表且无 ACT_ID 表、无 AppEngine；租户 A/B 任务互不可见且跨租户完成被拒；跨租户领取被拒、重复领取幂等；外层事务回滚后无流程实例与任务；文件库重启且在 `schema-update=false` 下仍可读取并办结任务；重启后定时器 Job 仍在库中、转可执行并推进到用户任务；存在 liquibase Bean 时 processEngine 的 dependsOn 生效。`OaEngineLiquibaseMySqlTest` 在本地 MySQL 8.4 隔离库 `guard_find_oa_verify` 实测：3 个 changeset 成功，`common.schema.version` 与 `schema.version` 均为 7.2.0.2，关闭自动建表后引擎启动并完成部署/发起/办结，验证后已删除该库。边界：异步执行器仍关闭，定时器恢复为引擎级手工执行验证，未开启自动触发；未用项目开发库启动完整应用，多副本与长稳未验证。
 
 ## 10. D1 审批中心
 
