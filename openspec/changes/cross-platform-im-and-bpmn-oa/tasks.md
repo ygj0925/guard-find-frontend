@@ -51,12 +51,14 @@
 ## 6. B1 鸿蒙基础
 
 - [ ] 6.1 核查实际持久化驱动与安全随机数接线，修复无安全源时错误降级，补单测
-- [ ] 6.2 核对 App/server 上传路径、认证和大小/类型/归属，完成非原生契约修复
+- [x] 6.2 核对 App/server 上传路径、认证和大小/类型/归属，完成非原生契约修复
 - [ ] 6.3 经 CLI 检查兼容矩阵、生成/同步原生工程；按输出确定媒体/复制/分享适配路径
 - [ ] 6.4 实现受支持的原生能力并记录每项支持/不支持，不改写托管文件绕过 CLI
 - [ ] 6.5 鸿蒙真机验证签名包冷启动、存储、导航、媒体、分享、弱网和脱离 Metro 运行
 
 6.1 部分进展：安全随机数已改为拒绝采样，缺少 `crypto.getRandomValues` 时直接返回 null，不再降级 `Math.random`；密码页在无安全源时提示“已停止生成”。新增无安全源单测。持久化仍是 `kv` 内存/web 驱动：项目未安装任何原生存储包，`pnpm dlx expo-harmony-cli install @react-native-async-storage/async-storage` 在本机长时间无输出后终止，未产生依赖或原生工程改动。已给驱动增加 `persistent` 标记与 `isKvPersistent()`，内存态不再被诊断标签伪装成已落盘；原生驱动注册与杀进程重启验证仍阻塞于 CLI/网络环境。App 类型检查、17 套件 113 项测试与改动文件 ESLint 通过。
+
+6.2 证据：原 App 指向的 `/file/upload` 在 server 无任何处理器（后台仅 `/system/file/upload`、公共仅 `/system/common/file`），真机上传必然 404。已新增 `AppFileController` 的 `/app/file/upload`：强制登录态用户 ID、目录白名单 `case|lead|avatar|report|post`、仅图片 MIME + `jpg/jpeg/png/webp/gif`、5 MB 上限、按 `app/{userId}/{folder}/yyyy/MM/dd` 隔离归属；App 统一改走该端点。`AppFileControllerTest` 5 项通过（成功、非图片、超限、非法目录/空文件、未登录 401）；App 新增上传契约单测钉死路径/字段/60s 超时，类型检查、18 套件 114 项测试与改动文件 ESLint 通过。未连接真实存储服务或真机，6.3–6.5 的鸿蒙验收仍未开始。
 
 ## 7. B2 App 小工具
 
