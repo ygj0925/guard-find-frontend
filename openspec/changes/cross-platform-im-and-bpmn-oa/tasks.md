@@ -94,6 +94,8 @@
 
 9.2 证据：迁移所有权归 Liquibase，应用侧关闭引擎自动建表。新增 `guard-find-backend-plugin-oa` 模块（api 依赖），把 Flowable 7.2.0 官方 MySQL 建表脚本原样纳入 `db/changelog/mysql/oa/{common,process,history}.sql` 并加入 master changelog；配置 `flowable.database-schema-update=false`，仅启用 process 引擎，app/cmmn/dmn/idm/eventregistry 关闭；`OaFlowableConfiguration` 设置历史级别 FULL、禁用 IDM 与事件注册，并用 BFPP 给 `springProcessEngineConfiguration`/`processEngine` 追加 `depends-on=liquibase`，保证迁移先于引擎初始化；`OaEngineTemplate` 所有入口强制显式 tenantId，任务查询/完成/领取均带租户条件且领取幂等。`OaEngineIntegrationTest` 7 项通过：仅建 process 表且无 ACT_ID 表、无 AppEngine；租户 A/B 任务互不可见且跨租户完成被拒；跨租户领取被拒、重复领取幂等；外层事务回滚后无流程实例与任务；文件库重启且在 `schema-update=false` 下仍可读取并办结任务；重启后定时器 Job 仍在库中、转可执行并推进到用户任务；存在 liquibase Bean 时 processEngine 的 dependsOn 生效。`OaEngineLiquibaseMySqlTest` 在本地 MySQL 8.4 隔离库 `guard_find_oa_verify` 实测：3 个 changeset 成功，`common.schema.version` 与 `schema.version` 均为 7.2.0.2，关闭自动建表后引擎启动并完成部署/发起/办结，验证后已删除该库。边界：异步执行器仍关闭，定时器恢复为引擎级手工执行验证，未开启自动触发；未用项目开发库启动完整应用，多副本与长稳未验证。
 
+9.3 进度（未完成）：已落地流程与表单首批表迁移 `db/changelog/mysql/oa/{oa_process,oa_form}.sql`——`oa_process_model`（租户内 model_key 唯一、草稿 XML/摘要、生效版本指针、绑定表单版本、乐观锁）、`oa_process_release`（发布 XML 冻结、引擎定义 ID 全局唯一、租户+模型+版本唯一、表单版本绑定、可发起范围、不可变无 update/delete 列）、`oa_form`（租户内 form_key 唯一、当前版本指针、乐观锁）、`oa_form_version`（租户+表单+版本唯一、schema 快照与摘要、不可变）。master changelog 与验证 changelog 均已接入；MySQL 8.4 隔离库实测 5 个 changeset 全部成功，`OaEngineLiquibaseMySqlTest` 2 项通过（引擎启动/办结；四表字段与索引存在、租户内重复键与全局重复引擎定义 ID 被拒、跨租户同名允许）。尚未创建 `oa_application`、`oa_approval_audit`、`oa_cc_receipt`、`oa_attachment_link`、`oa_outbox`、`oa_request_dedup` 及各业务表，也未编写实体/Mapper/API；9.3 保持未完成。
+
 ## 10. D1 审批中心
 
 - [ ] 10.1 发起/草稿/待办/已办/抄送/详情/轨迹 API 和页面，双租户访问回归
