@@ -60,10 +60,12 @@
 
 - [x] 7.1 server 添加便笺表/分页CRUD/归属与版本冲突测试
 - [ ] 7.2 App 便笺列表/编辑/检索/归档页面及接口接线，浏览器与鸿蒙验收
-- [ ] 7.3 server 添加收纳物品表/分页CRUD/数量及归属和版本测试
+- [x] 7.3 server 添加收纳物品表/分页CRUD/数量及归属和版本测试
 - [ ] 7.4 App 收纳列表/编辑/位置检索页面及接口接线，失败状态与跨账号缓存验收
 
 7.1–7.2 部分验证记录：server 新增 `gf_tool_note`（changeset guardfind:44）及 `/app/tool/note` 分页 CRUD、置顶/归档切换；读取/更新/删除逐条校验 `user_id`，修改必须携带 version 并条件更新 `version=version+1`，冲突返回 4002。`ToolNoteServiceImplTest` 7 项通过（归属、缺版本、版本冲突、切换范围、分页过滤与页大小上限）。App 新增 `/tools/notes` 页面与工具入口，支持搜索防抖、便笺/归档切换、置顶/归档/删除、分页加载和底部编辑弹层；类型检查、109 项测试与改动文件 ESLint 通过。未连接真实 server/MySQL，未做浏览器或鸿蒙实机验收，7.2 保持未完成。
+
+7.3–7.4 部分验证记录：server 新增 `gf_tool_item`（changeset guardfind:45，含 `quantity >= 0` CHECK 与 `(user_id, archived, location, name)` 索引）及 `/app/tool/item` 分页 CRUD、数量增减、归档；数量扣减先校验非负，再以 `quantity = 当前值` 条件更新，并发变化返回 4002，修改同样携带 version。`ToolItemServiceImplTest` 9 项通过（归属、负数拒绝、版本冲突、CAS、归档范围、分页过滤与页大小上限），工具类合计 16 项通过。App 新增 `/tools/items` 页面与“物品收纳”入口：按位置分组、搜索防抖、数量 +/- 乐观更新并在冲突时回刷、归档/删除、分页与编辑弹层；类型检查、109 项测试和改动文件 ESLint 通过。未连接真实 server/MySQL，未做浏览器或鸿蒙实机验收，7.4 保持未完成。
 
 ## 8. C1 后台性能基线
 
