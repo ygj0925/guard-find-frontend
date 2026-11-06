@@ -78,7 +78,7 @@ export interface OaProcessModelUpdateParams {
 }
 
 export interface OaProcessPublishParams {
-  formVersionId?: number;
+  formVersionId: number;
   launchScope?: string;
   remark?: string;
 }

@@ -93,7 +93,7 @@ function errorText(error: unknown) {
 }
 
 type PublishFormValues = {
-  formVersionId?: number;
+  formVersionId: number;
   launchScope?: string;
   remark?: string;
 };
@@ -313,7 +313,12 @@ const ProcessDesignPage: React.FC = () => {
 
   const handlePublish = async () => {
     if (!model) return;
-    const values = await publishForm.validateFields();
+    let values: PublishFormValues;
+    try {
+      values = await publishForm.validateFields();
+    } catch {
+      return;
+    }
     setPublishing(true);
     try {
       if (dirty) await saveDraft();
@@ -721,13 +726,14 @@ const ProcessDesignPage: React.FC = () => {
         <Form form={publishForm} layout="vertical">
           <Form.Item
             name="formVersionId"
-            label="表单版本 ID（可选）"
-            tooltip="需属于当前租户；表单设计接入后可由页面选择"
+            label="表单版本 ID"
+            tooltip="必填，且需属于当前租户"
+            rules={[{ required: true, message: '请填写表单版本 ID' }]}
           >
             <InputNumber
               min={1}
               style={{ width: '100%' }}
-              placeholder="留空表示不绑定表单"
+              placeholder="输入已发布的表单版本 ID"
             />
           </Form.Item>
           <Form.Item name="launchScope" label="可发起范围（可选）">

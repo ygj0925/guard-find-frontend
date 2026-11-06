@@ -272,13 +272,16 @@ describe('流程设计页', () => {
     fireEvent.click(screen.getByRole('button', { name: /发布/ }));
 
     const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('表单版本 ID'), {
+      target: { value: '9001' },
+    });
     fireEvent.click(within(dialog).getByRole('button', { name: /发.?布/ }));
 
     await waitFor(() => expect(updateOaProcessModel).toHaveBeenCalled());
     await waitFor(() =>
       expect(publishOaProcessModel).toHaveBeenCalledWith(
         9,
-        expect.objectContaining({ formVersionId: undefined }),
+        expect.objectContaining({ formVersionId: 9001 }),
       ),
     );
     expect(
@@ -302,6 +305,9 @@ describe('流程设计页', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /发布/ }));
     const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('表单版本 ID'), {
+      target: { value: '9001' },
+    });
     fireEvent.click(within(dialog).getByRole('button', { name: /发.?布/ }));
 
     expect(
