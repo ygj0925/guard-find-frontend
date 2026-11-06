@@ -280,3 +280,144 @@ export function getOaFormVersion(versionId: number | string) {
     { method: 'GET' },
   );
 }
+
+export interface OaLaunchItemVo {
+  releaseId: number;
+  modelId: number;
+  modelKey: string;
+  modelName: string;
+  category?: string | null;
+  description?: string | null;
+  releaseVersion: number;
+  processDefinitionKey: string;
+  formId: number;
+  formVersionId: number;
+  formVersion: number;
+  formName: string;
+  formKey: string;
+  launchScope?: string | null;
+  publishTime?: string;
+}
+
+export interface OaAssigneeVariableVo {
+  name: string;
+  /** 推荐来源；用户仍可在发起页改选 */
+  suggestedType?: string | null;
+  suggestedValue?: string | null;
+}
+
+export interface OaLaunchDetailVo extends OaLaunchItemVo {
+  schemaJson: string;
+  schemaDigest: string;
+  launchable: boolean;
+  assigneeVariables: OaAssigneeVariableVo[];
+}
+
+export interface OaAssigneeBindingParam {
+  variableName: string;
+  type: string;
+  value?: string;
+}
+
+export interface OaLaunchSubmitParams {
+  requestId: string;
+  title?: string;
+  formData: Record<string, unknown>;
+  assignees: OaAssigneeBindingParam[];
+}
+
+export interface OaLaunchSubmitResultVo {
+  applicationId: number;
+  businessKey: string;
+  processInstanceId: string;
+  replayed: boolean;
+}
+
+export interface OaLaunchQuery {
+  keyword?: string;
+  category?: string;
+}
+
+export function queryOaLaunches(params: QueryParam<OaLaunchQuery>) {
+  return request<R<PageResult<OaLaunchItemVo>>>('system/oa/launch/page', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaLaunch(releaseId: number | string) {
+  return request<R<OaLaunchDetailVo>>(`system/oa/launch/${releaseId}`, {
+    method: 'GET',
+  });
+}
+
+export function submitOaLaunch(
+  releaseId: number | string,
+  data: OaLaunchSubmitParams,
+) {
+  return request<R<OaLaunchSubmitResultVo>>(
+    `system/oa/launch/${releaseId}/submit`,
+    { method: 'POST', data },
+  );
+}
+
+export interface OaApplicationVo {
+  id: number;
+  businessType: string;
+  businessKey: string;
+  title: string;
+  status: string;
+  formVersion?: number | null;
+  processInstanceId?: string | null;
+  modelName?: string | null;
+  formName?: string | null;
+  submittedTime?: string;
+  finishedTime?: string;
+  createTime?: string;
+}
+
+export interface OaApplicationTimelineVo {
+  action: string;
+  operatorId?: number | null;
+  operatorName?: string | null;
+  taskId?: string | null;
+  reason?: string | null;
+  createTime?: string;
+}
+
+export interface OaApplicationDetailVo extends OaApplicationVo {
+  applicantId?: number | null;
+  applicantName?: string | null;
+  applicantDeptId?: number | null;
+  applicantDeptName?: string | null;
+  releaseId: number;
+  releaseVersion?: number | null;
+  formVersionId?: number | null;
+  formName?: string | null;
+  formKey?: string | null;
+  modelName?: string | null;
+  modelKey?: string | null;
+  schemaJson?: string | null;
+  formData: Record<string, unknown>;
+  timeline: OaApplicationTimelineVo[];
+}
+
+export interface OaApplicationQuery {
+  keyword?: string;
+  status?: string;
+}
+
+export function queryOaApplications(
+  params: QueryParam<OaApplicationQuery>,
+) {
+  return request<R<PageResult<OaApplicationVo>>>(
+    'system/oa/application/page',
+    { method: 'GET', params },
+  );
+}
+
+export function getOaApplication(id: number | string) {
+  return request<R<OaApplicationDetailVo>>(`system/oa/application/${id}`, {
+    method: 'GET',
+  });
+}

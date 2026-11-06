@@ -44,6 +44,7 @@ import {
   queryOaProcessReleases,
 } from '@/services/web/guardfind/oa';
 import { defaultOaBpmnXml } from '@/utils/oaBpmn';
+import OaLaunchScopeEditor from './components/OaLaunchScopeEditor';
 
 const STATUS_META: Record<string, { text: string; color: string }> = {
   DRAFT: { text: '草稿', color: 'default' },
@@ -440,8 +441,12 @@ const ProcessModelPage: React.FC = () => {
               }))}
             />
           </Form.Item>
-          <Form.Item name="launchScope" label="可发起范围（可选）">
-            <Input placeholder="如 dept:10,dept:11；留空表示后续按组织策略" />
+          <Form.Item
+            name="launchScope"
+            label="可发起范围（可选）"
+            tooltip="用户、部门、角色任一命中即可发起；全部留空表示不限制"
+          >
+            <OaLaunchScopeEditor />
           </Form.Item>
           <Form.Item name="remark" label="发布说明（可选）">
             <Input.TextArea rows={2} maxLength={500} showCount />
