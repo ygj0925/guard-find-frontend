@@ -45,6 +45,7 @@
     "@wangeditor/editor-for-react": "^1.0.6",
     "antd": "^5.25.4",
     "antd-style": "^3.7.0",
+    "bpmn-js": "^18.31.1",
     "classnames": "^2.5.1",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
