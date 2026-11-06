@@ -362,3 +362,16 @@ describe('属性校验', () => {
     );
   });
 });
+
+describe('按模型生成默认流程', () => {
+  it('使用模型标识作为流程 Key，并转义名称', () => {
+    const xml = defaultOaBpmnXml('leave_demo', '请假 & 调休');
+    expect(xml).toContain('<bpmn:process id="leave_demo"');
+    expect(xml).toContain('name="请假 &amp; 调休"');
+    expect(xml).toContain('bpmnElement="leave_demo"');
+
+    const report = validateOaBpmnXml(xml);
+    expect(report.valid).toBe(true);
+    expect(report.summary.processId).toBe('leave_demo');
+  });
+});

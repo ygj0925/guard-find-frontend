@@ -22,6 +22,16 @@ import {
   uploadFile,
 } from '@/services/web/file';
 import {
+  createOaProcessModel,
+  disableOaProcessModel,
+  getOaProcessModel,
+  publishOaProcessModel,
+  queryOaProcessModels,
+  queryOaProcessReleases,
+  updateOaProcessModel,
+  validateOaProcessBpmn,
+} from '@/services/web/guardfind/oa';
+import {
   assignUsers,
   unbindUser,
   unbindUsers,
@@ -178,5 +188,95 @@ describe('消息中心端点（全部走收件人视角，不能用管理端路�
 
     await batchDeleteMessages([4, 5]);
     expect(lastCall()[1].data).toEqual({ ids: [4, 5] });
+  });
+});
+
+describe('OA 流程模型端点', () => {
+  it('分页与详情：GET + 查询参数，id 只走路径', async () => {
+    await queryOaProcessModels({
+      page: 1,
+      size: 10,
+      keyword: 'leave',
+      status: 'DRAFT',
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/page',
+      expect.objectContaining({
+        method: 'GET',
+        params: { page: 1, size: 10, keyword: 'leave', status: 'DRAFT' },
+      }),
+    ]);
+
+    await getOaProcessModel(9);
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/9',
+      expect.objectContaining({ method: 'GET' }),
+    ]);
+  });
+
+  it('新建与保存草稿：写 body，保存带乐观锁 version', async () => {
+    await createOaProcessModel({
+      modelKey: 'leave_demo',
+      name: '请假审批',
+      bpmnXml: '<definitions/>',
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/process/model',
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({ modelKey: 'leave_demo' }),
+      }),
+    ]);
+
+    await updateOaProcessModel(9, {
+      name: '请假审批',
+      bpmnXml: '<definitions/>',
+      version: 3,
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/9',
+      expect.objectContaining({
+        method: 'PUT',
+        data: expect.objectContaining({ version: 3 }),
+      }),
+    ]);
+  });
+
+  it('校验与发布：XML 走 body，发布路径带 /publish', async () => {
+    await validateOaProcessBpmn('<definitions/>');
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/validate',
+      expect.objectContaining({
+        method: 'POST',
+        data: { bpmnXml: '<definitions/>' },
+      }),
+    ]);
+
+    await publishOaProcessModel(9, {
+      formVersionId: 5,
+      launchScope: 'dept:10',
+      remark: '上线',
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/9/publish',
+      expect.objectContaining({
+        method: 'POST',
+        data: { formVersionId: 5, launchScope: 'dept:10', remark: '上线' },
+      }),
+    ]);
+  });
+
+  it('停用与版本列表：POST /disable 无 body，GET /releases', async () => {
+    await disableOaProcessModel(9);
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/9/disable',
+      expect.objectContaining({ method: 'POST' }),
+    ]);
+
+    await queryOaProcessReleases(9);
+    expect(lastCall()).toEqual([
+      'system/oa/process/model/9/releases',
+      expect.objectContaining({ method: 'GET' }),
+    ]);
   });
 });

@@ -199,7 +199,21 @@ function utf8Length(value: string) {
   return new Blob([value]).size;
 }
 
-export function defaultOaBpmnXml(): string {
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+export function defaultOaBpmnXml(
+  processKey = 'oa_process',
+  processName = '新流程',
+): string {
+  const key = escapeXml(processKey);
+  const name = escapeXml(processName);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
@@ -208,7 +222,7 @@ export function defaultOaBpmnXml(): string {
                   xmlns:flowable="http://flowable.org/bpmn"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   id="Definitions_1" targetNamespace="http://guardfind.com/oa/bpmn">
-  <bpmn:process id="oa_process" name="新流程" isExecutable="true">
+  <bpmn:process id="${key}" name="${name}" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="发起">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
@@ -223,7 +237,7 @@ export function defaultOaBpmnXml(): string {
     <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_approve" targetRef="EndEvent_1"/>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="oa_process">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="${key}">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
         <dc:Bounds x="160" y="160" width="36" height="36"/>
       </bpmndi:BPMNShape>

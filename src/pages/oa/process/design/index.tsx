@@ -4,30 +4,47 @@
  */
 import {
   CheckCircleOutlined,
+  CloudUploadOutlined,
   ExpandOutlined,
   ExportOutlined,
   EyeOutlined,
   ImportOutlined,
   PlusOutlined,
   RedoOutlined,
+  SaveOutlined,
+  StopOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
+import { history, useSearchParams } from '@umijs/max';
 import {
   Alert,
   Button,
   Card,
   Divider,
+  Form,
+  Input,
+  InputNumber,
   List,
   Modal,
   message,
   Space,
+  Spin,
   Tag,
-  Tooltip,
   Typography,
   Upload,
 } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import AccessControl from '@/components/AccessControl';
+import {
+  disableOaProcessModel,
+  getOaProcessModel,
+  type OaBpmnValidateResultVo,
+  type OaProcessModelVo,
+  publishOaProcessModel,
+  updateOaProcessModel,
+  validateOaProcessBpmn,
+} from '@/services/web/guardfind/oa';
 import {
   defaultOaBpmnXml,
   type OaBpmnSelection,
@@ -41,6 +58,12 @@ import OaBpmnCanvas, {
 import OaBpmnPreview from './components/OaBpmnPreview';
 import OaBpmnProperties from './components/OaBpmnProperties';
 import OaConditionBuilder from './components/OaConditionBuilder';
+
+const STATUS_META: Record<string, { text: string; color: string }> = {
+  DRAFT: { text: '草稿', color: 'default' },
+  PUBLISHED: { text: '已发布', color: 'green' },
+  DISABLED: { text: '已停用', color: 'red' },
+};
 
 function downloadXml(xml: string, filename: string) {
   const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
@@ -69,13 +92,28 @@ function errorText(error: unknown) {
   return error instanceof Error ? error.message : '操作失败';
 }
 
+type PublishFormValues = {
+  formVersionId?: number;
+  launchScope?: string;
+  remark?: string;
+};
+
 const ProcessDesignPage: React.FC = () => {
   const canvasRef = useRef<OaBpmnCanvasHandle>(null);
-  const [initialXml] = useState(defaultOaBpmnXml);
+  const [searchParams] = useSearchParams();
+  const [modelId] = useState(() => searchParams.get('id'));
+  const [model, setModel] = useState<OaProcessModelVo | null>(null);
+  const [initialXml, setInitialXml] = useState<string | null>(() =>
+    modelId ? null : defaultOaBpmnXml(),
+  );
+  const [modelLoading, setModelLoading] = useState(Boolean(modelId));
+  const [modelError, setModelError] = useState<string | null>(null);
   const [selection, setSelection] = useState<OaBpmnSelection | null>(null);
   const [ready, setReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [report, setReport] = useState<OaBpmnValidationReport | null>(null);
+  const [serverReport, setServerReport] =
+    useState<OaBpmnValidateResultVo | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewXml, setPreviewXml] = useState('');
   const [previewSummary, setPreviewSummary] = useState<OaBpmnSummary | null>(
@@ -83,6 +121,40 @@ const ProcessDesignPage: React.FC = () => {
   );
   const [conditionOpen, setConditionOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishErrors, setPublishErrors] = useState<string[]>([]);
+  const [publishForm] = Form.useForm<PublishFormValues>();
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [disabling, setDisabling] = useState(false);
+
+  useEffect(() => {
+    if (!modelId) return;
+    let cancelled = false;
+    setModelLoading(true);
+    setModelError(null);
+    getOaProcessModel(modelId)
+      .then((response) => {
+        if (cancelled) return;
+        const detail = response.data;
+        setModel(detail);
+        setInitialXml(
+          detail.bpmnXml || defaultOaBpmnXml(detail.modelKey, detail.name),
+        );
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setModelError(errorText(error));
+        setInitialXml(defaultOaBpmnXml());
+      })
+      .finally(() => {
+        if (!cancelled) setModelLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [modelId]);
 
   const requireCanvas = () => {
     const canvas = canvasRef.current;
@@ -113,11 +185,20 @@ const ProcessDesignPage: React.FC = () => {
 
   const handleValidate = async () => {
     setBusy(true);
+    setServerReport(null);
     try {
-      const { result } = await exportAndValidate();
-      if (result.valid)
-        message.success('前端预检通过，发布前仍以服务端校验为准');
-      else message.error(`预检发现 ${result.errors.length} 个问题`);
+      const { xml, result } = await exportAndValidate();
+      if (!result.valid) {
+        message.error(`预检发现 ${result.errors.length} 个问题`);
+        return result;
+      }
+      const response = await validateOaProcessBpmn(xml);
+      setServerReport(response.data);
+      if (response.data.valid) {
+        message.success('前端预检与服务端校验均通过，发布时服务端会再次校验');
+      } else {
+        message.error(`服务端校验发现 ${response.data.errors.length} 个问题`);
+      }
       return result;
     } catch (error) {
       message.error(errorText(error));
@@ -151,6 +232,7 @@ const ProcessDesignPage: React.FC = () => {
         await requireCanvas().importXML(defaultOaBpmnXml());
         setDirty(false);
         setReport(null);
+        setServerReport(null);
         setSelection(null);
         message.success('已新建空白流程');
       } catch (error) {
@@ -163,7 +245,7 @@ const ProcessDesignPage: React.FC = () => {
     }
     Modal.confirm({
       title: '新建流程',
-      content: '当前未导出的修改将丢失，确定新建吗？',
+      content: '当前未保存的修改将丢失，确定新建吗？',
       okText: '新建',
       cancelText: '取消',
       onOk: reset,
@@ -176,6 +258,7 @@ const ProcessDesignPage: React.FC = () => {
       await requireCanvas().importXML(xml);
       setDirty(true);
       setReport(null);
+      setServerReport(null);
       setSelection(null);
       message.success(`已导入 ${file.name}`);
     } catch (error) {
@@ -195,30 +278,181 @@ const ProcessDesignPage: React.FC = () => {
     }
   };
 
+  const saveDraft = async () => {
+    if (!model) throw new Error('请从流程模型列表创建或打开模型后再保存');
+    const xml = await requireCanvas().exportXML();
+    const response = await updateOaProcessModel(model.id, {
+      name: model.name,
+      category: model.category ?? undefined,
+      description: model.description ?? undefined,
+      bpmnXml: xml,
+      version: model.version,
+    });
+    setModel(response.data);
+    setDirty(false);
+    return response.data;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveDraft();
+      message.success('草稿已保存');
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openPublish = () => {
+    publishForm.resetFields();
+    setPublishErrors([]);
+    setPublishOpen(true);
+  };
+
+  const handlePublish = async () => {
+    if (!model) return;
+    const values = await publishForm.validateFields();
+    setPublishing(true);
+    try {
+      if (dirty) await saveDraft();
+      const response = await publishOaProcessModel(model.id, {
+        formVersionId: values.formVersionId,
+        launchScope: values.launchScope?.trim() || undefined,
+        remark: values.remark?.trim() || undefined,
+      });
+      const result = response.data;
+      if (!result.valid) {
+        setPublishErrors(result.errors);
+        return;
+      }
+      setPublishOpen(false);
+      setPublishErrors([]);
+      message.success(
+        `发布成功：版本 v${result.releaseVersion}（引擎版本 ${result.processDefinitionVersion}）`,
+      );
+      const detail = await getOaProcessModel(model.id);
+      setModel(detail.data);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleDisable = async () => {
+    if (!model) return;
+    setDisabling(true);
+    try {
+      const response = await disableOaProcessModel(model.id);
+      setModel(response.data);
+      setDisableOpen(false);
+      message.success('已停用');
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setDisabling(false);
+    }
+  };
+
+  const statusMeta = model
+    ? STATUS_META[model.status] || { text: model.status, color: 'default' }
+    : null;
+
+  const headerExtra = [
+    <Button
+      key="save"
+      icon={<SaveOutlined />}
+      loading={saving}
+      disabled={!model || !ready}
+      onClick={() => void handleSave()}
+    >
+      保存草稿
+    </Button>,
+    <AccessControl key="publish" permission="system:oa:process:publish">
+      <Button
+        type="primary"
+        icon={<CloudUploadOutlined />}
+        disabled={!model || !ready}
+        onClick={openPublish}
+      >
+        发布
+      </Button>
+    </AccessControl>,
+    <AccessControl key="disable" permission="system:oa:process:disable">
+      <Button
+        danger
+        icon={<StopOutlined />}
+        disabled={!model || model.status === 'DISABLED'}
+        onClick={() => setDisableOpen(true)}
+      >
+        停用
+      </Button>
+    </AccessControl>,
+  ];
+
   return (
     <PageContainer
+      onBack={() => history.push('/oa/process')}
       header={{
-        title: '流程设计器',
-        subTitle: 'BPMN 2.0 · 设计期预检与服务端发布校验',
+        title: model ? model.name : '流程设计器',
+        subTitle: model
+          ? `${model.modelKey} · 草稿版本 ${model.version}${
+              model.currentReleaseVersion
+                ? ` · 当前发布 v${model.currentReleaseVersion}`
+                : ''
+            }`
+          : 'BPMN 2.0 · 设计期预检与服务端发布校验',
+        extra: headerExtra,
       }}
-      extra={[
-        <Tooltip key="publish" title="保存与发布接口将在 9.7 接入">
-          <Button disabled>发布</Button>
-        </Tooltip>,
-      ]}
     >
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <Alert
-          type="info"
-          showIcon
-          message="当前版本提供画布设计、导入导出、前端预检与只读预览；保存/发布接口将在 9.7 接入。"
-        />
+        {modelError ? (
+          <Alert
+            type="error"
+            showIcon
+            message="加载流程模型失败"
+            description={`${modelError}。当前已回退到本地空白流程，保存与发布不可用。`}
+          />
+        ) : null}
+        {model ? (
+          <Alert
+            type="info"
+            showIcon
+            message={
+              <Space wrap>
+                <span>模型：{model.name}</span>
+                {statusMeta ? (
+                  <Tag color={statusMeta.color}>{statusMeta.text}</Tag>
+                ) : null}
+                <Tag>草稿版本 {model.version}</Tag>
+                {model.currentReleaseVersion ? (
+                  <Tag color="green">
+                    当前发布 v{model.currentReleaseVersion}
+                  </Tag>
+                ) : null}
+                {dirty ? <Tag color="orange">未保存修改</Tag> : null}
+              </Space>
+            }
+            description="保存只写草稿；发布时服务端会重新校验 XML、部署流程并生成不可变版本，运行中的旧实例不迁移。"
+          />
+        ) : !modelId ? (
+          <Alert
+            type="info"
+            showIcon
+            message="当前为本地设计模式，未绑定流程模型。"
+            description="请从流程模型列表新建或打开模型后再保存、发布；本地模式仍可编辑、导出和预检。"
+          />
+        ) : null}
 
         <Card size="small">
           <Space wrap>
-            <Button icon={<PlusOutlined />} onClick={handleNew}>
-              新建
-            </Button>
+            {!model ? (
+              <Button icon={<PlusOutlined />} onClick={handleNew}>
+                新建
+              </Button>
+            ) : null}
             <Upload
               accept=".bpmn,.xml"
               showUploadList={false}
@@ -280,69 +514,79 @@ const ProcessDesignPage: React.FC = () => {
             <Tag color={ready ? 'green' : 'default'}>
               {ready ? '画布已就绪' : '加载中'}
             </Tag>
-            {dirty ? <Tag color="orange">未导出修改</Tag> : null}
+            {dirty ? <Tag color="orange">未保存修改</Tag> : null}
           </Space>
         </Card>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 16,
-            alignItems: 'flex-start',
-            flexWrap: 'wrap',
-          }}
-        >
-          <Card
-            title="流程画布"
-            size="small"
-            style={{ flex: '1 1 560px', minWidth: 0 }}
-            styles={{ body: { padding: 0 } }}
-          >
-            <OaBpmnCanvas
-              ref={canvasRef}
-              xml={initialXml}
-              onSelectionChange={setSelection}
-              onChange={() => {
-                if (ready) setDirty(true);
-              }}
-              onReady={() => setReady(true)}
-            />
+        {modelLoading ? (
+          <Card size="small">
+            <Spin tip="正在加载流程模型…">
+              <div style={{ height: 80 }} />
+            </Spin>
           </Card>
-          <Card
-            title="节点属性"
-            size="small"
-            style={{ flex: '0 0 380px', maxWidth: '100%' }}
+        ) : null}
+
+        {initialXml ? (
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              alignItems: 'flex-start',
+              flexWrap: 'wrap',
+            }}
           >
-            <OaBpmnProperties
-              selection={selection}
-              onChangeName={(name) => {
-                if (!selection) return;
-                canvasRef.current?.updateName(selection.id, name);
-              }}
-              onUpdateUserTask={(attributes) => {
-                if (!selection) return;
-                canvasRef.current?.updateUserTask(selection.id, attributes);
-              }}
-              onUpdateServiceTask={(className) => {
-                if (!selection) return;
-                canvasRef.current?.updateServiceTask(selection.id, className);
-              }}
-              onUpdateCondition={(expression) => {
-                if (!selection) return;
-                canvasRef.current?.updateCondition(selection.id, expression);
-              }}
-              onUpdateDefaultFlow={(flowId) => {
-                if (!selection) return;
-                canvasRef.current?.updateDefaultFlow(selection.id, flowId);
-              }}
-              onUpdateTimer={(type, value) => {
-                if (!selection) return;
-                canvasRef.current?.updateTimer(selection.id, type, value);
-              }}
-              onOpenConditionBuilder={() => setConditionOpen(true)}
-            />
-          </Card>
-        </div>
+            <Card
+              title="流程画布"
+              size="small"
+              style={{ flex: '1 1 560px', minWidth: 0 }}
+              styles={{ body: { padding: 0 } }}
+            >
+              <OaBpmnCanvas
+                ref={canvasRef}
+                xml={initialXml}
+                onSelectionChange={setSelection}
+                onChange={() => {
+                  if (ready) setDirty(true);
+                }}
+                onReady={() => setReady(true)}
+              />
+            </Card>
+            <Card
+              title="节点属性"
+              size="small"
+              style={{ flex: '0 0 380px', maxWidth: '100%' }}
+            >
+              <OaBpmnProperties
+                selection={selection}
+                onChangeName={(name) => {
+                  if (!selection) return;
+                  canvasRef.current?.updateName(selection.id, name);
+                }}
+                onUpdateUserTask={(attributes) => {
+                  if (!selection) return;
+                  canvasRef.current?.updateUserTask(selection.id, attributes);
+                }}
+                onUpdateServiceTask={(className) => {
+                  if (!selection) return;
+                  canvasRef.current?.updateServiceTask(selection.id, className);
+                }}
+                onUpdateCondition={(expression) => {
+                  if (!selection) return;
+                  canvasRef.current?.updateCondition(selection.id, expression);
+                }}
+                onUpdateDefaultFlow={(flowId) => {
+                  if (!selection) return;
+                  canvasRef.current?.updateDefaultFlow(selection.id, flowId);
+                }}
+                onUpdateTimer={(type, value) => {
+                  if (!selection) return;
+                  canvasRef.current?.updateTimer(selection.id, type, value);
+                }}
+                onOpenConditionBuilder={() => setConditionOpen(true)}
+              />
+            </Card>
+          </div>
+        ) : null}
 
         {report ? (
           <Card
@@ -395,6 +639,32 @@ const ProcessDesignPage: React.FC = () => {
                   </Tag>
                 ))}
               </Space>
+              {serverReport ? (
+                <Alert
+                  type={serverReport.valid ? 'success' : 'error'}
+                  showIcon
+                  message={
+                    serverReport.valid
+                      ? `服务端校验通过：流程 Key ${serverReport.processKey}，节点 ${serverReport.nodeCount} 个`
+                      : '服务端校验未通过'
+                  }
+                  description={
+                    serverReport.valid ? undefined : (
+                      <List
+                        size="small"
+                        dataSource={serverReport.errors}
+                        renderItem={(item) => (
+                          <List.Item>
+                            <Typography.Text type="danger">
+                              {item}
+                            </Typography.Text>
+                          </List.Item>
+                        )}
+                      />
+                    )
+                  }
+                />
+              ) : null}
             </Space>
           </Card>
         ) : null}
@@ -414,6 +684,78 @@ const ProcessDesignPage: React.FC = () => {
           onClose={() => setPreviewOpen(false)}
         />
       ) : null}
+
+      <Modal
+        title={`发布流程：${model?.name || ''}`}
+        open={publishOpen}
+        confirmLoading={publishing}
+        okText="发布"
+        cancelText="取消"
+        onOk={() => void handlePublish()}
+        onCancel={() => setPublishOpen(false)}
+        destroyOnHidden
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="发布前会先保存当前画布；服务端将重新校验 XML、部署流程并生成不可变版本，运行中的旧实例不会迁移。"
+        />
+        {publishErrors.length ? (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="服务端校验未通过"
+            description={
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {publishErrors.map((item) => (
+                  <li key={item}>
+                    <Typography.Text type="danger">{item}</Typography.Text>
+                  </li>
+                ))}
+              </ul>
+            }
+          />
+        ) : null}
+        <Form form={publishForm} layout="vertical">
+          <Form.Item
+            name="formVersionId"
+            label="表单版本 ID（可选）"
+            tooltip="需属于当前租户；表单设计接入后可由页面选择"
+          >
+            <InputNumber
+              min={1}
+              style={{ width: '100%' }}
+              placeholder="留空表示不绑定表单"
+            />
+          </Form.Item>
+          <Form.Item name="launchScope" label="可发起范围（可选）">
+            <Input placeholder="如 dept:10,dept:11；留空表示后续按组织策略" />
+          </Form.Item>
+          <Form.Item name="remark" label="发布说明（可选）">
+            <Input.TextArea rows={2} maxLength={500} showCount />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="停用流程模型"
+        open={disableOpen}
+        confirmLoading={disabling}
+        okText="停用"
+        okButtonProps={{ danger: true }}
+        cancelText="取消"
+        onOk={() => void handleDisable()}
+        onCancel={() => setDisableOpen(false)}
+        destroyOnHidden
+      >
+        <Alert
+          type="warning"
+          showIcon
+          message="停用后新发起将被阻止，运行中的实例不会迁移或终止。"
+        />
+      </Modal>
     </PageContainer>
   );
 };
