@@ -193,6 +193,19 @@ export interface OaFormVersionOptionVo {
   publishTime?: string;
 }
 
+export interface OaFormVersionDetailVo {
+  id: number;
+  formId: number;
+  formKey: string;
+  name: string;
+  status: OaFormStatus;
+  version: number;
+  schemaJson: string;
+  schemaDigest: string;
+  fieldCount: number;
+  publishTime?: string;
+}
+
 export interface OaFormQuery {
   keyword?: string;
   status?: string;
@@ -259,4 +272,11 @@ export function queryOaFormVersionOptions() {
   return request<R<OaFormVersionOptionVo[]>>('system/oa/form/version-options', {
     method: 'GET',
   });
+}
+
+export function getOaFormVersion(versionId: number | string) {
+  return request<R<OaFormVersionDetailVo>>(
+    `system/oa/form/version/${versionId}`,
+    { method: 'GET' },
+  );
 }

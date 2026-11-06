@@ -29,16 +29,29 @@ function requiredMark(field: OaFormField) {
   ) : null;
 }
 
-function PreviewControl({ field }: { field: OaFormField }) {
+function PreviewControl({
+  field,
+  disabled,
+}: {
+  field: OaFormField;
+  disabled?: boolean;
+}) {
   const placeholder = field.placeholder || `请输入${field.label}`;
   switch (field.type) {
     case 'textarea':
-      return <Input.TextArea rows={3} placeholder={placeholder} />;
+      return (
+        <Input.TextArea
+          rows={3}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
+      );
     case 'number':
       return (
         <InputNumber
           style={{ width: '100%' }}
           placeholder={placeholder}
+          disabled={disabled}
           aria-label={field.label}
         />
       );
@@ -47,12 +60,14 @@ function PreviewControl({ field }: { field: OaFormField }) {
         <DatePicker
           style={{ width: '100%' }}
           placeholder={placeholder}
+          disabled={disabled}
           aria-label={field.label}
         />
       );
     case 'radio':
       return (
         <Radio.Group
+          disabled={disabled}
           options={(field.options ?? []).map((option) => ({
             label: option.label,
             value: option.value,
@@ -62,6 +77,7 @@ function PreviewControl({ field }: { field: OaFormField }) {
     case 'checkbox':
       return (
         <Checkbox.Group
+          disabled={disabled}
           options={(field.options ?? []).map((option) => ({
             label: option.label,
             value: option.value,
@@ -70,14 +86,21 @@ function PreviewControl({ field }: { field: OaFormField }) {
       );
     case 'attachment':
       return (
-        <Upload beforeUpload={() => false} showUploadList={false}>
-          <Button icon={<UploadOutlined />}>选择文件</Button>
+        <Upload
+          beforeUpload={() => false}
+          showUploadList={false}
+          disabled={disabled}
+        >
+          <Button icon={<UploadOutlined />} disabled={disabled}>
+            选择文件
+          </Button>
         </Upload>
       );
     case 'person':
       return (
         <Select
           showSearch
+          disabled={disabled}
           style={{ width: '100%' }}
           placeholder={placeholder}
           options={[]}
@@ -86,28 +109,50 @@ function PreviewControl({ field }: { field: OaFormField }) {
         />
       );
     default:
-      return <Input placeholder={placeholder} aria-label={field.label} />;
+      return (
+        <Input
+          placeholder={placeholder}
+          disabled={disabled}
+          aria-label={field.label}
+        />
+      );
   }
 }
 
-const OaFormPreview: React.FC<OaFormPreviewProps> = ({ fields }) => (
-  <Card title="实时预览" size="small" styles={{ body: { minHeight: 360 } }}>
-    {fields.length === 0 ? (
-      <Empty description="添加字段后在此预览" />
-    ) : (
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        {fields.map((field) => (
-          <div key={field.id}>
-            <div style={{ marginBottom: 6 }}>
-              <Typography.Text>{field.label}</Typography.Text>
-              {requiredMark(field)}
+const OaFormPreview: React.FC<OaFormPreviewProps> = ({ fields }) => {
+  const visibleFields = fields.filter((field) => !field.hidden);
+  const hiddenCount = fields.length - visibleFields.length;
+  return (
+    <Card title="实时预览" size="small" styles={{ body: { minHeight: 360 } }}>
+      {visibleFields.length === 0 ? (
+        <Empty
+          description={
+            fields.length === 0 ? '添加字段后在此预览' : '所有字段均已隐藏'
+          }
+        />
+      ) : (
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          {hiddenCount > 0 ? (
+            <Typography.Text type="secondary">
+              另有 {hiddenCount} 个隐藏字段不在此显示
+            </Typography.Text>
+          ) : null}
+          {visibleFields.map((field) => (
+            <div key={field.id}>
+              <div style={{ marginBottom: 6 }}>
+                <Typography.Text>{field.label}</Typography.Text>
+                {requiredMark(field)}
+                {field.readonly ? (
+                  <Typography.Text type="secondary"> （只读）</Typography.Text>
+                ) : null}
+              </div>
+              <PreviewControl field={field} disabled={field.readonly} />
             </div>
-            <PreviewControl field={field} />
-          </div>
-        ))}
-      </Space>
-    )}
-  </Card>
-);
+          ))}
+        </Space>
+      )}
+    </Card>
+  );
+};
 
 export default OaFormPreview;

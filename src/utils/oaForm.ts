@@ -43,6 +43,10 @@ export interface OaFormField {
   label: string;
   type: OaFormFieldType;
   required?: boolean;
+  /** 只读字段由系统带入，填写人不可编辑 */
+  readonly?: boolean;
+  /** 隐藏字段不渲染、不参与必填校验 */
+  hidden?: boolean;
   placeholder?: string;
   options?: OaFormOption[];
 }
@@ -76,6 +80,8 @@ export function parseOaFormSchema(json?: string | null): OaFormSchema {
             ? field.type
             : 'text') as OaFormFieldType,
           required: Boolean(field.required),
+          readonly: Boolean(field.readonly),
+          hidden: Boolean(field.hidden),
           placeholder: field.placeholder
             ? String(field.placeholder)
             : undefined,
@@ -102,6 +108,8 @@ export function serializeOaFormSchema(schema: OaFormSchema): string {
       label: field.label,
       type: field.type,
       required: Boolean(field.required),
+      ...(field.readonly ? { readonly: true } : {}),
+      ...(field.hidden ? { hidden: true } : {}),
       ...(field.placeholder ? { placeholder: field.placeholder } : {}),
       ...(OA_FORM_OPTION_TYPES.has(field.type)
         ? {
@@ -164,6 +172,7 @@ export function validateOaFormSchema(
   }
   const keys = new Set<string>();
   const ids = new Set<string>();
+  let visibleFields = 0;
   schema.fields.forEach((field, index) => {
     const prefix = `第 ${index + 1} 个字段`;
     if (field.id && !FIELD_ID.test(field.id)) {
@@ -195,6 +204,10 @@ export function validateOaFormSchema(
       errors.push(`${prefix}的类型不支持: ${field.type || '(空)'}`);
       return;
     }
+    if (field.required && (field.readonly || field.hidden)) {
+      errors.push(`${prefix}不能同时设为必填与只读/隐藏`);
+    }
+    if (!field.hidden) visibleFields += 1;
     if (OA_FORM_OPTION_TYPES.has(field.type)) {
       const options = field.options ?? [];
       if (!options.length) {
@@ -216,5 +229,76 @@ export function validateOaFormSchema(
       });
     }
   });
+  if (requireFields && schema.fields.length > 0 && visibleFields === 0) {
+    errors.push('表单至少需要一个可见字段才能发布');
+  }
   return { valid: errors.length === 0, errors };
+}
+
+export interface OaFormValueValidation {
+  valid: boolean;
+  errors: Record<string, string>;
+}
+
+function isEmptyValue(value: unknown) {
+  if (Array.isArray(value)) return value.length === 0;
+  return value === undefined || value === null || String(value).trim() === '';
+}
+
+/**
+ * 填写校验只覆盖当前可见字段；只读字段由系统带入，不要求填写人补齐。
+ * 提交与实例落库在 10.1 接入，本函数只做前端校验。
+ */
+export function validateOaFormValues(
+  fields: OaFormField[],
+  values: Record<string, unknown>,
+): OaFormValueValidation {
+  const errors: Record<string, string> = {};
+  fields
+    .filter((field) => !field.hidden)
+    .forEach((field) => {
+      if (field.readonly) return;
+      const value = values[field.key];
+      if (field.required && isEmptyValue(value)) {
+        errors[field.key] =
+          field.type === 'checkbox' || field.type === 'attachment'
+            ? `请选择或上传${field.label}`
+            : `请填写${field.label}`;
+        return;
+      }
+      if (isEmptyValue(value)) return;
+      if (field.type === 'number') {
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+          errors[field.key] = '请输入有效数字';
+        }
+        return;
+      }
+      if (field.type === 'radio') {
+        const allowed = new Set(
+          (field.options ?? []).map((item) => item.value),
+        );
+        if (typeof value !== 'string' || !allowed.has(value)) {
+          errors[field.key] = '请选择有效选项';
+        }
+        return;
+      }
+      if (field.type === 'checkbox') {
+        const allowed = new Set(
+          (field.options ?? []).map((item) => item.value),
+        );
+        if (
+          !Array.isArray(value) ||
+          value.some((item) => !allowed.has(String(item)))
+        ) {
+          errors[field.key] = '请选择有效选项';
+        }
+        return;
+      }
+      if (field.type === 'person') {
+        if (!/^[1-9]\d*$/.test(String(value).trim())) {
+          errors[field.key] = '请输入有效的员工 ID';
+        }
+      }
+    });
+  return { valid: Object.keys(errors).length === 0, errors };
 }

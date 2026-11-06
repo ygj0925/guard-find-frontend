@@ -171,5 +171,9 @@ describe('表单列表页', () => {
     await waitFor(() => expect(queryOaFormVersions).toHaveBeenCalledWith(5));
     expect((await screen.findAllByText('字段数')).length).toBeGreaterThan(0);
     expect(screen.getByText(/abcdef0123456789/)).toBeTruthy();
+
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /填写/ }));
+    expect(history.push).toHaveBeenCalledWith('/oa/form/fill?versionId=31');
   });
 });

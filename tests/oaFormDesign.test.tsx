@@ -166,6 +166,62 @@ describe('表单设计页', () => {
     ).toBeGreaterThan(jest.mocked(updateOaForm).mock.invocationCallOrder[0]);
   });
 
+  it('隐藏字段会清除必填并从预览与校验中移除', async () => {
+    render(<FormDesignPage />);
+    await screen.findByText(/leave_form · 草稿版本 2/);
+
+    fireEvent.click(screen.getByText('金额'));
+    expect(await screen.findByText('字段属性')).toBeTruthy();
+    expect(screen.getByLabelText('必填').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+
+    fireEvent.click(screen.getByLabelText('隐藏'));
+    expect(screen.getByLabelText('必填').getAttribute('aria-checked')).toBe(
+      'false',
+    );
+    expect(screen.getByLabelText('隐藏').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+
+    fireEvent.click(screen.getByText('实时预览'));
+    expect(await screen.findByText('所有字段均已隐藏')).toBeTruthy();
+    expect(screen.queryByLabelText('金额')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /保存草稿/ }));
+    await waitFor(() => expect(updateOaForm).toHaveBeenCalled());
+    const [, payload] = jest.mocked(updateOaForm).mock.calls[0];
+    const saved = JSON.parse(payload.schemaJson as string);
+    expect(saved.fields[0]).toMatchObject({ hidden: true, required: false });
+    expect(saved.fields[0].readonly).toBeUndefined();
+  });
+
+  it('只读字段清除必填并保留在预览中', async () => {
+    render(<FormDesignPage />);
+    await screen.findByText(/leave_form · 草稿版本 2/);
+
+    fireEvent.click(screen.getByText('金额'));
+    expect(await screen.findByText('字段属性')).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText('只读'));
+    expect(screen.getByLabelText('必填').getAttribute('aria-checked')).toBe(
+      'false',
+    );
+
+    fireEvent.click(screen.getByText('实时预览'));
+    expect(await screen.findByText('（只读）')).toBeTruthy();
+    expect((screen.getByLabelText('金额') as HTMLInputElement).disabled).toBe(
+      true,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /保存草稿/ }));
+    await waitFor(() => expect(updateOaForm).toHaveBeenCalled());
+    const [, payload] = jest.mocked(updateOaForm).mock.calls[0];
+    const saved = JSON.parse(payload.schemaJson as string);
+    expect(saved.fields[0]).toMatchObject({ readonly: true, required: false });
+    expect(saved.fields[0].hidden).toBeUndefined();
+  });
+
   it('发布被拒绝时保留弹窗并展示错误', async () => {
     jest.mocked(publishOaForm).mockResolvedValue({
       data: {

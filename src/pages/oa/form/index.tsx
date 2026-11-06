@@ -4,6 +4,7 @@
  */
 import {
   EditOutlined,
+  FormOutlined,
   HistoryOutlined,
   PlusOutlined,
   StopOutlined,
@@ -376,7 +377,7 @@ const FormListPage: React.FC = () => {
           loading={versionLoading}
           dataSource={versions}
           pagination={false}
-          scroll={{ x: 700 }}
+          scroll={{ x: 820 }}
           columns={[
             {
               title: '版本',
@@ -404,6 +405,21 @@ const FormListPage: React.FC = () => {
               title: '发布时间',
               dataIndex: 'publishTime',
               width: 170,
+            },
+            {
+              title: '操作',
+              width: 90,
+              render: (_, record) => (
+                <Button
+                  type="link"
+                  icon={<FormOutlined />}
+                  onClick={() =>
+                    history.push(`/oa/form/fill?versionId=${record.id}`)
+                  }
+                >
+                  填写
+                </Button>
+              ),
             },
           ]}
         />

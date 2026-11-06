@@ -114,9 +114,43 @@ const FieldProperties: React.FC<FieldPropertiesProps> = ({
         <Switch
           aria-label="必填"
           checked={Boolean(field.required)}
-          onChange={(checked) => onChange({ required: checked })}
+          onChange={(checked) =>
+            onChange({
+              required: checked,
+              ...(checked ? { readonly: false, hidden: false } : {}),
+            })
+          }
         />
       </Space>
+      <Space>
+        <Typography.Text>只读</Typography.Text>
+        <Switch
+          aria-label="只读"
+          checked={Boolean(field.readonly)}
+          onChange={(checked) =>
+            onChange({
+              readonly: checked,
+              ...(checked ? { required: false } : {}),
+            })
+          }
+        />
+      </Space>
+      <Space>
+        <Typography.Text>隐藏</Typography.Text>
+        <Switch
+          aria-label="隐藏"
+          checked={Boolean(field.hidden)}
+          onChange={(checked) =>
+            onChange({
+              hidden: checked,
+              ...(checked ? { required: false } : {}),
+            })
+          }
+        />
+      </Space>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        只读字段由系统带入；隐藏字段不渲染、不参与填写校验。
+      </Typography.Text>
 
       {optionType ? (
         <>
@@ -243,7 +277,7 @@ const OaFormProperties: React.FC<OaFormPropertiesProps> = ({
         </>
       ) : (
         <Typography.Text type="secondary">
-          点击画布中的字段可编辑名称、key、必填与选项。
+          点击画布中的字段可编辑名称、key、必填、只读、隐藏与选项。
         </Typography.Text>
       )}
     </Space>

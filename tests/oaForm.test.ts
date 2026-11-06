@@ -4,6 +4,7 @@ import {
   parseOaFormSchema,
   serializeOaFormSchema,
   validateOaFormSchema,
+  validateOaFormValues,
 } from '@/utils/oaForm';
 
 const allTypesSchema = {
@@ -90,5 +91,133 @@ describe('OA 表单 schema 工具', () => {
 
   it('非法 JSON 回退为空表单', () => {
     expect(parseOaFormSchema('{broken').fields).toEqual([]);
+  });
+
+  it('保留只读与隐藏策略并在序列化时省略 false', () => {
+    const schema = {
+      version: 1,
+      fields: [
+        {
+          id: 'f1',
+          key: 'dept',
+          label: '部门',
+          type: 'text' as const,
+          readonly: true,
+        },
+        {
+          id: 'f2',
+          key: 'internal',
+          label: '内部',
+          type: 'text' as const,
+          hidden: true,
+        },
+        { id: 'f3', key: 'name', label: '姓名', type: 'text' as const },
+      ],
+    };
+    const parsed = parseOaFormSchema(serializeOaFormSchema(schema));
+    expect(parsed.fields[0].readonly).toBe(true);
+    expect(parsed.fields[1].hidden).toBe(true);
+    const serialized = JSON.parse(serializeOaFormSchema(schema));
+    expect(serialized.fields[0]).toMatchObject({ readonly: true });
+    expect(serialized.fields[1]).toMatchObject({ hidden: true });
+    expect(serialized.fields[2]).not.toHaveProperty('readonly');
+    expect(serialized.fields[2]).not.toHaveProperty('hidden');
+  });
+
+  it('拒绝必填与只读/隐藏冲突及全隐藏发布', () => {
+    const conflict = validateOaFormSchema(
+      {
+        version: 1,
+        fields: [
+          {
+            id: 'f1',
+            key: 'dept',
+            label: '部门',
+            type: 'text',
+            required: true,
+            readonly: true,
+          },
+        ],
+      },
+      true,
+    );
+    expect(conflict.valid).toBe(false);
+    expect(conflict.errors.join('；')).toContain('不能同时设为必填与只读/隐藏');
+
+    const allHidden = validateOaFormSchema(
+      {
+        version: 1,
+        fields: [
+          {
+            id: 'f1',
+            key: 'internal',
+            label: '内部',
+            type: 'text',
+            hidden: true,
+          },
+        ],
+      },
+      true,
+    );
+    expect(allHidden.valid).toBe(false);
+    expect(allHidden.errors).toContain('表单至少需要一个可见字段才能发布');
+  });
+
+  it('填写校验跳过只读与隐藏字段，并校验必填/数字/人员', () => {
+    const fields = [
+      {
+        id: 'f1',
+        key: 'name',
+        label: '姓名',
+        type: 'text' as const,
+        required: true,
+      },
+      {
+        id: 'f2',
+        key: 'dept',
+        label: '部门',
+        type: 'text' as const,
+        readonly: true,
+      },
+      {
+        id: 'f3',
+        key: 'internal',
+        label: '内部',
+        type: 'text' as const,
+        hidden: true,
+      },
+      {
+        id: 'f4',
+        key: 'amount',
+        label: '金额',
+        type: 'number' as const,
+      },
+      {
+        id: 'f5',
+        key: 'owner',
+        label: '负责人',
+        type: 'person' as const,
+      },
+    ];
+    expect(validateOaFormValues(fields, {}).errors).toEqual({
+      name: '请填写姓名',
+    });
+    expect(
+      validateOaFormValues(fields, {
+        name: '张三',
+        amount: '100' as unknown as number,
+        owner: 'abc',
+      }).errors,
+    ).toEqual({
+      amount: '请输入有效数字',
+      owner: '请输入有效的员工 ID',
+    });
+    expect(
+      validateOaFormValues(fields, {
+        name: '张三',
+        amount: 100,
+        owner: '101',
+      }).valid,
+    ).toBe(true);
   });
 });
