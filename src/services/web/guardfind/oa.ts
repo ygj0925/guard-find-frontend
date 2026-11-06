@@ -145,3 +145,118 @@ export function queryOaProcessReleases(id: number | string) {
     { method: 'GET' },
   );
 }
+
+export type OaFormStatus = 'DRAFT' | 'PUBLISHED' | 'DISABLED';
+
+export interface OaFormVo {
+  id: number;
+  formKey: string;
+  name: string;
+  description?: string | null;
+  status: OaFormStatus;
+  currentVersion: number;
+  currentVersionId?: number | null;
+  /** 草稿 schema；列表接口不返回 */
+  schemaJson?: string | null;
+  schemaDigest?: string | null;
+  version: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface OaFormVersionVo {
+  id: number;
+  version: number;
+  /** 版本列表不返回完整 schema */
+  schemaJson?: string | null;
+  schemaDigest: string;
+  fieldCount: number;
+  publishedBy?: number | null;
+  publishTime?: string;
+}
+
+export interface OaFormPublishResultVo {
+  valid: boolean;
+  errors: string[];
+  versionId?: number | null;
+  version?: number | null;
+  schemaDigest?: string | null;
+  fieldCount?: number | null;
+}
+
+export interface OaFormVersionOptionVo {
+  formId: number;
+  formKey: string;
+  name: string;
+  versionId: number;
+  version: number;
+  publishTime?: string;
+}
+
+export interface OaFormQuery {
+  keyword?: string;
+  status?: string;
+}
+
+export interface OaFormCreateParams {
+  formKey: string;
+  name: string;
+  description?: string;
+  schemaJson?: string;
+}
+
+export interface OaFormUpdateParams {
+  name: string;
+  description?: string;
+  schemaJson?: string;
+  version: number;
+}
+
+export function queryOaForms(params: QueryParam<OaFormQuery>) {
+  return request<R<PageResult<OaFormVo>>>('system/oa/form/page', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaForm(id: number | string) {
+  return request<R<OaFormVo>>(`system/oa/form/${id}`, { method: 'GET' });
+}
+
+export function createOaForm(data: OaFormCreateParams) {
+  return request<R<OaFormVo>>('system/oa/form', { method: 'POST', data });
+}
+
+export function updateOaForm(
+  id: number | string,
+  data: OaFormUpdateParams,
+) {
+  return request<R<OaFormVo>>(`system/oa/form/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function publishOaForm(id: number | string) {
+  return request<R<OaFormPublishResultVo>>(`system/oa/form/${id}/publish`, {
+    method: 'POST',
+  });
+}
+
+export function disableOaForm(id: number | string) {
+  return request<R<OaFormVo>>(`system/oa/form/${id}/disable`, {
+    method: 'POST',
+  });
+}
+
+export function queryOaFormVersions(id: number | string) {
+  return request<R<OaFormVersionVo[]>>(`system/oa/form/${id}/versions`, {
+    method: 'GET',
+  });
+}
+
+export function queryOaFormVersionOptions() {
+  return request<R<OaFormVersionOptionVo[]>>('system/oa/form/version-options', {
+    method: 'GET',
+  });
+}

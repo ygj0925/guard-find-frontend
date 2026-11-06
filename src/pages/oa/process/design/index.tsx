@@ -24,10 +24,10 @@ import {
   Divider,
   Form,
   Input,
-  InputNumber,
   List,
   Modal,
   message,
+  Select,
   Space,
   Spin,
   Tag,
@@ -40,8 +40,10 @@ import {
   disableOaProcessModel,
   getOaProcessModel,
   type OaBpmnValidateResultVo,
+  type OaFormVersionOptionVo,
   type OaProcessModelVo,
   publishOaProcessModel,
+  queryOaFormVersionOptions,
   updateOaProcessModel,
   validateOaProcessBpmn,
 } from '@/services/web/guardfind/oa';
@@ -125,6 +127,8 @@ const ProcessDesignPage: React.FC = () => {
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishErrors, setPublishErrors] = useState<string[]>([]);
+  const [formOptions, setFormOptions] = useState<OaFormVersionOptionVo[]>([]);
+  const [formOptionsLoading, setFormOptionsLoading] = useState(false);
   const [publishForm] = Form.useForm<PublishFormValues>();
   const [disableOpen, setDisableOpen] = useState(false);
   const [disabling, setDisabling] = useState(false);
@@ -305,10 +309,20 @@ const ProcessDesignPage: React.FC = () => {
     }
   };
 
-  const openPublish = () => {
+  const openPublish = async () => {
     publishForm.resetFields();
     setPublishErrors([]);
     setPublishOpen(true);
+    setFormOptions([]);
+    setFormOptionsLoading(true);
+    try {
+      const response = await queryOaFormVersionOptions();
+      setFormOptions(response.data || []);
+    } catch (error) {
+      message.error(`加载表单版本失败：${errorText(error)}`);
+    } finally {
+      setFormOptionsLoading(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -380,7 +394,7 @@ const ProcessDesignPage: React.FC = () => {
         type="primary"
         icon={<CloudUploadOutlined />}
         disabled={!model || !ready}
-        onClick={openPublish}
+        onClick={() => void openPublish()}
       >
         发布
       </Button>
@@ -726,14 +740,22 @@ const ProcessDesignPage: React.FC = () => {
         <Form form={publishForm} layout="vertical">
           <Form.Item
             name="formVersionId"
-            label="表单版本 ID"
-            tooltip="必填，且需属于当前租户"
-            rules={[{ required: true, message: '请填写表单版本 ID' }]}
+            label="表单版本"
+            tooltip="只能绑定当前租户已发布的表单版本"
+            rules={[{ required: true, message: '请选择表单版本' }]}
           >
-            <InputNumber
-              min={1}
-              style={{ width: '100%' }}
-              placeholder="输入已发布的表单版本 ID"
+            <Select
+              showSearch
+              optionFilterProp="label"
+              loading={formOptionsLoading}
+              placeholder="选择已发布的表单版本"
+              notFoundContent={
+                formOptionsLoading ? '加载中…' : '暂无已发布的表单版本'
+              }
+              options={formOptions.map((item) => ({
+                value: item.versionId,
+                label: `${item.name}（${item.formKey}）v${item.version}`,
+              }))}
             />
           </Form.Item>
           <Form.Item name="launchScope" label="可发起范围（可选）">

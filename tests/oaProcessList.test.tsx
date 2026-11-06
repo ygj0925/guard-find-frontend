@@ -10,6 +10,7 @@ import ProcessModelPage from '@/pages/oa/process';
 import {
   createOaProcessModel,
   publishOaProcessModel,
+  queryOaFormVersionOptions,
   queryOaProcessModels,
   queryOaProcessReleases,
 } from '@/services/web/guardfind/oa';
@@ -35,6 +36,7 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   createOaProcessModel: jest.fn(),
   disableOaProcessModel: jest.fn(),
   publishOaProcessModel: jest.fn(),
+  queryOaFormVersionOptions: jest.fn(),
   queryOaProcessModels: jest.fn(),
   queryOaProcessReleases: jest.fn(),
 }));
@@ -104,7 +106,24 @@ describe('流程模型列表页', () => {
     jest.mocked(queryOaProcessReleases).mockResolvedValue({
       data: [release],
     } as any);
+    jest.mocked(queryOaFormVersionOptions).mockResolvedValue({
+      data: [
+        {
+          formId: 9,
+          formKey: 'leave_form',
+          name: '请假单',
+          versionId: 9001,
+          version: 1,
+          publishTime: '2026-11-05 18:00:00',
+        },
+      ],
+    } as any);
   });
+
+  async function chooseFormVersion(dialog: HTMLElement) {
+    fireEvent.mouseDown(within(dialog).getByLabelText('表单版本'));
+    fireEvent.click(await screen.findByText('请假单（leave_form）v1'));
+  }
 
   it('加载并展示流程模型与发布状态', async () => {
     render(<ProcessModelPage />);
@@ -169,9 +188,7 @@ describe('流程模型列表页', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /发布/ }));
     const dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText('表单版本 ID'), {
-      target: { value: '9001' },
-    });
+    await chooseFormVersion(dialog);
     fireEvent.click(within(dialog).getByRole('button', { name: /发.?布/ }));
 
     expect(

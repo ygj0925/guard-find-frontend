@@ -10,6 +10,7 @@ import {
   disableOaProcessModel,
   getOaProcessModel,
   publishOaProcessModel,
+  queryOaFormVersionOptions,
   updateOaProcessModel,
   validateOaProcessBpmn,
 } from '@/services/web/guardfind/oa';
@@ -40,6 +41,7 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   publishOaProcessModel: jest.fn(),
   disableOaProcessModel: jest.fn(),
   validateOaProcessBpmn: jest.fn(),
+  queryOaFormVersionOptions: jest.fn(),
 }));
 
 jest.mock('@/pages/oa/process/design/components/OaBpmnCanvas', () => {
@@ -163,6 +165,24 @@ function mockLoadedModel() {
   jest.mocked(disableOaProcessModel).mockResolvedValue({
     data: { ...model, status: 'DISABLED' },
   } as any);
+  jest.mocked(queryOaFormVersionOptions).mockResolvedValue({
+    data: [
+      {
+        formId: 9,
+        formKey: 'leave_form',
+        name: '请假单',
+        versionId: 9001,
+        version: 1,
+        publishTime: '2026-11-05 18:00:00',
+      },
+    ],
+  } as any);
+}
+
+async function chooseFormVersion(dialog: HTMLElement) {
+  const select = within(dialog).getByLabelText('表单版本');
+  fireEvent.mouseDown(select);
+  fireEvent.click(await screen.findByText('请假单（leave_form）v1'));
 }
 
 describe('流程设计页', () => {
@@ -272,9 +292,7 @@ describe('流程设计页', () => {
     fireEvent.click(screen.getByRole('button', { name: /发布/ }));
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText('表单版本 ID'), {
-      target: { value: '9001' },
-    });
+    await chooseFormVersion(dialog);
     fireEvent.click(within(dialog).getByRole('button', { name: /发.?布/ }));
 
     await waitFor(() => expect(updateOaProcessModel).toHaveBeenCalled());
@@ -305,9 +323,7 @@ describe('流程设计页', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /发布/ }));
     const dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText('表单版本 ID'), {
-      target: { value: '9001' },
-    });
+    await chooseFormVersion(dialog);
     fireEvent.click(within(dialog).getByRole('button', { name: /发.?布/ }));
 
     expect(
