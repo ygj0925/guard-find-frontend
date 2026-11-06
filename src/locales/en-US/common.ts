@@ -51,4 +51,8 @@ export default {
   'common.gender.unknown': 'Unknown',
   'common.gender.male': 'Male',
   'common.gender.female': 'Female',
+  'tabs.close.left': 'Close Left',
+  'tabs.close.right': 'Close Right',
+  'tabs.close.others': 'Close Others',
+  'tabs.refresh': 'Refresh',
 };
