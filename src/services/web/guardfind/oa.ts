@@ -421,3 +421,111 @@ export function getOaApplication(id: number | string) {
     method: 'GET',
   });
 }
+
+export interface OaTodoTaskVo {
+  applicationId: number;
+  title: string;
+  businessKey: string;
+  modelName?: string | null;
+  formName?: string | null;
+  applicantName?: string | null;
+  applicantDeptName?: string | null;
+  taskId: string;
+  taskName?: string | null;
+  taskCreateTime?: string;
+  submittedTime?: string;
+}
+
+export interface OaDoneRecordVo {
+  applicationId: number;
+  title: string;
+  businessKey: string;
+  modelName?: string | null;
+  formName?: string | null;
+  applicantName?: string | null;
+  action: string;
+  reason?: string | null;
+  taskId?: string | null;
+  operatedTime?: string;
+  applicationStatus: string;
+}
+
+export interface OaApprovalDetailVo {
+  taskId: string;
+  taskName?: string | null;
+  taskDefinitionKey?: string | null;
+  assignee?: string | null;
+  pending: boolean;
+  application: OaApplicationDetailVo;
+}
+
+export interface OaApprovalActionParams {
+  requestId: string;
+  reason?: string;
+}
+
+export interface OaApprovalActionResultVo {
+  applicationId: number;
+  status: string;
+  taskId?: string | null;
+  replayed: boolean;
+}
+
+export interface OaApprovalQuery {
+  keyword?: string;
+}
+
+export function queryOaTodoTasks(params: QueryParam<OaApprovalQuery>) {
+  return request<R<PageResult<OaTodoTaskVo>>>('system/oa/approval/todo', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function queryOaDoneRecords(params: QueryParam<OaApprovalQuery>) {
+  return request<R<PageResult<OaDoneRecordVo>>>('system/oa/approval/done', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaApprovalTask(taskId: string) {
+  return request<R<OaApprovalDetailVo>>(
+    `system/oa/approval/task/${taskId}`,
+    { method: 'GET' },
+  );
+}
+
+export function approveOaTask(
+  taskId: string,
+  data: OaApprovalActionParams,
+) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/task/${taskId}/approve`,
+    { method: 'POST', data },
+  );
+}
+
+export function rejectOaTask(taskId: string, data: OaApprovalActionParams) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/task/${taskId}/reject`,
+    { method: 'POST', data },
+  );
+}
+
+export function returnOaTask(taskId: string, data: OaApprovalActionParams) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/task/${taskId}/return`,
+    { method: 'POST', data },
+  );
+}
+
+export function withdrawOaApplication(
+  applicationId: number | string,
+  data: OaApprovalActionParams,
+) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/application/${applicationId}/withdraw`,
+    { method: 'POST', data },
+  );
+}
