@@ -3,14 +3,21 @@ import { history } from '@umijs/max';
 import TaskDetailPage from '@/pages/oa/tasks/detail';
 import {
   approveOaTask,
+  claimOaTask,
   getOaApprovalTask,
+  queryOaEmployeeOptions,
   rejectOaTask,
+  transferOaTask,
 } from '@/services/web/guardfind/oa';
 
 jest.mock('@umijs/max', () => ({
   useSearchParams: () => [
     new URLSearchParams((globalThis as any).__oaTaskSearch || ''),
   ],
+  useModel: (_key: string, selector?: (model: unknown) => unknown) =>
+    selector
+      ? selector({ initialState: { user: { id: '102', nickname: 'Bob' } } })
+      : undefined,
   history: { push: jest.fn() },
 }));
 
@@ -19,6 +26,9 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   approveOaTask: jest.fn(),
   rejectOaTask: jest.fn(),
   returnOaTask: jest.fn(),
+  claimOaTask: jest.fn(),
+  transferOaTask: jest.fn(),
+  queryOaEmployeeOptions: jest.fn(),
 }));
 
 const application = {
@@ -96,6 +106,32 @@ describe('审批任务详情页', () => {
         replayed: false,
       },
     } as any);
+    jest.mocked(claimOaTask).mockResolvedValue({
+      data: {
+        applicationId: 70,
+        status: 'RUNNING',
+        taskId: 'task-1',
+        replayed: false,
+      },
+    } as any);
+    jest.mocked(transferOaTask).mockResolvedValue({
+      data: {
+        applicationId: 70,
+        status: 'RUNNING',
+        taskId: 'task-1',
+        replayed: false,
+      },
+    } as any);
+    jest.mocked(queryOaEmployeeOptions).mockResolvedValue({
+      data: [
+        {
+          userId: 103,
+          nickname: 'Carol',
+          username: 'carol',
+          employeeNo: 'E003',
+        },
+      ],
+    } as any);
   });
 
   it('展示申请快照并通过任务', async () => {
@@ -152,5 +188,60 @@ describe('审批任务详情页', () => {
     expect(await screen.findByText('该任务已处理')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^通过$/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^驳回$/ })).toBeNull();
+  });
+
+  it('候选任务可领取', async () => {
+    jest.mocked(getOaApprovalTask).mockResolvedValue({
+      data: { ...pendingDetail, assignee: null },
+    } as any);
+    render(<TaskDetailPage />);
+    await screen.findByText('差旅报销');
+
+    fireEvent.click(screen.getByRole('button', { name: /领取任务/ }));
+
+    await waitFor(() =>
+      expect(claimOaTask).toHaveBeenCalledWith(
+        'task-1',
+        expect.objectContaining({ requestId: expect.any(String) }),
+      ),
+    );
+    expect(screen.queryByRole('button', { name: /转交/ })).toBeNull();
+  });
+
+  it('代理任务提示代处理且不可转交', async () => {
+    jest.mocked(getOaApprovalTask).mockResolvedValue({
+      data: {
+        ...pendingDetail,
+        assignee: '104',
+        proxyForId: 104,
+        proxyForName: 'David',
+      },
+    } as any);
+    render(<TaskDetailPage />);
+
+    expect(await screen.findByText('你正在代 David 处理该任务')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /转交/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /领取任务/ })).toBeNull();
+  });
+
+  it('已领取任务可转交', async () => {
+    render(<TaskDetailPage />);
+    await screen.findByText('差旅报销');
+
+    fireEvent.click(screen.getByRole('button', { name: /转交/ }));
+    expect(await screen.findByText('转交任务')).toBeTruthy();
+    await waitFor(() => expect(queryOaEmployeeOptions).toHaveBeenCalled());
+
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(await screen.findByText('Carol（E003）'));
+    fireEvent.click(screen.getByRole('button', { name: '确认转交' }));
+
+    await waitFor(() =>
+      expect(transferOaTask).toHaveBeenCalledWith(
+        'task-1',
+        expect.objectContaining({ targetUserId: 103 }),
+      ),
+    );
+    await waitFor(() => expect(history.push).toHaveBeenCalledWith('/oa/tasks'));
   });
 });

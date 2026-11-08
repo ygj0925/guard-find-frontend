@@ -1,6 +1,6 @@
 /**
  * 员工档案：后台账号 + 部门只读，维护工号、直属主管、岗位与在职状态。
- * 直属主管必须是在职员工且不能形成环路；离职不会自动转交存量待办。
+ * 直属主管必须是在职员工且不能形成环路；离职时自动转交待办给主管，也可手动转交。
  */
 import { PlusOutlined } from '@ant-design/icons';
 import {
@@ -27,6 +27,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import {
   createOaEmployee,
+  handoverOaEmployee,
   type OaEmployeeOptionVo,
   type OaEmployeeVo,
   type OaPositionOptionVo,
@@ -68,6 +69,15 @@ const EmployeePage: React.FC = () => {
   const [employees, setEmployees] = useState<OaEmployeeOptionVo[]>([]);
   const [positions, setPositions] = useState<OaPositionOptionVo[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
+  const [handoverRecord, setHandoverRecord] = useState<OaEmployeeVo | null>(
+    null,
+  );
+  const [handoverTarget, setHandoverTarget] = useState<number | null>(null);
+  const [handoverReason, setHandoverReason] = useState('');
+  const [handoverSaving, setHandoverSaving] = useState(false);
+  const [handoverEmployees, setHandoverEmployees] = useState<
+    OaEmployeeOptionVo[]
+  >([]);
 
   const loadOptions = async (record?: OaEmployeeVo | null) => {
     setOptionsLoading(true);
@@ -151,6 +161,36 @@ const EmployeePage: React.FC = () => {
     }
   };
 
+  const openHandover = async (record: OaEmployeeVo) => {
+    setHandoverRecord(record);
+    setHandoverTarget(null);
+    setHandoverReason('');
+    try {
+      const response = await queryOaEmployeeOptions();
+      setHandoverEmployees(response.data ?? []);
+    } catch (error) {
+      message.error(errorText(error));
+    }
+  };
+
+  const submitHandover = async () => {
+    if (!handoverRecord || !handoverTarget || handoverSaving) return;
+    setHandoverSaving(true);
+    try {
+      const response = await handoverOaEmployee(handoverRecord.id, {
+        targetUserId: handoverTarget,
+        reason: handoverReason.trim() || undefined,
+      });
+      message.success(`已转交 ${response.data.transferred} 个待办任务`);
+      setHandoverRecord(null);
+      actionRef.current?.reload();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setHandoverSaving(false);
+    }
+  };
+
   const columns: ProColumns<OaEmployeeVo>[] = [
     {
       title: '员工',
@@ -216,11 +256,20 @@ const EmployeePage: React.FC = () => {
       key: 'action',
       search: false,
       render: (_, record) => (
-        <AccessControl permission="system:oa:employee:update">
-          <Button type="link" onClick={() => openEdit(record)}>
-            编辑
-          </Button>
-        </AccessControl>
+        <Space size={0}>
+          <AccessControl permission="system:oa:employee:update">
+            <Button type="link" onClick={() => openEdit(record)}>
+              编辑
+            </Button>
+          </AccessControl>
+          {record.employmentStatus === 'RESIGNED' ? (
+            <AccessControl permission="system:oa:employee:transfer">
+              <Button type="link" onClick={() => void openHandover(record)}>
+                转交待办
+              </Button>
+            </AccessControl>
+          ) : null}
+        </Space>
       ),
     },
   ];
@@ -358,6 +407,51 @@ const EmployeePage: React.FC = () => {
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`转交待办：${handoverRecord?.nickname ?? ''}`}
+        open={Boolean(handoverRecord)}
+        okText="确认转交"
+        cancelText="取消"
+        okButtonProps={{ disabled: !handoverTarget }}
+        confirmLoading={handoverSaving}
+        onOk={() => void submitHandover()}
+        onCancel={() => {
+          if (!handoverSaving) setHandoverRecord(null);
+        }}
+        destroyOnHidden
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <span style={{ color: 'rgba(0,0,0,0.45)' }}>
+            该员工名下进行中与候选的审批任务将全部转给目标处理人，轨迹保留原处理人。
+          </span>
+          <Select
+            showSearch
+            optionFilterProp="label"
+            placeholder="选择本租户在职员工"
+            value={handoverTarget ?? undefined}
+            onChange={(value) => setHandoverTarget(value)}
+            style={{ width: '100%' }}
+            options={handoverEmployees
+              .filter((employee) => employee.userId !== handoverRecord?.userId)
+              .map((employee) => ({
+                value: employee.userId,
+                label: employee.employeeNo
+                  ? `${employee.nickname}（${employee.employeeNo}）`
+                  : employee.nickname,
+              }))}
+          />
+          <Input.TextArea
+            aria-label="转交原因"
+            rows={3}
+            maxLength={500}
+            showCount
+            placeholder="转交原因（可选）"
+            value={handoverReason}
+            onChange={(event) => setHandoverReason(event.target.value)}
+          />
+        </Space>
       </Modal>
     </PageContainer>
   );

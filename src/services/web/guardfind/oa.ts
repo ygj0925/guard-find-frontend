@@ -434,6 +434,9 @@ export interface OaTodoTaskVo {
   taskName?: string | null;
   taskCreateTime?: string;
   submittedTime?: string;
+  /** 代理处理时记录委托人 */
+  proxyForId?: number | null;
+  proxyForName?: string | null;
 }
 
 export interface OaDoneRecordVo {
@@ -457,6 +460,8 @@ export interface OaApprovalDetailVo {
   assignee?: string | null;
   pending: boolean;
   application: OaApplicationDetailVo;
+  proxyForId?: number | null;
+  proxyForName?: string | null;
 }
 
 export interface OaApprovalActionParams {
@@ -518,6 +523,69 @@ export function returnOaTask(taskId: string, data: OaApprovalActionParams) {
     `system/oa/approval/task/${taskId}/return`,
     { method: 'POST', data },
   );
+}
+
+export function claimOaTask(taskId: string, data: OaApprovalActionParams) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/task/${taskId}/claim`,
+    { method: 'POST', data },
+  );
+}
+
+export interface OaTaskTransferParams {
+  requestId: string;
+  targetUserId: number;
+  reason?: string;
+}
+
+export function transferOaTask(
+  taskId: string,
+  data: OaTaskTransferParams,
+) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/task/${taskId}/transfer`,
+    { method: 'POST', data },
+  );
+}
+
+export interface OaDelegateRuleVo {
+  id: number;
+  delegatorId: number;
+  delegatorName?: string | null;
+  delegateId: number;
+  delegateName?: string | null;
+  startTime: string;
+  endTime: string;
+  status: string;
+  reason?: string | null;
+  active: boolean;
+  createTime?: string;
+}
+
+export interface OaDelegateRuleCreateParams {
+  delegateId: number;
+  startTime: string;
+  endTime: string;
+  reason?: string;
+}
+
+export function queryOaDelegateRules() {
+  return request<R<OaDelegateRuleVo[]>>('system/oa/approval/delegate', {
+    method: 'GET',
+  });
+}
+
+export function createOaDelegateRule(data: OaDelegateRuleCreateParams) {
+  return request<R<OaDelegateRuleVo>>('system/oa/approval/delegate', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function deleteOaDelegateRule(id: number | string) {
+  return request<R<null>>(`system/oa/approval/delegate/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 export function withdrawOaApplication(
@@ -622,6 +690,25 @@ export function updateOaEmployee(
     method: 'PUT',
     data,
   });
+}
+
+export interface OaEmployeeHandoverParams {
+  targetUserId: number;
+  reason?: string;
+}
+
+export interface OaHandoverResultVo {
+  transferred: number;
+}
+
+export function handoverOaEmployee(
+  id: number | string,
+  data: OaEmployeeHandoverParams,
+) {
+  return request<R<OaHandoverResultVo>>(
+    `system/oa/staff/employee/${id}/handover`,
+    { method: 'POST', data },
+  );
 }
 
 export function queryOaEmployeeOptions(params?: { keyword?: string }) {

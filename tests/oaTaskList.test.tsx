@@ -10,9 +10,24 @@ jest.mock('@umijs/max', () => ({
   history: { push: jest.fn() },
 }));
 
+jest.mock('umi', () => ({
+  useModel: (_key: string, selector?: (model: unknown) => unknown) =>
+    selector
+      ? selector({
+          initialState: {
+            user: { id: '102', nickname: 'Bob', permissions: ['*:*:*'] },
+          },
+        })
+      : undefined,
+}));
+
 jest.mock('@/services/web/guardfind/oa', () => ({
   queryOaTodoTasks: jest.fn(),
   queryOaDoneRecords: jest.fn(),
+  queryOaDelegateRules: jest.fn(),
+  queryOaEmployeeOptions: jest.fn(),
+  createOaDelegateRule: jest.fn(),
+  deleteOaDelegateRule: jest.fn(),
 }));
 
 const todo = {
@@ -74,6 +89,37 @@ describe('审批中心列表页', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /处理/ }));
     expect(history.push).toHaveBeenCalledWith('/oa/tasks/detail?taskId=task-1');
+  });
+
+  it('代理任务展示委托人标签', async () => {
+    jest.mocked(queryOaTodoTasks).mockResolvedValue({
+      data: {
+        list: [{ ...todo, proxyForId: 102, proxyForName: 'Bob' }],
+        total: 1,
+      },
+    } as any);
+    render(<TaskListPage />);
+
+    expect(await screen.findByText('代 Bob')).toBeTruthy();
+  });
+
+  it('已办展示领取与转交动作', async () => {
+    jest.mocked(queryOaDoneRecords).mockResolvedValue({
+      data: {
+        list: [
+          { ...done, action: 'CLAIM', taskId: 'task-3' },
+          { ...done, action: 'TRANSFER', taskId: 'task-4' },
+        ],
+        total: 2,
+      },
+    } as any);
+    render(<TaskListPage />);
+    await screen.findByText('差旅报销');
+
+    fireEvent.click(screen.getByRole('tab', { name: '已办' }));
+
+    expect(await screen.findByText('领取任务')).toBeTruthy();
+    expect(screen.getByText('转交任务')).toBeTruthy();
   });
 
   it('切换到已办并展示动作与意见', async () => {

@@ -2,12 +2,14 @@
  * 审批任务详情：展示申请快照与轨迹，待办任务可提交通过、驳回或退回上一人工节点。
  */
 import {
+  CheckCircleOutlined,
   CheckOutlined,
   CloseOutlined,
   RollbackOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
-import { history, useSearchParams } from '@umijs/max';
+import { history, useModel, useSearchParams } from '@umijs/max';
 import {
   Alert,
   Button,
@@ -15,18 +17,23 @@ import {
   Input,
   Modal,
   message,
+  Select,
   Space,
   Spin,
   Typography,
 } from 'antd';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   approveOaTask,
+  claimOaTask,
   getOaApprovalTask,
   type OaApprovalActionParams,
   type OaApprovalDetailVo,
+  type OaEmployeeOptionVo,
+  queryOaEmployeeOptions,
   rejectOaTask,
   returnOaTask,
+  transferOaTask,
 } from '@/services/web/guardfind/oa';
 import { buildOaRequestId } from '@/utils/oaLaunch';
 import {
@@ -75,35 +82,90 @@ function errorText(error: unknown) {
 const TaskDetailPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
+  const currentUser = useModel(
+    '@@initialState',
+    (model) => model.initialState?.user,
+  );
   const [detail, setDetail] = useState<OaApprovalDetailVo | null>(null);
   const [loading, setLoading] = useState(Boolean(taskId));
   const [loadError, setLoadError] = useState<string | null>(null);
   const [action, setAction] = useState<ActionState | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferSaving, setTransferSaving] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<number | null>(null);
+  const [transferReason, setTransferReason] = useState('');
+  const [transferRequestId, setTransferRequestId] = useState('');
+  const [employees, setEmployees] = useState<OaEmployeeOptionVo[]>([]);
 
-  useEffect(() => {
+  const loadDetail = useCallback(async () => {
     if (!taskId) {
       setLoading(false);
       setLoadError('缺少任务 ID，请从审批中心进入');
       return;
     }
-    let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    getOaApprovalTask(taskId)
-      .then((response) => {
-        if (!cancelled) setDetail(response.data);
-      })
-      .catch((error) => {
-        if (!cancelled) setLoadError(errorText(error));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const response = await getOaApprovalTask(taskId);
+      setDetail(response.data);
+    } catch (error) {
+      setLoadError(errorText(error));
+    } finally {
+      setLoading(false);
+    }
   }, [taskId]);
+
+  useEffect(() => {
+    void loadDetail();
+  }, [loadDetail]);
+
+  const claim = async () => {
+    if (!taskId || claiming) return;
+    setClaiming(true);
+    try {
+      await claimOaTask(taskId, { requestId: buildOaRequestId() });
+      message.success('任务已领取');
+      await loadDetail();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const openTransfer = async () => {
+    setTransferTarget(null);
+    setTransferReason('');
+    setTransferRequestId(buildOaRequestId());
+    setTransferOpen(true);
+    try {
+      const response = await queryOaEmployeeOptions();
+      setEmployees(response.data ?? []);
+    } catch (error) {
+      message.error(errorText(error));
+    }
+  };
+
+  const submitTransfer = async () => {
+    if (!taskId || !transferTarget || transferSaving) return;
+    setTransferSaving(true);
+    try {
+      await transferOaTask(taskId, {
+        requestId: transferRequestId,
+        targetUserId: transferTarget,
+        reason: transferReason.trim() || undefined,
+      });
+      message.success('任务已转交');
+      setTransferOpen(false);
+      history.push('/oa/tasks');
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setTransferSaving(false);
+    }
+  };
 
   const openAction = (type: ActionType) => {
     setAction({ type, reason: '', requestId: buildOaRequestId() });
@@ -148,6 +210,20 @@ const TaskDetailPage: React.FC = () => {
   };
 
   const application = detail?.application;
+  const isDirectAssignee = Boolean(
+    detail?.assignee && String(currentUser?.id) === detail.assignee,
+  );
+  const canClaim = Boolean(
+    detail?.pending && !detail.assignee && !detail.proxyForId,
+  );
+  const transferOptions = employees
+    .filter((employee) => String(employee.userId) !== String(currentUser?.id))
+    .map((employee) => ({
+      value: employee.userId,
+      label: employee.employeeNo
+        ? `${employee.nickname}（${employee.employeeNo}）`
+        : employee.nickname,
+    }));
 
   return (
     <PageContainer
@@ -180,10 +256,28 @@ const TaskDetailPage: React.FC = () => {
             {detail.pending ? (
               <Card size="small" title="审批操作">
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                  {detail.proxyForName ? (
+                    <Alert
+                      type="info"
+                      showIcon
+                      message={`你正在代 ${detail.proxyForName} 处理该任务`}
+                      description="审批轨迹会同时记录代理人与委托人。"
+                    />
+                  ) : null}
                   <Typography.Text type="secondary">
                     通过后进入下一节点；驳回将终止流程；退回仅支持上一人工节点，并行流程暂不支持。
+                    {canClaim ? ' 当前任务为候选任务，建议先领取再处理。' : ''}
                   </Typography.Text>
                   <Space wrap>
+                    {canClaim ? (
+                      <Button
+                        icon={<CheckCircleOutlined />}
+                        loading={claiming}
+                        onClick={() => void claim()}
+                      >
+                        领取任务
+                      </Button>
+                    ) : null}
                     <Button
                       type="primary"
                       icon={<CheckOutlined />}
@@ -204,6 +298,14 @@ const TaskDetailPage: React.FC = () => {
                     >
                       退回上一节点
                     </Button>
+                    {isDirectAssignee ? (
+                      <Button
+                        icon={<SwapOutlined />}
+                        onClick={() => void openTransfer()}
+                      >
+                        转交
+                      </Button>
+                    ) : null}
                   </Space>
                 </Space>
               </Card>
@@ -255,6 +357,44 @@ const TaskDetailPage: React.FC = () => {
                 current ? { ...current, reason: event.target.value } : current,
               )
             }
+          />
+        </Space>
+      </Modal>
+
+      <Modal
+        title="转交任务"
+        open={transferOpen}
+        okText="确认转交"
+        cancelText="取消"
+        okButtonProps={{ disabled: !transferTarget }}
+        confirmLoading={transferSaving}
+        onOk={() => void submitTransfer()}
+        onCancel={() => {
+          if (!transferSaving) setTransferOpen(false);
+        }}
+        destroyOnHidden
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            转交后由目标处理人继续审批，你将不再看到该任务，轨迹中保留原处理人。
+          </Typography.Text>
+          <Select
+            showSearch
+            optionFilterProp="label"
+            placeholder="选择本租户在职员工"
+            value={transferTarget ?? undefined}
+            onChange={(value) => setTransferTarget(value)}
+            options={transferOptions}
+            style={{ width: '100%' }}
+          />
+          <Input.TextArea
+            aria-label="转交原因"
+            rows={3}
+            maxLength={500}
+            showCount
+            placeholder="转交原因（可选）"
+            value={transferReason}
+            onChange={(event) => setTransferReason(event.target.value)}
           />
         </Space>
       </Modal>

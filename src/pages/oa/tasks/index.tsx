@@ -1,7 +1,11 @@
 /**
  * 审批中心：待办与已办只展示当前处理人的任务，动作在详情页提交。
  */
-import { CheckSquareOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import {
+  CheckSquareOutlined,
+  SettingOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 import {
   PageContainer,
   type ProColumns,
@@ -9,7 +13,8 @@ import {
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { Button, Space, Tabs, Tag, Typography } from 'antd';
-import React from 'react';
+import React, { useState } from 'react';
+import AccessControl from '@/components/AccessControl';
 import {
   type OaDoneRecordVo,
   type OaTodoTaskVo,
@@ -17,6 +22,7 @@ import {
   queryOaTodoTasks,
 } from '@/services/web/guardfind/oa';
 import { APPLICATION_STATUS_META } from '../application/components/ApplicationStatus';
+import DelegateRulesModal from './components/DelegateRulesModal';
 
 function errorText(error: unknown) {
   return error instanceof Error ? error.message : '操作失败';
@@ -26,6 +32,8 @@ const DONE_ACTION_META: Record<string, { text: string; color: string }> = {
   APPROVE: { text: '审批通过', color: 'green' },
   REJECT: { text: '驳回', color: 'red' },
   RETURN: { text: '退回上一节点', color: 'orange' },
+  CLAIM: { text: '领取任务', color: 'blue' },
+  TRANSFER: { text: '转交任务', color: 'purple' },
 };
 
 function doneActionTag(action: string) {
@@ -84,9 +92,16 @@ const todoColumns: ProColumns<OaTodoTaskVo>[] = [
   {
     title: '当前节点',
     dataIndex: 'taskName',
-    width: 140,
+    width: 180,
     hideInSearch: true,
-    render: (_, record) => record.taskName || '—',
+    render: (_, record) => (
+      <Space size={4} wrap>
+        <span>{record.taskName || '—'}</span>
+        {record.proxyForName ? (
+          <Tag color="purple">代 {record.proxyForName}</Tag>
+        ) : null}
+      </Space>
+    ),
   },
   {
     title: '到达时间',
@@ -210,110 +225,128 @@ const doneColumns: ProColumns<OaDoneRecordVo>[] = [
   },
 ];
 
-const TaskListPage: React.FC = () => (
-  <PageContainer
-    header={{
-      title: '审批中心',
-      subTitle: '只展示当前处理人的待办与已办',
-    }}
-  >
-    <Tabs
-      items={[
-        {
-          key: 'todo',
-          label: '待办',
-          children: (
-            <ProTable<OaTodoTaskVo>
-              rowKey="taskId"
-              columns={todoColumns}
-              search={{ labelWidth: 'auto' }}
-              options={false}
-              scroll={{ x: 1100 }}
-              request={async (params) => {
-                try {
-                  const response = await queryOaTodoTasks({
-                    keyword: params.keyword?.trim() || undefined,
-                    page: params.current ?? 1,
-                    size: params.pageSize ?? 20,
-                  });
-                  return {
-                    data: response.data?.list ?? [],
-                    total: response.data?.total ?? 0,
-                    success: true,
-                  };
-                } catch (error) {
-                  return {
-                    data: [],
-                    total: 0,
-                    success: false,
-                    errorMessage: errorText(error),
-                  };
+const TaskListPage: React.FC = () => {
+  const [delegateOpen, setDelegateOpen] = useState(false);
+
+  return (
+    <PageContainer
+      header={{
+        title: '审批中心',
+        subTitle: '只展示当前处理人的待办与已办',
+        extra: (
+          <AccessControl permission="system:oa:delegate:manage">
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => setDelegateOpen(true)}
+            >
+              限时代理
+            </Button>
+          </AccessControl>
+        ),
+      }}
+    >
+      <Tabs
+        items={[
+          {
+            key: 'todo',
+            label: '待办',
+            children: (
+              <ProTable<OaTodoTaskVo>
+                rowKey="taskId"
+                columns={todoColumns}
+                search={{ labelWidth: 'auto' }}
+                options={false}
+                scroll={{ x: 1100 }}
+                request={async (params) => {
+                  try {
+                    const response = await queryOaTodoTasks({
+                      keyword: params.keyword?.trim() || undefined,
+                      page: params.current ?? 1,
+                      size: params.pageSize ?? 20,
+                    });
+                    return {
+                      data: response.data?.list ?? [],
+                      total: response.data?.total ?? 0,
+                      success: true,
+                    };
+                  } catch (error) {
+                    return {
+                      data: [],
+                      total: 0,
+                      success: false,
+                      errorMessage: errorText(error),
+                    };
+                  }
+                }}
+                pagination={{ defaultPageSize: 20, showSizeChanger: true }}
+                locale={{
+                  emptyText: (
+                    <Space direction="vertical" align="center">
+                      <CheckSquareOutlined style={{ fontSize: 28 }} />
+                      <Typography.Text type="secondary">
+                        当前没有待审批任务
+                      </Typography.Text>
+                    </Space>
+                  ),
+                }}
+              />
+            ),
+          },
+          {
+            key: 'done',
+            label: '已办',
+            children: (
+              <ProTable<OaDoneRecordVo>
+                rowKey={(record) =>
+                  `${record.taskId ?? record.applicationId}-${record.operatedTime ?? ''}`
                 }
-              }}
-              pagination={{ defaultPageSize: 20, showSizeChanger: true }}
-              locale={{
-                emptyText: (
-                  <Space direction="vertical" align="center">
-                    <CheckSquareOutlined style={{ fontSize: 28 }} />
-                    <Typography.Text type="secondary">
-                      当前没有待审批任务
-                    </Typography.Text>
-                  </Space>
-                ),
-              }}
-            />
-          ),
-        },
-        {
-          key: 'done',
-          label: '已办',
-          children: (
-            <ProTable<OaDoneRecordVo>
-              rowKey={(record) =>
-                `${record.taskId ?? record.applicationId}-${record.operatedTime ?? ''}`
-              }
-              columns={doneColumns}
-              search={{ labelWidth: 'auto' }}
-              options={false}
-              scroll={{ x: 1200 }}
-              request={async (params) => {
-                try {
-                  const response = await queryOaDoneRecords({
-                    keyword: params.keyword?.trim() || undefined,
-                    page: params.current ?? 1,
-                    size: params.pageSize ?? 20,
-                  });
-                  return {
-                    data: response.data?.list ?? [],
-                    total: response.data?.total ?? 0,
-                    success: true,
-                  };
-                } catch (error) {
-                  return {
-                    data: [],
-                    total: 0,
-                    success: false,
-                    errorMessage: errorText(error),
-                  };
-                }
-              }}
-              pagination={{ defaultPageSize: 20, showSizeChanger: true }}
-              locale={{
-                emptyText: (
-                  <Space direction="vertical" align="center">
-                    <UnorderedListOutlined style={{ fontSize: 28 }} />
-                    <Typography.Text type="secondary">
-                      还没有处理过审批任务
-                    </Typography.Text>
-                  </Space>
-                ),
-              }}
-            />
-          ),
-        },
-      ]}
-    />
-  </PageContainer>
-);
+                columns={doneColumns}
+                search={{ labelWidth: 'auto' }}
+                options={false}
+                scroll={{ x: 1200 }}
+                request={async (params) => {
+                  try {
+                    const response = await queryOaDoneRecords({
+                      keyword: params.keyword?.trim() || undefined,
+                      page: params.current ?? 1,
+                      size: params.pageSize ?? 20,
+                    });
+                    return {
+                      data: response.data?.list ?? [],
+                      total: response.data?.total ?? 0,
+                      success: true,
+                    };
+                  } catch (error) {
+                    return {
+                      data: [],
+                      total: 0,
+                      success: false,
+                      errorMessage: errorText(error),
+                    };
+                  }
+                }}
+                pagination={{ defaultPageSize: 20, showSizeChanger: true }}
+                locale={{
+                  emptyText: (
+                    <Space direction="vertical" align="center">
+                      <UnorderedListOutlined style={{ fontSize: 28 }} />
+                      <Typography.Text type="secondary">
+                        还没有处理过审批任务
+                      </Typography.Text>
+                    </Space>
+                  ),
+                }}
+              />
+            ),
+          },
+        ]}
+      />
+      <DelegateRulesModal
+        open={delegateOpen}
+        onClose={() => setDelegateOpen(false)}
+      />
+    </PageContainer>
+  );
+};
 
 export default TaskListPage;
