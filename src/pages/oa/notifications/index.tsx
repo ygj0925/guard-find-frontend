@@ -28,6 +28,7 @@ const TYPE_META: Record<string, { text: string; color: string }> = {
   URGED: { text: '催办', color: 'volcano' },
   OVERDUE: { text: '超期', color: 'gold' },
   CC: { text: '抄送', color: 'cyan' },
+  PAID: { text: '已支付', color: 'green' },
 };
 
 function errorText(error: unknown) {

@@ -16,4 +16,8 @@ export default {
   'menu.oa.position': '岗位管理',
   'menu.oa.notifications': '通知消息',
   'menu.oa.operations': 'OA 运维',
+  'menu.oa.leave': '假期管理',
+  'menu.oa.leave.mine': '我的假期',
+  'menu.oa.expense': '报销管理',
+  'menu.oa.expense.mine': '我的报销',
 };

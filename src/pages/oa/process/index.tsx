@@ -35,6 +35,7 @@ import AccessControl from '@/components/AccessControl';
 import {
   createOaProcessModel,
   disableOaProcessModel,
+  type OaBusinessType,
   type OaFormVersionOptionVo,
   type OaProcessModelVo,
   type OaProcessReleaseVo,
@@ -50,6 +51,15 @@ const STATUS_META: Record<string, { text: string; color: string }> = {
   DRAFT: { text: '草稿', color: 'default' },
   PUBLISHED: { text: '已发布', color: 'green' },
   DISABLED: { text: '已停用', color: 'red' },
+};
+
+const OA_BUSINESS_TYPE_META: Record<
+  OaBusinessType,
+  { text: string; color: string }
+> = {
+  GENERIC: { text: '通用', color: 'default' },
+  LEAVE: { text: '请假', color: 'blue' },
+  EXPENSE: { text: '报销', color: 'gold' },
 };
 
 const RELEASE_STATUS_META: Record<string, { text: string; color: string }> = {
@@ -71,6 +81,7 @@ type CreateFormValues = {
   name: string;
   category?: string;
   description?: string;
+  businessType: OaBusinessType;
 };
 
 type PublishFormValues = {
@@ -100,6 +111,7 @@ const ProcessModelPage: React.FC = () => {
 
   const openCreate = () => {
     createForm.resetFields();
+    createForm.setFieldsValue({ businessType: 'GENERIC' });
     setCreateOpen(true);
   };
 
@@ -113,6 +125,7 @@ const ProcessModelPage: React.FC = () => {
         category: values.category?.trim() || undefined,
         description: values.description?.trim() || undefined,
         bpmnXml: defaultOaBpmnXml(values.modelKey.trim(), values.name.trim()),
+        businessType: values.businessType,
       });
       setCreateOpen(false);
       message.success('已创建流程草稿');
@@ -227,6 +240,18 @@ const ProcessModelPage: React.FC = () => {
       render: (_, record) => record.category || '—',
     },
     {
+      title: '业务类型',
+      dataIndex: 'businessType',
+      width: 100,
+      hideInSearch: true,
+      render: (_, record) => {
+        const meta =
+          OA_BUSINESS_TYPE_META[record.businessType ?? 'GENERIC'] ??
+          OA_BUSINESS_TYPE_META.GENERIC;
+        return <Tag color={meta.color}>{meta.text}</Tag>;
+      },
+    },
+    {
       title: '状态',
       dataIndex: 'status',
       width: 100,
@@ -317,7 +342,7 @@ const ProcessModelPage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 1300 }}
+        scroll={{ x: 1400 }}
         request={async (params) => {
           const { current, pageSize, ...rest } = params;
           const response = await queryOaProcessModels({
@@ -377,6 +402,20 @@ const ProcessModelPage: React.FC = () => {
             rules={[{ required: true, message: '请输入模型名称' }]}
           >
             <Input placeholder="如 请假审批" maxLength={100} />
+          </Form.Item>
+          <Form.Item
+            name="businessType"
+            label="业务类型"
+            extra="请假/报销类型发布时会校验表单必备字段，并在提交、终态时联动余额或金额规则；创建后不可修改"
+          >
+            <Select<OaBusinessType>
+              options={(
+                Object.keys(OA_BUSINESS_TYPE_META) as OaBusinessType[]
+              ).map((value) => ({
+                value,
+                label: OA_BUSINESS_TYPE_META[value].text,
+              }))}
+            />
           </Form.Item>
           <Form.Item name="category" label="分类">
             <Input placeholder="如 人事" maxLength={64} />

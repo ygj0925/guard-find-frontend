@@ -5,6 +5,8 @@ import {
   createOaDraft,
   getOaDraft,
   getOaLaunch,
+  previewOaExpense,
+  previewOaLeave,
   queryOaEmployeeOptions,
   queryOaPositionOptions,
   submitOaLaunch,
@@ -30,6 +32,8 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   getOaDraft: jest.fn(),
   createOaDraft: jest.fn(),
   updateOaDraft: jest.fn(),
+  previewOaLeave: jest.fn(),
+  previewOaExpense: jest.fn(),
 }));
 
 const schema = {
@@ -277,5 +281,145 @@ describe('发起填写页', () => {
       await screen.findByText('草稿与当前流程版本不匹配，请从草稿列表重新进入'),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: /提交并发起/ })).toBeNull();
+  });
+  it('请假流程按已填写的类型与日期预览天数和余额', async () => {
+    (globalThis as any).__oaLaunchSearch = 'releaseId=21&draftId=5';
+    const leaveSchema = {
+      version: 1,
+      fields: [
+        {
+          id: 'f_leaveType',
+          key: 'leaveType',
+          label: '假期类型',
+          type: 'radio',
+          required: true,
+          options: [{ label: '年假', value: 'ANNUAL' }],
+        },
+        {
+          id: 'f_startDate',
+          key: 'startDate',
+          label: '开始日期',
+          type: 'date',
+        },
+        { id: 'f_endDate', key: 'endDate', label: '结束日期', type: 'date' },
+      ],
+    };
+    jest.mocked(getOaLaunch).mockResolvedValue({
+      data: {
+        ...detail,
+        businessType: 'LEAVE',
+        schemaJson: JSON.stringify(leaveSchema),
+        assigneeVariables: [],
+      },
+    } as any);
+    jest.mocked(getOaDraft).mockResolvedValue({
+      data: {
+        id: '5',
+        releaseId: '21',
+        formData: {
+          leaveType: 'ANNUAL',
+          startDate: '2026-11-09',
+          endDate: '2026-11-10',
+        },
+        launchable: true,
+        version: 1,
+      },
+    } as any);
+    jest.mocked(previewOaLeave).mockResolvedValue({
+      data: {
+        days: '2.0',
+        periodYear: 2026,
+        balanceRequired: true,
+        availableDays: 5,
+        message: null,
+      },
+    } as any);
+    render(<LaunchFillPage />);
+
+    expect(
+      await screen.findByText(
+        '本次请假 2 天（按工作日历折算），2026 年度可用 5 天',
+        undefined,
+        { timeout: 2000 },
+      ),
+    ).toBeTruthy();
+    expect(previewOaLeave).toHaveBeenCalledWith({
+      leaveType: 'ANNUAL',
+      startDate: '2026-11-09',
+      endDate: '2026-11-10',
+    });
+  });
+
+  it('非请假流程不调用请假预览', async () => {
+    render(<LaunchFillPage />);
+    await screen.findByText('发起：请假审批');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(previewOaLeave).not.toHaveBeenCalled();
+    expect(previewOaExpense).not.toHaveBeenCalled();
+  });
+
+  it('报销流程按已填写的明细预览合计金额', async () => {
+    (globalThis as any).__oaLaunchSearch = 'releaseId=21&draftId=6';
+    const expenseSchema = {
+      version: 1,
+      fields: [
+        {
+          id: 'f_items',
+          key: 'expenseItems',
+          label: '报销明细',
+          type: 'table',
+          maxRows: 50,
+          columns: [
+            {
+              key: 'category',
+              label: '费用类型',
+              type: 'radio',
+              required: true,
+              options: [{ label: '交通费', value: 'TRAFFIC' }],
+            },
+            { key: 'amount', label: '金额', type: 'number', required: true },
+            { key: 'expenseDate', label: '发生日期', type: 'date' },
+          ],
+        },
+      ],
+    };
+    jest.mocked(getOaLaunch).mockResolvedValue({
+      data: {
+        ...detail,
+        businessType: 'EXPENSE',
+        schemaJson: JSON.stringify(expenseSchema),
+        assigneeVariables: [],
+      },
+    } as any);
+    jest.mocked(getOaDraft).mockResolvedValue({
+      data: {
+        id: '6',
+        releaseId: '21',
+        formData: {
+          expenseItems: [
+            { category: 'TRAFFIC', amount: 32.5, expenseDate: '2026-11-02' },
+          ],
+        },
+        launchable: true,
+        version: 1,
+      },
+    } as any);
+    jest.mocked(previewOaExpense).mockResolvedValue({
+      data: { totalAmount: '32.50', itemCount: 1, message: null },
+    } as any);
+    render(<LaunchFillPage />);
+    await screen.findByLabelText('报销明细第 1 行金额');
+
+    expect(
+      await screen.findByText('报销合计 ¥32.50，共 1 行明细', undefined, {
+        timeout: 3000,
+      }),
+    ).toBeTruthy();
+    expect(previewOaExpense).toHaveBeenCalledWith({
+      expenseItems: [
+        { category: 'TRAFFIC', amount: 32.5, expenseDate: '2026-11-02' },
+      ],
+    });
+    expect(previewOaLeave).not.toHaveBeenCalled();
   });
 });

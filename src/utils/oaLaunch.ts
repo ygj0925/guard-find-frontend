@@ -5,7 +5,14 @@
 import type { UploadFile } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { OaAssigneeVariableVo } from '@/services/web/guardfind/oa';
-import { type OaFormField, oaAttachmentFileId } from '@/utils/oaForm';
+import {
+  isBlankOaTableRow,
+  OA_FORM_OPTION_TYPES,
+  type OaFormColumn,
+  type OaFormField,
+  type OaFormTableRow,
+  oaAttachmentFileId,
+} from '@/utils/oaForm';
 
 export interface OaLaunchScopeValue {
   users: number[];
@@ -140,11 +147,67 @@ export function toOaSubmitFormData(
             String,
           );
           break;
+        case 'table': {
+          const rows = toOaSubmitTableRows(field, value);
+          if (rows.length) formData[field.key] = rows;
+          break;
+        }
         default:
           formData[field.key] = value;
       }
     });
   return formData;
+}
+
+function toOaSubmitTableRows(field: OaFormField, value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const columns = field.columns ?? [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as OaFormTableRow;
+    if (isBlankOaTableRow(columns, row)) return [];
+    const cells: OaFormTableRow = {};
+    columns.forEach((column) => {
+      const cell = row[column.key];
+      if (cell === undefined || cell === null) return;
+      if (typeof cell === 'string' && !cell.trim()) return;
+      if (column.type === 'date') {
+        const date = cell as Dayjs;
+        if (typeof date?.format === 'function') {
+          cells[column.key] = date.format('YYYY-MM-DD');
+        }
+        return;
+      }
+      cells[column.key] = cell;
+    });
+    return [cells];
+  });
+}
+
+function fromOaSubmitTableRows(field: OaFormField, value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const columns = field.columns ?? [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as OaFormTableRow;
+    const cells: OaFormTableRow = {};
+    columns.forEach((column) => {
+      const cell = row[column.key];
+      if (cell === undefined || cell === null || cell === '') return;
+      if (column.type === 'date') {
+        const date = dayjs(String(cell));
+        if (date.isValid()) cells[column.key] = date;
+        return;
+      }
+      if (column.type === 'number') {
+        const amount = Number(cell);
+        if (Number.isFinite(amount)) cells[column.key] = amount;
+        return;
+      }
+      cells[column.key] = String(cell);
+    });
+    return [cells];
+  });
 }
 
 /** toOaSubmitFormData 的逆转换：把草稿里的提交值还原为渲染器的受控值。 */
@@ -192,6 +255,11 @@ export function fromOaSubmitFormData(
             String,
           );
           break;
+        case 'table': {
+          const rows = fromOaSubmitTableRows(field, value);
+          if (rows.length) values[field.key] = rows;
+          break;
+        }
         default:
           values[field.key] = value;
       }
@@ -199,8 +267,33 @@ export function fromOaSubmitFormData(
   return values;
 }
 
+/** 明细单元格的展示文本：单选列显示选项名称。 */
+export function formatOaTableCell(column: OaFormColumn, value: unknown) {
+  if (value === undefined || value === null || value === '') return '—';
+  if (column.type === 'radio') {
+    const option = column.options?.find((item) => item.value === String(value));
+    return option?.label ?? String(value);
+  }
+  return String(value);
+}
+
 export function formatOaFormValue(field: OaFormField, value: unknown) {
   if (value === undefined || value === null || value === '') return '—';
+  if (field.type === 'table' && Array.isArray(value)) {
+    if (!value.length) return '—';
+    const columns = field.columns ?? [];
+    return value
+      .map((row, index) => {
+        const cells = columns
+          .map((column) => {
+            const cell = (row as OaFormTableRow | null)?.[column.key];
+            return `${column.label}：${formatOaTableCell(column, cell)}`;
+          })
+          .join('，');
+        return `第 ${index + 1} 行 ${cells}`;
+      })
+      .join('；');
+  }
   if (field.type === 'attachment' && Array.isArray(value)) {
     const names = value.map((item) => {
       if (typeof item === 'string') return item;
@@ -211,6 +304,15 @@ export function formatOaFormValue(field: OaFormField, value: unknown) {
       return String(item);
     });
     return names.length ? names.join('、') : '—';
+  }
+  if (OA_FORM_OPTION_TYPES.has(field.type) && field.options?.length) {
+    const label = (item: unknown) =>
+      field.options?.find((option) => option.value === String(item))?.label ??
+      String(item);
+    if (Array.isArray(value)) {
+      return value.length ? value.map(label).join('、') : '—';
+    }
+    return label(value);
   }
   if (Array.isArray(value)) {
     return value.length ? value.map(String).join('、') : '—';

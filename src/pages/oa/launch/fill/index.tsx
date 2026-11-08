@@ -33,11 +33,16 @@ import {
   getOaDraft,
   getOaLaunch,
   type OaAssigneeBindingParam,
+  type OaExpensePreviewVo,
   type OaLaunchDetailVo,
   type OaLaunchSubmitResultVo,
+  type OaLeavePreviewVo,
+  previewOaExpense,
+  previewOaLeave,
   submitOaLaunch,
   updateOaDraft,
 } from '@/services/web/guardfind/oa';
+import { expensePreviewInput, formatAmount } from '@/utils/oaExpense';
 import {
   type OaFormField,
   parseOaFormSchema,
@@ -52,6 +57,7 @@ import {
   toOaSubmitFormData,
   validateAssigneeBindings,
 } from '@/utils/oaLaunch';
+import { formatDays, leavePreviewInput } from '@/utils/oaLeave';
 import OaFormRenderer from '../../form/components/OaFormRenderer';
 
 function errorText(error: unknown) {
@@ -84,6 +90,11 @@ const LaunchFillPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [requestId, setRequestId] = useState(() => buildOaRequestId());
   const [result, setResult] = useState<OaLaunchSubmitResultVo | null>(null);
+  const [leavePreview, setLeavePreview] = useState<OaLeavePreviewVo | null>(
+    null,
+  );
+  const [expensePreview, setExpensePreview] =
+    useState<OaExpensePreviewVo | null>(null);
 
   useEffect(() => {
     if (!releaseId) {
@@ -152,6 +163,61 @@ const LaunchFillPage: React.FC = () => {
   );
   const personOptions = useMemo(() => oaPersonFieldOptions(fields), [fields]);
   const variables = detail?.assigneeVariables ?? [];
+  const isLeave = detail?.businessType === 'LEAVE';
+  const previewKey = useMemo(() => {
+    if (!isLeave) return null;
+    const input = leavePreviewInput(toOaSubmitFormData(fields, values));
+    return input ? JSON.stringify(input) : null;
+  }, [isLeave, fields, values]);
+
+  useEffect(() => {
+    if (!previewKey) {
+      setLeavePreview(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      previewOaLeave(JSON.parse(previewKey))
+        .then((response) => {
+          if (!cancelled) setLeavePreview(response.data);
+        })
+        .catch(() => {
+          if (!cancelled) setLeavePreview(null);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [previewKey]);
+
+  const isExpense = detail?.businessType === 'EXPENSE';
+  const expensePreviewKey = useMemo(() => {
+    if (!isExpense) return null;
+    const input = expensePreviewInput(toOaSubmitFormData(fields, values));
+    return input ? JSON.stringify(input) : null;
+  }, [isExpense, fields, values]);
+
+  useEffect(() => {
+    if (!expensePreviewKey) {
+      setExpensePreview(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      previewOaExpense(JSON.parse(expensePreviewKey))
+        .then((response) => {
+          if (!cancelled) setExpensePreview(response.data);
+        })
+        .catch(() => {
+          if (!cancelled) setExpensePreview(null);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [expensePreviewKey]);
 
   const updateBinding = (name: string, patch: BindingValue) => {
     setBindings((current) => ({
@@ -365,6 +431,34 @@ const LaunchFillPage: React.FC = () => {
                     });
                   }}
                 />
+                {isLeave && leavePreview ? (
+                  <Alert
+                    style={{ marginTop: 12 }}
+                    showIcon
+                    role="status"
+                    type={leavePreview.message ? 'warning' : 'info'}
+                    message={
+                      leavePreview.message ??
+                      (leavePreview.balanceRequired
+                        ? `本次请假 ${formatDays(leavePreview.days)} 天（按工作日历折算），${leavePreview.periodYear} 年度可用 ${formatDays(leavePreview.availableDays)} 天`
+                        : `本次请假 ${formatDays(leavePreview.days)} 天（按工作日历折算），该类型不扣减余额`)
+                    }
+                    description="仅供参考，以提交时服务端锁定余额的结果为准；提交后进入审批即占用额度，驳回或撤回自动释放。"
+                  />
+                ) : null}
+                {isExpense && expensePreview ? (
+                  <Alert
+                    style={{ marginTop: 12 }}
+                    showIcon
+                    role="status"
+                    type={expensePreview.message ? 'warning' : 'info'}
+                    message={
+                      expensePreview.message ??
+                      `报销合计 ${formatAmount(expensePreview.totalAmount)}，共 ${expensePreview.itemCount} 行明细`
+                    }
+                    description="以提交时服务端校验的结果为准；审批通过后进入待支付，由财务登记实际支付。"
+                  />
+                ) : null}
               </Card>
 
               <Card size="small" title="审批人来源">

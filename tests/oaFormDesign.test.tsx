@@ -137,6 +137,33 @@ describe('表单设计页', () => {
     expect(saved.fields[1].options).toHaveLength(2);
   });
 
+  it('新增明细表并编辑列后保存', async () => {
+    render(<FormDesignPage />);
+    await screen.findByText(/leave_form · 草稿版本 2/);
+
+    fireEvent.click(screen.getByRole('button', { name: '添加明细表' }));
+    expect(await screen.findByText('明细列')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '添加列' }));
+    fireEvent.change(screen.getByLabelText('第 3 列名称'), {
+      target: { value: '备注' },
+    });
+    fireEvent.change(screen.getByLabelText('第 3 列 key'), {
+      target: { value: 'remark' },
+    });
+    fireEvent.click(screen.getByLabelText('第 1 列必填'));
+    fireEvent.click(screen.getByRole('button', { name: /保存草稿/ }));
+
+    await waitFor(() => expect(updateOaForm).toHaveBeenCalled());
+    const [, payload] = jest.mocked(updateOaForm).mock.calls[0];
+    const saved = JSON.parse(payload.schemaJson as string);
+    expect(saved.fields[1]).toMatchObject({ type: 'table', maxRows: 50 });
+    expect(saved.fields[1].columns).toEqual([
+      { key: 'item', label: '项目', type: 'text', required: false },
+      { key: 'amount', label: '金额', type: 'number', required: false },
+      { key: 'remark', label: '备注', type: 'text', required: false },
+    ]);
+  });
+
   it('实时预览渲染字段控件', async () => {
     render(<FormDesignPage />);
     await screen.findByText(/leave_form · 草稿版本 2/);

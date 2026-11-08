@@ -14,6 +14,7 @@ export const OA_FORM_FIELD_TYPES = [
   { type: 'checkbox', label: '多选', hint: '一组选项中选多个' },
   { type: 'attachment', label: '附件', hint: '上传证明材料' },
   { type: 'person', label: '人员', hint: '选择组织内员工' },
+  { type: 'table', label: '明细表', hint: '多行明细，如报销项目' },
 ] as const;
 
 export type OaFormFieldType = (typeof OA_FORM_FIELD_TYPES)[number]['type'];
@@ -24,12 +25,30 @@ export const OA_FORM_FIELD_TYPE_SET = new Set<string>(
 
 export const OA_FORM_OPTION_TYPES = new Set(['radio', 'checkbox']);
 
+/** 明细表列只允许基础类型，与服务端 OaFormSchemaValidator.COLUMN_TYPES 一致 */
+export const OA_FORM_COLUMN_TYPES = [
+  { type: 'text', label: '单行文本' },
+  { type: 'textarea', label: '多行文本' },
+  { type: 'number', label: '数字' },
+  { type: 'date', label: '日期' },
+  { type: 'radio', label: '单选' },
+] as const;
+
+export type OaFormColumnType = (typeof OA_FORM_COLUMN_TYPES)[number]['type'];
+
+const OA_FORM_COLUMN_TYPE_SET = new Set<string>(
+  OA_FORM_COLUMN_TYPES.map((item) => item.type),
+);
+
 export const OA_FORM_LIMITS = {
   maxBytes: 1024 * 1024,
   maxFields: 100,
   maxOptions: 50,
   /** 与服务端 OaAttachmentService.MAX_ATTACHMENT_BYTES 一致 */
   maxAttachmentBytes: 10 * 1024 * 1024,
+  maxColumns: 20,
+  maxTableRows: 200,
+  defaultTableRows: 50,
 } as const;
 
 export interface OaFormOption {
@@ -38,6 +57,18 @@ export interface OaFormOption {
   label: string;
   value: string;
 }
+
+export interface OaFormColumn {
+  /** 仅用于设计器列表渲染，不写入 schema */
+  id?: string;
+  key: string;
+  label: string;
+  type: OaFormColumnType;
+  required?: boolean;
+  options?: OaFormOption[];
+}
+
+export type OaFormTableRow = Record<string, unknown>;
 
 export interface OaFormField {
   id: string;
@@ -51,6 +82,9 @@ export interface OaFormField {
   hidden?: boolean;
   placeholder?: string;
   options?: OaFormOption[];
+  columns?: OaFormColumn[];
+  /** 明细表最多行数，缺省时服务端按 50 行限制 */
+  maxRows?: number;
 }
 
 export interface OaFormSchema {
@@ -63,6 +97,23 @@ const FIELD_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export function emptyOaFormSchema(): OaFormSchema {
   return { version: 1, fields: [] };
+}
+
+function parseOptions(options: unknown, idPrefix: string) {
+  return Array.isArray(options)
+    ? options.map((option, optionIndex) => ({
+        id: String(option?.id ?? `${idPrefix}_${optionIndex}`),
+        label: String(option?.label ?? ''),
+        value: String(option?.value ?? ''),
+      }))
+    : undefined;
+}
+
+function serializeOptions(options?: OaFormOption[]) {
+  return (options ?? []).map((option) => ({
+    label: option.label,
+    value: option.value,
+  }));
 }
 
 export function parseOaFormSchema(json?: string | null): OaFormSchema {
@@ -87,13 +138,28 @@ export function parseOaFormSchema(json?: string | null): OaFormSchema {
           placeholder: field.placeholder
             ? String(field.placeholder)
             : undefined,
-          options: Array.isArray(field.options)
-            ? field.options.map((option, optionIndex) => ({
-                id: String(option?.id ?? `opt_${fieldIndex}_${optionIndex}`),
-                label: String(option?.label ?? ''),
-                value: String(option?.value ?? ''),
-              }))
-            : undefined,
+          options: parseOptions(field.options, `opt_${fieldIndex}`),
+          ...(field.type === 'table'
+            ? {
+                columns: (Array.isArray(field.columns) ? field.columns : [])
+                  .filter((column) => column && typeof column === 'object')
+                  .map((column, columnIndex) => ({
+                    id: String(column.id ?? `col_${fieldIndex}_${columnIndex}`),
+                    key: String(column.key ?? ''),
+                    label: String(column.label ?? ''),
+                    type: (OA_FORM_COLUMN_TYPE_SET.has(String(column.type))
+                      ? column.type
+                      : 'text') as OaFormColumnType,
+                    required: Boolean(column.required),
+                    options: parseOptions(
+                      column.options,
+                      `opt_${fieldIndex}_${columnIndex}`,
+                    ),
+                  })),
+                maxRows:
+                  typeof field.maxRows === 'number' ? field.maxRows : undefined,
+              }
+            : {}),
         })),
     };
   } catch {
@@ -114,10 +180,19 @@ export function serializeOaFormSchema(schema: OaFormSchema): string {
       ...(field.hidden ? { hidden: true } : {}),
       ...(field.placeholder ? { placeholder: field.placeholder } : {}),
       ...(OA_FORM_OPTION_TYPES.has(field.type)
+        ? { options: serializeOptions(field.options) }
+        : {}),
+      ...(field.type === 'table'
         ? {
-            options: (field.options ?? []).map((option) => ({
-              label: option.label,
-              value: option.value,
+            ...(field.maxRows ? { maxRows: field.maxRows } : {}),
+            columns: (field.columns ?? []).map((column) => ({
+              key: column.key,
+              label: column.label,
+              type: column.type,
+              required: Boolean(column.required),
+              ...(column.type === 'radio'
+                ? { options: serializeOptions(column.options) }
+                : {}),
             })),
           }
         : {}),
@@ -158,7 +233,113 @@ export function createOaFormField(
           ],
         }
       : {}),
+    ...(type === 'table'
+      ? {
+          maxRows: OA_FORM_LIMITS.defaultTableRows,
+          columns: defaultTableColumns(),
+        }
+      : {}),
   };
+}
+
+function defaultTableColumns(): OaFormColumn[] {
+  return [
+    { id: 'col_1', key: 'item', label: '项目', type: 'text', required: true },
+    {
+      id: 'col_2',
+      key: 'amount',
+      label: '金额',
+      type: 'number',
+      required: false,
+    },
+  ];
+}
+
+export function createOaFormColumn(columns: OaFormColumn[]): OaFormColumn {
+  const usedKeys = new Set(columns.map((column) => column.key));
+  const usedIds = new Set(columns.map((column) => column.id));
+  let seq = columns.length + 1;
+  while (usedKeys.has(`col_${seq}`)) seq += 1;
+  let idSeq = columns.length + 1;
+  while (usedIds.has(`col_${idSeq}`)) idSeq += 1;
+  return {
+    id: `col_${idSeq}`,
+    key: `col_${seq}`,
+    label: `列${seq}`,
+    type: 'text',
+    required: false,
+  };
+}
+
+function validateOptions(
+  options: OaFormOption[] | undefined,
+  prefix: string,
+  errors: string[],
+) {
+  const items = options ?? [];
+  if (!items.length) {
+    errors.push(`${prefix}至少需要一个选项`);
+  } else if (items.length > OA_FORM_LIMITS.maxOptions) {
+    errors.push(`${prefix}的选项不能超过 ${OA_FORM_LIMITS.maxOptions} 个`);
+  }
+  const values = new Set<string>();
+  items.forEach((option, optionIndex) => {
+    const optionPrefix = `${prefix}第 ${optionIndex + 1} 个选项`;
+    if (!option.label.trim()) errors.push(`${optionPrefix}缺少 label`);
+    if (!option.value.trim()) {
+      errors.push(`${optionPrefix}缺少 value`);
+    } else if (values.has(option.value)) {
+      errors.push(`${prefix}的选项值重复: ${option.value}`);
+    } else {
+      values.add(option.value);
+    }
+  });
+}
+
+function validateColumns(field: OaFormField, prefix: string, errors: string[]) {
+  if (
+    field.maxRows !== undefined &&
+    (!Number.isInteger(field.maxRows) ||
+      field.maxRows < 1 ||
+      field.maxRows > OA_FORM_LIMITS.maxTableRows)
+  ) {
+    errors.push(
+      `${prefix}的 maxRows 必须是 1~${OA_FORM_LIMITS.maxTableRows} 的整数`,
+    );
+  }
+  const columns = field.columns ?? [];
+  if (!columns.length) {
+    errors.push(`${prefix}至少需要一列`);
+    return;
+  }
+  if (columns.length > OA_FORM_LIMITS.maxColumns) {
+    errors.push(`${prefix}的列不能超过 ${OA_FORM_LIMITS.maxColumns} 个`);
+  }
+  const keys = new Set<string>();
+  columns.forEach((column, index) => {
+    const columnPrefix = `${prefix}第 ${index + 1} 列`;
+    if (!column.key) {
+      errors.push(`${columnPrefix}缺少 key`);
+    } else if (!FIELD_KEY.test(column.key)) {
+      errors.push(
+        `${columnPrefix}的 key 只能包含字母、数字和下划线，且以字母开头: ${column.key}`,
+      );
+    } else if (keys.has(column.key)) {
+      errors.push(`${prefix}的列 key 重复: ${column.key}`);
+    } else {
+      keys.add(column.key);
+    }
+    if (!column.label.trim()) {
+      errors.push(`${columnPrefix}缺少 label`);
+    } else if (column.label.length > 100) {
+      errors.push(`${columnPrefix}的 label 不能超过 100 个字符`);
+    }
+    if (!OA_FORM_COLUMN_TYPE_SET.has(column.type)) {
+      errors.push(`${columnPrefix}的类型不支持: ${column.type || '(空)'}`);
+    } else if (column.type === 'radio') {
+      validateOptions(column.options, columnPrefix, errors);
+    }
+  });
 }
 
 export function validateOaFormSchema(
@@ -211,24 +392,10 @@ export function validateOaFormSchema(
     }
     if (!field.hidden) visibleFields += 1;
     if (OA_FORM_OPTION_TYPES.has(field.type)) {
-      const options = field.options ?? [];
-      if (!options.length) {
-        errors.push(`${prefix}至少需要一个选项`);
-      } else if (options.length > OA_FORM_LIMITS.maxOptions) {
-        errors.push(`${prefix}的选项不能超过 ${OA_FORM_LIMITS.maxOptions} 个`);
-      }
-      const values = new Set<string>();
-      options.forEach((option, optionIndex) => {
-        const optionPrefix = `${prefix}第 ${optionIndex + 1} 个选项`;
-        if (!option.label.trim()) errors.push(`${optionPrefix}缺少 label`);
-        if (!option.value.trim()) {
-          errors.push(`${optionPrefix}缺少 value`);
-        } else if (values.has(option.value)) {
-          errors.push(`${prefix}的选项值重复: ${option.value}`);
-        } else {
-          values.add(option.value);
-        }
-      });
+      validateOptions(field.options, prefix, errors);
+    }
+    if (field.type === 'table') {
+      validateColumns(field, prefix, errors);
     }
   });
   if (requireFields && schema.fields.length > 0 && visibleFields === 0) {
@@ -258,6 +425,54 @@ function isEmptyValue(value: unknown) {
   return value === undefined || value === null || String(value).trim() === '';
 }
 
+/** 整行所有列均为空的明细行，提交时丢弃，不参与校验。 */
+export function isBlankOaTableRow(
+  columns: OaFormColumn[],
+  row: unknown,
+): boolean {
+  if (!row || typeof row !== 'object') return true;
+  const cells = row as OaFormTableRow;
+  return columns.every((column) => isEmptyValue(cells[column.key]));
+}
+
+function tableError(field: OaFormField, value: unknown): string | undefined {
+  const columns = field.columns ?? [];
+  const rows = (Array.isArray(value) ? value : []).filter(
+    (row) => !isBlankOaTableRow(columns, row),
+  );
+  if (!rows.length) {
+    return field.required ? `请至少填写一行${field.label}` : undefined;
+  }
+  const maxRows = field.maxRows ?? OA_FORM_LIMITS.defaultTableRows;
+  if (rows.length > maxRows) return `${field.label}不能超过 ${maxRows} 行`;
+  for (let index = 0; index < rows.length; index += 1) {
+    const cells = rows[index] as OaFormTableRow;
+    for (const column of columns) {
+      const prefix = `第 ${index + 1} 行`;
+      const cell = cells[column.key];
+      if (isEmptyValue(cell)) {
+        if (column.required) {
+          return `${prefix}${column.type === 'radio' ? '请选择' : '请填写'}${column.label}`;
+        }
+        continue;
+      }
+      if (
+        column.type === 'number' &&
+        (typeof cell !== 'number' || !Number.isFinite(cell))
+      ) {
+        return `${prefix}${column.label}请输入有效数字`;
+      }
+      if (
+        column.type === 'radio' &&
+        !(column.options ?? []).some((option) => option.value === cell)
+      ) {
+        return `${prefix}${column.label}请选择有效选项`;
+      }
+    }
+  }
+  return undefined;
+}
+
 /**
  * 填写校验只覆盖当前可见字段；只读字段由系统带入，不要求填写人补齐。
  * 提交与实例落库在 10.1 接入，本函数只做前端校验。
@@ -272,6 +487,11 @@ export function validateOaFormValues(
     .forEach((field) => {
       if (field.readonly) return;
       const value = values[field.key];
+      if (field.type === 'table') {
+        const error = tableError(field, value);
+        if (error) errors[field.key] = error;
+        return;
+      }
       if (field.required && isEmptyValue(value)) {
         errors[field.key] =
           field.type === 'checkbox' || field.type === 'attachment'

@@ -7,7 +7,7 @@ export const APPLICATION_STATUS_META: Record<
   RUNNING: { text: '审批中', color: 'processing' },
   APPROVED: { text: '已通过', color: 'green' },
   REJECTED: { text: '已驳回', color: 'red' },
-  CANCELED: { text: '已撤销', color: 'default' },
+  CANCELLED: { text: '已终止', color: 'default' },
   WITHDRAWN: { text: '已撤回', color: 'default' },
 };
 

@@ -6,6 +6,7 @@ import {
   FontSizeOutlined,
   NumberOutlined,
   PaperClipOutlined,
+  TableOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { Card, Tooltip } from 'antd';
@@ -21,6 +22,7 @@ const TYPE_ICONS: Record<OaFormFieldType, React.ReactNode> = {
   checkbox: <CheckSquareOutlined />,
   attachment: <PaperClipOutlined />,
   person: <UserOutlined />,
+  table: <TableOutlined />,
 };
 
 interface OaFormPaletteProps {

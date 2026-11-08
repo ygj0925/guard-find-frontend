@@ -4,6 +4,8 @@ import type { FileUploadResp } from '../file/typings';
 
 export type OaProcessStatus = 'DRAFT' | 'PUBLISHED' | 'DISABLED';
 
+export type OaBusinessType = 'GENERIC' | 'LEAVE' | 'EXPENSE';
+
 export interface OaProcessModelVo {
   id: number;
   modelKey: string;
@@ -21,6 +23,7 @@ export interface OaProcessModelVo {
   version: number;
   createTime?: string;
   updateTime?: string;
+  businessType?: OaBusinessType | null;
 }
 
 export interface OaProcessReleaseVo {
@@ -68,6 +71,7 @@ export interface OaProcessModelCreateParams {
   category?: string;
   description?: string;
   bpmnXml?: string;
+  businessType?: OaBusinessType;
 }
 
 export interface OaProcessModelUpdateParams {
@@ -322,6 +326,7 @@ export interface OaLaunchDetailVo extends OaLaunchItemVo {
   schemaDigest: string;
   launchable: boolean;
   assigneeVariables: OaAssigneeVariableVo[];
+  businessType?: OaBusinessType | null;
 }
 
 export interface OaAssigneeBindingParam {
@@ -1076,4 +1081,381 @@ export function urgeOaApplication(
     `system/oa/application/${id}/urge`,
     { method: 'POST', data },
   );
+}
+
+/** 后端 BigDecimal 可能序列化为字符串，展示和计算前统一转 number */
+export type OaDecimal = number | string;
+
+export type OaLeaveTypeStatus = 'ENABLED' | 'DISABLED';
+
+export interface OaLeaveTypeVo {
+  id: number;
+  code: string;
+  name: string;
+  balanceRequired: boolean;
+  maxDaysPerRequest?: OaDecimal | null;
+  status: OaLeaveTypeStatus;
+  sort: number;
+  remark?: string | null;
+  version: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface OaLeaveTypeParams {
+  code?: string;
+  name: string;
+  balanceRequired: boolean;
+  maxDaysPerRequest?: number | null;
+  status?: OaLeaveTypeStatus;
+  sort?: number;
+  remark?: string;
+  version?: number;
+}
+
+export type OaWorkDayType = 'WORKDAY' | 'HOLIDAY';
+
+export interface OaWorkCalendarVo {
+  id: number;
+  calendarDate: string;
+  dayType: OaWorkDayType;
+  name?: string | null;
+}
+
+export interface OaLeaveBalanceVo {
+  id: number;
+  userId: number;
+  userName?: string | null;
+  leaveTypeId: number;
+  leaveTypeCode: string;
+  leaveTypeName: string;
+  periodYear: number;
+  totalDays: OaDecimal;
+  usedDays: OaDecimal;
+  occupiedDays: OaDecimal;
+  availableDays: OaDecimal;
+  updateTime?: string;
+}
+
+export interface OaLeaveBalanceQuery {
+  year?: number;
+  keyword?: string;
+  userId?: number;
+}
+
+export interface OaLeaveGrantParams {
+  userId: string;
+  leaveTypeId: number;
+  periodYear: number;
+  days: number;
+  remark?: string;
+}
+
+export interface OaLeaveLedgerVo {
+  id: number;
+  balanceId: number;
+  applicationId?: number | null;
+  action: 'GRANT' | 'OCCUPY' | 'DEDUCT' | 'RELEASE' | string;
+  days: OaDecimal;
+  totalAfter: OaDecimal;
+  usedAfter: OaDecimal;
+  occupiedAfter: OaDecimal;
+  operatorId: number;
+  operatorName?: string | null;
+  remark?: string | null;
+  createTime?: string;
+}
+
+export interface OaLeaveRequestVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  leaveTypeCode: string;
+  leaveTypeName: string;
+  startDate: string;
+  startHalf: 'AM' | 'PM';
+  endDate: string;
+  endHalf: 'AM' | 'PM';
+  days: OaDecimal;
+  periodYear: number;
+  status: 'OCCUPIED' | 'DEDUCTED' | 'RELEASED' | 'RECORDED' | string;
+  createTime?: string;
+}
+
+export interface OaLeavePreviewVo {
+  days?: OaDecimal | null;
+  periodYear?: number | null;
+  balanceRequired: boolean;
+  availableDays?: OaDecimal | null;
+  message?: string | null;
+}
+
+export interface OaLeaveTemplateVo {
+  formId: number;
+  formVersionId: number;
+  modelId: number;
+  modelKey: string;
+}
+
+export function queryOaLeaveTypes(enabledOnly = false) {
+  return request<R<OaLeaveTypeVo[]>>('system/oa/leave/types', {
+    method: 'GET',
+    params: { enabledOnly },
+  });
+}
+
+export function createOaLeaveType(data: OaLeaveTypeParams) {
+  return request<R<OaLeaveTypeVo>>('system/oa/leave/types', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaLeaveType(id: number | string, data: OaLeaveTypeParams) {
+  return request<R<OaLeaveTypeVo>>(`system/oa/leave/types/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaWorkCalendar(year: number) {
+  return request<R<OaWorkCalendarVo[]>>('system/oa/leave/calendar', {
+    method: 'GET',
+    params: { year },
+  });
+}
+
+export function saveOaWorkCalendar(data: {
+  calendarDate: string;
+  dayType: OaWorkDayType;
+  name?: string;
+}) {
+  return request<R<null>>('system/oa/leave/calendar', {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function deleteOaWorkCalendar(date: string) {
+  return request<R<null>>(`system/oa/leave/calendar/${date}`, {
+    method: 'DELETE',
+  });
+}
+
+export function queryOaLeaveBalances(params: QueryParam<OaLeaveBalanceQuery>) {
+  return request<R<PageResult<OaLeaveBalanceVo>>>(
+    'system/oa/leave/balances',
+    { method: 'GET', params },
+  );
+}
+
+export function grantOaLeaveBalance(data: OaLeaveGrantParams) {
+  return request<R<OaLeaveBalanceVo>>('system/oa/leave/balances/grant', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaLeaveLedger(balanceId: number | string) {
+  return request<R<OaLeaveLedgerVo[]>>(
+    `system/oa/leave/balances/${balanceId}/ledger`,
+    { method: 'GET' },
+  );
+}
+
+export function createOaLeaveTemplate() {
+  return request<R<OaLeaveTemplateVo>>('system/oa/leave/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaLeaveBalances(year?: number) {
+  return request<R<OaLeaveBalanceVo[]>>('system/oa/leave/mine/balances', {
+    method: 'GET',
+    params: { year },
+  });
+}
+
+export function queryMyOaLeaveRequests(params: QueryParam<object>) {
+  return request<R<PageResult<OaLeaveRequestVo>>>(
+    'system/oa/leave/mine/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function previewOaLeave(formData: Record<string, unknown>) {
+  return request<R<OaLeavePreviewVo>>('system/oa/leave/preview', {
+    method: 'POST',
+    data: formData,
+  });
+}
+
+export type OaExpenseCategoryStatus = 'ENABLED' | 'DISABLED';
+
+export interface OaExpenseCategoryVo {
+  id: number;
+  code: string;
+  name: string;
+  perItemLimit?: OaDecimal | null;
+  invoiceRequired: boolean;
+  status: OaExpenseCategoryStatus;
+  sort: number;
+  remark?: string | null;
+  version: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface OaExpenseCategoryParams {
+  code?: string;
+  name: string;
+  perItemLimit?: number | null;
+  invoiceRequired: boolean;
+  status?: OaExpenseCategoryStatus;
+  sort?: number;
+  remark?: string;
+  version?: number;
+}
+
+export type OaExpenseStatus =
+  | 'APPROVING'
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'CLOSED';
+
+export type OaExpensePayMethod = 'BANK_TRANSFER' | 'CASH' | 'OTHER';
+
+export interface OaExpenseVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  totalAmount: OaDecimal;
+  itemCount: number;
+  status: OaExpenseStatus | string;
+  paidAmount?: OaDecimal | null;
+  payDate?: string | null;
+  payMethod?: OaExpensePayMethod | string | null;
+  payReference?: string | null;
+  payRemark?: string | null;
+  payerId?: number | null;
+  payerName?: string | null;
+  paidTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaExpenseItemVo {
+  lineNo: number;
+  categoryCode: string;
+  categoryName: string;
+  amount: OaDecimal;
+  expenseDate?: string | null;
+  invoiceNo?: string | null;
+  description?: string | null;
+}
+
+export interface OaExpenseDetailVo {
+  expense: OaExpenseVo;
+  items: OaExpenseItemVo[];
+}
+
+export interface OaExpenseRecordQuery {
+  status?: string;
+  keyword?: string;
+}
+
+export interface OaExpensePayParams {
+  paidAmount: number;
+  payDate: string;
+  payMethod: OaExpensePayMethod;
+  payReference?: string;
+  remark?: string;
+}
+
+export interface OaExpensePreviewVo {
+  totalAmount?: OaDecimal | null;
+  itemCount: number;
+  message?: string | null;
+}
+
+export interface OaExpenseTemplateVo {
+  formId: number;
+  formVersionId: number;
+  modelId: number;
+  modelKey: string;
+}
+
+export function queryOaExpenseCategories(enabledOnly = false) {
+  return request<R<OaExpenseCategoryVo[]>>('system/oa/expense/categories', {
+    method: 'GET',
+    params: { enabledOnly },
+  });
+}
+
+export function createOaExpenseCategory(data: OaExpenseCategoryParams) {
+  return request<R<OaExpenseCategoryVo>>('system/oa/expense/categories', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaExpenseCategory(
+  id: number | string,
+  data: OaExpenseCategoryParams,
+) {
+  return request<R<OaExpenseCategoryVo>>(
+    `system/oa/expense/categories/${id}`,
+    { method: 'PUT', data },
+  );
+}
+
+export function queryOaExpenseRecords(
+  params: QueryParam<OaExpenseRecordQuery>,
+) {
+  return request<R<PageResult<OaExpenseVo>>>('system/oa/expense/records', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaExpenseRecord(id: number | string) {
+  return request<R<OaExpenseDetailVo>>(`system/oa/expense/records/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function payOaExpense(id: number | string, data: OaExpensePayParams) {
+  return request<R<OaExpenseVo>>(`system/oa/expense/records/${id}/pay`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function createOaExpenseTemplate() {
+  return request<R<OaExpenseTemplateVo>>('system/oa/expense/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaExpenses(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaExpenseVo>>>('system/oa/expense/mine', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getMyOaExpense(id: number | string) {
+  return request<R<OaExpenseDetailVo>>(`system/oa/expense/mine/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function previewOaExpense(formData: Record<string, unknown>) {
+  return request<R<OaExpensePreviewVo>>('system/oa/expense/preview', {
+    method: 'POST',
+    data: formData,
+  });
 }

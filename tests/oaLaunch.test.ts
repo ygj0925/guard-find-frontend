@@ -137,6 +137,30 @@ describe('OA 发起工具', () => {
     ).toBe('urgent、normal');
     expect(
       formatOaFormValue(
+        {
+          id: 'f4',
+          key: 'leaveType',
+          label: '假期类型',
+          type: 'radio',
+          options: [{ label: '年假', value: 'ANNUAL' }],
+        },
+        'ANNUAL',
+      ),
+    ).toBe('年假');
+    expect(
+      formatOaFormValue(
+        {
+          id: 'f5',
+          key: 'tags',
+          label: '标签',
+          type: 'checkbox',
+          options: [{ label: '加急', value: 'urgent' }],
+        },
+        ['urgent', 'legacy'],
+      ),
+    ).toBe('加急、legacy');
+    expect(
+      formatOaFormValue(
         { id: 'f3', key: 'name', label: '姓名', type: 'text' },
         undefined,
       ),

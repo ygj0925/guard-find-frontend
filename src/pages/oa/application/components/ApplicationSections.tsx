@@ -10,6 +10,7 @@ import {
   message,
   Popconfirm,
   Space,
+  Table,
   Tag,
   Timeline,
   Typography,
@@ -21,8 +22,17 @@ import {
   revokeOaCc,
 } from '@/services/web/guardfind/oa';
 import { download } from '@/utils/download';
-import { oaAttachmentFileId, parseOaFormSchema } from '@/utils/oaForm';
-import { buildOaRequestId, formatOaFormValue } from '@/utils/oaLaunch';
+import {
+  type OaFormField,
+  type OaFormTableRow,
+  oaAttachmentFileId,
+  parseOaFormSchema,
+} from '@/utils/oaForm';
+import {
+  buildOaRequestId,
+  formatOaFormValue,
+  formatOaTableCell,
+} from '@/utils/oaLaunch';
 import { applicationStatusTag } from './ApplicationStatus';
 
 export const TIMELINE_ACTION: Record<string, string> = {
@@ -160,6 +170,40 @@ function AttachmentLinks({ items }: { items: AttachmentItem[] }) {
   );
 }
 
+function TableSnapshot({
+  field,
+  rows,
+}: {
+  field: OaFormField;
+  rows: OaFormTableRow[];
+}) {
+  return (
+    <Table<OaFormTableRow>
+      size="small"
+      bordered
+      pagination={false}
+      scroll={{ x: true }}
+      rowKey={(row) => String(rows.indexOf(row))}
+      dataSource={rows}
+      aria-label={`${field.label}明细`}
+      columns={[
+        {
+          key: '__index',
+          title: '#',
+          width: 48,
+          render: (_, __, index) => index + 1,
+        },
+        ...(field.columns ?? []).map((column) => ({
+          key: column.key,
+          title: column.label,
+          render: (_: unknown, row: OaFormTableRow) =>
+            formatOaTableCell(column, row[column.key]),
+        })),
+      ]}
+    />
+  );
+}
+
 export function ApplicationFormCard({
   detail,
 }: {
@@ -182,9 +226,15 @@ export function ApplicationFormCard({
               field.type === 'attachment' ? attachmentItems(value) : [];
             const personLabel =
               field.type === 'person' ? detail.formLabels?.[field.key] : null;
+            const tableRows =
+              field.type === 'table' && Array.isArray(value)
+                ? (value as OaFormTableRow[])
+                : [];
             return (
               <Descriptions.Item key={field.key} label={field.label}>
-                {attachments.length ? (
+                {tableRows.length ? (
+                  <TableSnapshot field={field} rows={tableRows} />
+                ) : attachments.length ? (
                   <AttachmentLinks items={attachments} />
                 ) : personLabel ? (
                   personLabel

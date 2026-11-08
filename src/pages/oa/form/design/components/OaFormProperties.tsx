@@ -4,6 +4,8 @@ import {
   Card,
   Divider,
   Input,
+  InputNumber,
+  Select,
   Space,
   Switch,
   Tag,
@@ -11,7 +13,12 @@ import {
 } from 'antd';
 import React from 'react';
 import {
+  createOaFormColumn,
+  OA_FORM_COLUMN_TYPES,
+  OA_FORM_LIMITS,
   OA_FORM_OPTION_TYPES,
+  type OaFormColumn,
+  type OaFormColumnType,
   type OaFormField,
   type OaFormFieldType,
 } from '@/utils/oaForm';
@@ -25,6 +32,209 @@ const TYPE_LABELS: Record<OaFormFieldType, string> = {
   checkbox: '多选',
   attachment: '附件',
   person: '人员',
+  table: '明细表',
+};
+
+interface ColumnEditorProps {
+  field: OaFormField;
+  onChange: (patch: Partial<OaFormField>) => void;
+}
+
+const ColumnEditor: React.FC<ColumnEditorProps> = ({ field, onChange }) => {
+  const columns = field.columns ?? [];
+
+  const updateColumn = (index: number, patch: Partial<OaFormColumn>) => {
+    onChange({
+      columns: columns.map((column, columnIndex) =>
+        columnIndex === index ? { ...column, ...patch } : column,
+      ),
+    });
+  };
+
+  const updateColumnOption = (
+    index: number,
+    optionIndex: number,
+    patch: { label?: string; value?: string },
+  ) => {
+    const options = columns[index].options ?? [];
+    updateColumn(index, {
+      options: options.map((option, current) =>
+        current === optionIndex ? { ...option, ...patch } : option,
+      ),
+    });
+  };
+
+  const addColumnOption = (index: number) => {
+    const options = columns[index].options ?? [];
+    const usedValues = new Set(options.map((option) => option.value));
+    let seq = options.length + 1;
+    while (usedValues.has(`option_${seq}`)) seq += 1;
+    updateColumn(index, {
+      options: [
+        ...options,
+        {
+          id: `${columns[index].id ?? index}_opt_${seq}`,
+          label: `选项${seq}`,
+          value: `option_${seq}`,
+        },
+      ],
+    });
+  };
+
+  return (
+    <>
+      <Divider style={{ margin: '4px 0' }} />
+      <div>
+        <Typography.Text>最多行数</Typography.Text>
+        <InputNumber
+          aria-label="最多行数"
+          style={{ width: '100%' }}
+          min={1}
+          max={OA_FORM_LIMITS.maxTableRows}
+          precision={0}
+          value={field.maxRows}
+          onChange={(value) => onChange({ maxRows: value ?? undefined })}
+        />
+      </div>
+      <Typography.Text>明细列</Typography.Text>
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        {columns.map((column, index) => (
+          <Card
+            key={column.id ?? column.key}
+            size="small"
+            title={`第 ${index + 1} 列`}
+            extra={
+              <Button
+                danger
+                size="small"
+                aria-label={`删除第 ${index + 1} 列`}
+                icon={<DeleteOutlined />}
+                onClick={() =>
+                  onChange({
+                    columns: columns.filter(
+                      (_, columnIndex) => columnIndex !== index,
+                    ),
+                  })
+                }
+              />
+            }
+          >
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  aria-label={`第 ${index + 1} 列名称`}
+                  value={column.label}
+                  maxLength={100}
+                  placeholder="列名称"
+                  onChange={(event) =>
+                    updateColumn(index, { label: event.target.value })
+                  }
+                />
+                <Input
+                  aria-label={`第 ${index + 1} 列 key`}
+                  value={column.key}
+                  maxLength={64}
+                  placeholder="列 key"
+                  onChange={(event) =>
+                    updateColumn(index, { key: event.target.value })
+                  }
+                />
+              </Space.Compact>
+              <Space wrap>
+                <Select<OaFormColumnType>
+                  aria-label={`第 ${index + 1} 列类型`}
+                  style={{ width: 120 }}
+                  value={column.type}
+                  options={OA_FORM_COLUMN_TYPES.map((item) => ({
+                    value: item.type,
+                    label: item.label,
+                  }))}
+                  onChange={(type) =>
+                    updateColumn(index, {
+                      type,
+                      options:
+                        type === 'radio' ? (column.options ?? []) : undefined,
+                    })
+                  }
+                />
+                <Typography.Text>必填</Typography.Text>
+                <Switch
+                  aria-label={`第 ${index + 1} 列必填`}
+                  size="small"
+                  checked={Boolean(column.required)}
+                  onChange={(checked) =>
+                    updateColumn(index, { required: checked })
+                  }
+                />
+              </Space>
+              {column.type === 'radio' ? (
+                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                  {(column.options ?? []).map((option, optionIndex) => (
+                    <Space.Compact
+                      key={option.id ?? option.value}
+                      style={{ width: '100%' }}
+                    >
+                      <Input
+                        aria-label={`第 ${index + 1} 列选项 ${optionIndex + 1} 名称`}
+                        value={option.label}
+                        placeholder="显示名称"
+                        onChange={(event) =>
+                          updateColumnOption(index, optionIndex, {
+                            label: event.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        aria-label={`第 ${index + 1} 列选项 ${optionIndex + 1} 值`}
+                        value={option.value}
+                        placeholder="存储值"
+                        onChange={(event) =>
+                          updateColumnOption(index, optionIndex, {
+                            value: event.target.value,
+                          })
+                        }
+                      />
+                      <Button
+                        danger
+                        aria-label={`删除第 ${index + 1} 列选项 ${optionIndex + 1}`}
+                        icon={<DeleteOutlined />}
+                        onClick={() =>
+                          updateColumn(index, {
+                            options: (column.options ?? []).filter(
+                              (_, current) => current !== optionIndex,
+                            ),
+                          })
+                        }
+                      />
+                    </Space.Compact>
+                  ))}
+                  <Button
+                    size="small"
+                    icon={<PlusOutlined />}
+                    aria-label={`第 ${index + 1} 列添加选项`}
+                    onClick={() => addColumnOption(index)}
+                  >
+                    添加选项
+                  </Button>
+                </Space>
+              ) : null}
+            </Space>
+          </Card>
+        ))}
+        <Button
+          block
+          icon={<PlusOutlined />}
+          aria-label="添加列"
+          disabled={columns.length >= OA_FORM_LIMITS.maxColumns}
+          onClick={() =>
+            onChange({ columns: [...columns, createOaFormColumn(columns)] })
+          }
+        >
+          添加列
+        </Button>
+      </Space>
+    </>
+  );
 };
 
 interface FieldPropertiesProps {
@@ -202,6 +412,10 @@ const FieldProperties: React.FC<FieldPropertiesProps> = ({
             </Button>
           </Space>
         </>
+      ) : null}
+
+      {field.type === 'table' ? (
+        <ColumnEditor field={field} onChange={onChange} />
       ) : null}
 
       <Divider style={{ margin: '4px 0' }} />

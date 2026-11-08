@@ -16,4 +16,8 @@ export default {
   'menu.oa.position': 'Positions',
   'menu.oa.notifications': 'Notifications',
   'menu.oa.operations': 'OA Operations',
+  'menu.oa.leave': 'Leave Management',
+  'menu.oa.leave.mine': 'My Leave',
+  'menu.oa.expense': 'Expense Management',
+  'menu.oa.expense.mine': 'My Expenses',
 };

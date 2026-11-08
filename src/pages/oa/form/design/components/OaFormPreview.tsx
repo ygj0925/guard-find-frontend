@@ -10,6 +10,7 @@ import {
   Radio,
   Select,
   Space,
+  Table,
   Typography,
   Upload,
 } from 'antd';
@@ -106,6 +107,24 @@ function PreviewControl({
           options={[]}
           notFoundContent="组织人员接入后可搜索"
           aria-label={field.label}
+        />
+      );
+    case 'table':
+      return (
+        <Table
+          size="small"
+          bordered
+          pagination={false}
+          rowKey="key"
+          dataSource={[]}
+          aria-label={field.label}
+          locale={{ emptyText: `填写时可添加最多 ${field.maxRows ?? 50} 行` }}
+          scroll={{ x: true }}
+          columns={(field.columns ?? []).map((column) => ({
+            key: column.key,
+            dataIndex: column.key,
+            title: column.required ? `${column.label} *` : column.label,
+          }))}
         />
       );
     default:
