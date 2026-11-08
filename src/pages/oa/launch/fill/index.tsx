@@ -20,6 +20,10 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  OaEmployeeSelect,
+  OaPositionSelect,
+} from '@/pages/oa/components/OaStaffSelects';
+import {
   getOaLaunch,
   type OaAssigneeBindingParam,
   type OaLaunchDetailVo,
@@ -335,30 +339,29 @@ const LaunchFillPage: React.FC = () => {
                                 }
                               />
                               {type === 'EMPLOYEE' ? (
-                                <Input
-                                  aria-label={`${variable.name} 员工 ID`}
-                                  style={{ width: 180 }}
-                                  inputMode="numeric"
-                                  placeholder="员工 ID"
-                                  value={binding.value ?? ''}
+                                <OaEmployeeSelect
+                                  ariaLabel={`${variable.name} 员工`}
+                                  style={{ width: 220 }}
+                                  placeholder="搜索并选择员工"
+                                  value={binding.value}
                                   disabled={Boolean(result)}
-                                  onChange={(event) =>
+                                  onChange={(next) =>
                                     updateBinding(variable.name, {
-                                      value: event.target.value,
+                                      value: next,
                                     })
                                   }
                                 />
                               ) : null}
                               {type === 'POSITION' ? (
-                                <Input
-                                  aria-label={`${variable.name} 岗位编码`}
-                                  style={{ width: 180 }}
-                                  placeholder="岗位编码，如 FINANCE"
-                                  value={binding.value ?? ''}
+                                <OaPositionSelect
+                                  ariaLabel={`${variable.name} 岗位`}
+                                  style={{ width: 220 }}
+                                  placeholder="搜索并选择岗位"
+                                  value={binding.value}
                                   disabled={Boolean(result)}
-                                  onChange={(event) =>
+                                  onChange={(next) =>
                                     updateBinding(variable.name, {
-                                      value: event.target.value,
+                                      value: next,
                                     })
                                   }
                                 />

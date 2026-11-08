@@ -8,4 +8,6 @@ export default {
   'menu.oa.launch.fill': '填写并发起',
   'menu.oa.application': '我的申请',
   'menu.oa.application.detail': '申请详情',
+  'menu.oa.employee': '员工管理',
+  'menu.oa.position': '岗位管理',
 };

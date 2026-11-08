@@ -20,6 +20,7 @@ import {
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 import React from 'react';
+import { OaEmployeeSelect } from '@/pages/oa/components/OaStaffSelects';
 import { uploadFile } from '@/services/web/file';
 import { OA_FORM_LIMITS, type OaFormField } from '@/utils/oaForm';
 
@@ -169,17 +170,15 @@ const OaFormRenderer: React.FC<OaFormRendererProps> = ({
       case 'person':
         return (
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
-            <Input
+            <OaEmployeeSelect
               id={id}
-              inputMode="numeric"
-              aria-label={field.label}
-              placeholder="请输入员工 ID"
+              ariaLabel={field.label}
               value={typeof value === 'string' ? value : ''}
               disabled={fieldDisabled}
-              onChange={(event) => update(event.target.value)}
+              onChange={(next) => update(next ?? '')}
             />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              人员字段暂按员工 ID 填写，组织人员选择器待 10.1 接入。
+              从本租户在职员工中选择；找不到请先在员工管理中建档。
             </Typography.Text>
           </Space>
         );

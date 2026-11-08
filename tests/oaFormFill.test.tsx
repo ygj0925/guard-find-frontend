@@ -4,7 +4,9 @@ import { request } from 'umi';
 import FormFillPage from '@/pages/oa/form/fill';
 import {
   getOaFormVersion,
+  queryOaEmployeeOptions,
   queryOaFormVersionOptions,
+  queryOaPositionOptions,
 } from '@/services/web/guardfind/oa';
 
 jest.mock('@umijs/max', () => ({
@@ -21,6 +23,8 @@ jest.mock('umi', () => ({
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaFormVersion: jest.fn(),
   queryOaFormVersionOptions: jest.fn(),
+  queryOaEmployeeOptions: jest.fn(),
+  queryOaPositionOptions: jest.fn(),
 }));
 
 const schema = {
@@ -111,6 +115,17 @@ describe('表单填写页', () => {
     jest.mocked(queryOaFormVersionOptions).mockResolvedValue({
       data: options,
     } as any);
+    jest.mocked(queryOaEmployeeOptions).mockResolvedValue({
+      data: [
+        {
+          userId: 102,
+          nickname: '李四',
+          deptName: '研发部',
+          employeeNo: 'E002',
+        },
+      ],
+    } as any);
+    jest.mocked(queryOaPositionOptions).mockResolvedValue({ data: [] } as any);
   });
 
   it('按发布版本渲染可见字段并标注只能本地校验', async () => {
@@ -129,7 +144,7 @@ describe('表单填写页', () => {
     expect(screen.getByLabelText('日期')).toBeTruthy();
     expect(screen.getByLabelText('请假类型')).toBeTruthy();
     expect(screen.getByLabelText('标签')).toBeTruthy();
-    expect(screen.getByLabelText('负责人')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '负责人' })).toBeTruthy();
 
     expect(screen.queryByLabelText('内部备注')).toBeNull();
     expect(screen.getByText(/另有 1 个隐藏字段未展示/)).toBeTruthy();
@@ -193,7 +208,7 @@ describe('表单填写页', () => {
     render(<FormFillPage />);
     await screen.findByText('请假申请单 · v2');
 
-    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: '表单版本' }));
     const option = await screen.findByText('报销申请单（expense_form）v1');
     fireEvent.click(option);
 

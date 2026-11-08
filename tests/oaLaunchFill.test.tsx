@@ -1,7 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { history } from '@umijs/max';
 import LaunchFillPage from '@/pages/oa/launch/fill';
-import { getOaLaunch, submitOaLaunch } from '@/services/web/guardfind/oa';
+import {
+  getOaLaunch,
+  queryOaEmployeeOptions,
+  queryOaPositionOptions,
+  submitOaLaunch,
+} from '@/services/web/guardfind/oa';
 
 jest.mock('@umijs/max', () => ({
   useSearchParams: () => [
@@ -17,6 +22,8 @@ jest.mock('umi', () => ({
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaLaunch: jest.fn(),
   submitOaLaunch: jest.fn(),
+  queryOaEmployeeOptions: jest.fn(),
+  queryOaPositionOptions: jest.fn(),
 }));
 
 const schema = {
@@ -65,6 +72,17 @@ describe('发起填写页', () => {
     jest.clearAllMocks();
     (globalThis as any).__oaLaunchSearch = 'releaseId=21';
     jest.mocked(getOaLaunch).mockResolvedValue({ data: detail } as any);
+    jest.mocked(queryOaEmployeeOptions).mockResolvedValue({
+      data: [
+        {
+          userId: 102,
+          nickname: '李四',
+          deptName: '研发部',
+          employeeNo: 'E002',
+        },
+      ],
+    } as any);
+    jest.mocked(queryOaPositionOptions).mockResolvedValue({ data: [] } as any);
     jest.mocked(submitOaLaunch).mockResolvedValue({
       data: {
         applicationId: 70,
@@ -82,7 +100,7 @@ describe('发起填写页', () => {
     expect(getOaLaunch).toHaveBeenCalledWith('21');
     expect(screen.getByText('请假申请单 v1 · 发布 v2')).toBeTruthy();
     expect(screen.getByLabelText('姓名')).toBeTruthy();
-    expect(screen.getByLabelText('负责人')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '负责人' })).toBeTruthy();
     expect(screen.queryByLabelText('内部备注')).toBeNull();
     expect(screen.getByText('approver')).toBeTruthy();
     expect(screen.getByText('supervisor')).toBeTruthy();
@@ -101,9 +119,8 @@ describe('发起填写页', () => {
     fireEvent.change(screen.getByLabelText('姓名'), {
       target: { value: '张三' },
     });
-    fireEvent.change(screen.getByLabelText('负责人'), {
-      target: { value: '102' },
-    });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: '负责人' }));
+    fireEvent.click(await screen.findByText('李四 · 研发部 (E002)'));
     fireEvent.click(screen.getByRole('button', { name: /提交并发起/ }));
 
     await waitFor(() => expect(submitOaLaunch).toHaveBeenCalledTimes(1));

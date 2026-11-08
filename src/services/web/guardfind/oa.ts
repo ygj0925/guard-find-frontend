@@ -529,3 +529,175 @@ export function withdrawOaApplication(
     { method: 'POST', data },
   );
 }
+
+export type OaEmploymentStatus = 'ACTIVE' | 'SUSPENDED' | 'RESIGNED';
+
+export interface OaEmployeePositionVo {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface OaEmployeeVo {
+  id: number;
+  userId: number;
+  nickname: string;
+  username: string;
+  deptId?: number | null;
+  deptName?: string | null;
+  employeeNo?: string | null;
+  supervisorId?: number | null;
+  supervisorName?: string | null;
+  employmentStatus: OaEmploymentStatus;
+  deptLeader: boolean;
+  hireDate?: string | null;
+  leaveDate?: string | null;
+  positions: OaEmployeePositionVo[];
+  version: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface OaEmployeeOptionVo {
+  userId: number;
+  nickname: string;
+  username: string;
+  deptId?: number | null;
+  deptName?: string | null;
+  employeeNo?: string | null;
+}
+
+export interface OaEmployeeCreateParams {
+  userId: number;
+  employeeNo?: string;
+  supervisorId?: number;
+  employmentStatus: OaEmploymentStatus;
+  deptLeader: boolean;
+  hireDate?: string;
+  leaveDate?: string;
+  positionIds: number[];
+}
+
+export interface OaEmployeeUpdateParams {
+  employeeNo?: string;
+  supervisorId?: number;
+  employmentStatus: OaEmploymentStatus;
+  deptLeader: boolean;
+  hireDate?: string;
+  leaveDate?: string;
+  positionIds: number[];
+  version: number;
+}
+
+export interface OaEmployeeQuery {
+  keyword?: string;
+  status?: string;
+}
+
+export function queryOaEmployees(params: QueryParam<OaEmployeeQuery>) {
+  return request<R<PageResult<OaEmployeeVo>>>(
+    'system/oa/staff/employee/page',
+    { method: 'GET', params },
+  );
+}
+
+export function getOaEmployee(id: number | string) {
+  return request<R<OaEmployeeVo>>(`system/oa/staff/employee/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function createOaEmployee(data: OaEmployeeCreateParams) {
+  return request<R<OaEmployeeVo>>('system/oa/staff/employee', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaEmployee(
+  id: number | string,
+  data: OaEmployeeUpdateParams,
+) {
+  return request<R<OaEmployeeVo>>(`system/oa/staff/employee/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaEmployeeOptions(params?: { keyword?: string }) {
+  return request<R<OaEmployeeOptionVo[]>>('system/oa/staff/employee/options', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function queryOaEmployeeUserOptions(params?: { keyword?: string }) {
+  return request<R<OaEmployeeOptionVo[]>>(
+    'system/oa/staff/employee/user-options',
+    { method: 'GET', params },
+  );
+}
+
+export type OaPositionStatus = 'ENABLED' | 'DISABLED';
+
+export interface OaPositionVo {
+  id: number;
+  code: string;
+  name: string;
+  status: OaPositionStatus;
+  sort: number;
+  employeeCount: number;
+  version: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface OaPositionOptionVo {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface OaPositionQuery {
+  keyword?: string;
+  status?: string;
+}
+
+export function queryOaPositions(params: QueryParam<OaPositionQuery>) {
+  return request<R<PageResult<OaPositionVo>>>(
+    'system/oa/staff/position/page',
+    { method: 'GET', params },
+  );
+}
+
+export function createOaPosition(data: {
+  code: string;
+  name: string;
+  sort: number;
+}) {
+  return request<R<OaPositionVo>>('system/oa/staff/position', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaPosition(
+  id: number | string,
+  data: {
+    name: string;
+    sort: number;
+    status: OaPositionStatus;
+    version: number;
+  },
+) {
+  return request<R<OaPositionVo>>(`system/oa/staff/position/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaPositionOptions() {
+  return request<R<OaPositionOptionVo[]>>('system/oa/staff/position/options', {
+    method: 'GET',
+  });
+}

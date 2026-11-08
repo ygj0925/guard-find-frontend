@@ -176,6 +176,7 @@ const FormFillPage: React.FC = () => {
             <Typography.Text strong>表单版本</Typography.Text>
             <Select
               showSearch
+              aria-label="表单版本"
               optionFilterProp="label"
               style={{ width: '100%', maxWidth: 520 }}
               loading={optionsLoading}
