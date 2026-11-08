@@ -20,6 +20,7 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  OaEmployeeMultiSelect,
   OaEmployeeSelect,
   OaPositionSelect,
 } from '@/pages/oa/components/OaStaffSelects';
@@ -51,6 +52,8 @@ function errorText(error: unknown) {
 
 type BindingValue = { type?: string; value?: string };
 
+const OA_CC_MAX = 20;
+
 const LaunchFillPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const releaseId = searchParams.get('releaseId');
@@ -59,6 +62,7 @@ const LaunchFillPage: React.FC = () => {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [title, setTitle] = useState('');
+  const [ccUserIds, setCcUserIds] = useState<string[]>([]);
   const [bindings, setBindings] = useState<Record<string, BindingValue>>({});
   const [bindingErrors, setBindingErrors] = useState<Record<string, string>>(
     {},
@@ -87,6 +91,7 @@ const LaunchFillPage: React.FC = () => {
         setValues({});
         setErrors({});
         setTitle('');
+        setCcUserIds([]);
         setResult(null);
         setRequestId(buildOaRequestId());
         const initial: Record<string, BindingValue> = {};
@@ -162,6 +167,7 @@ const LaunchFillPage: React.FC = () => {
         title: title.trim() || undefined,
         formData: toOaSubmitFormData(fields, values),
         assignees,
+        ccUserIds: ccUserIds.length ? ccUserIds : undefined,
       });
       setResult(response.data);
       message.success(
@@ -178,6 +184,7 @@ const LaunchFillPage: React.FC = () => {
     setValues({});
     setErrors({});
     setTitle('');
+    setCcUserIds([]);
     setResult(null);
   };
 
@@ -400,6 +407,29 @@ const LaunchFillPage: React.FC = () => {
                     })}
                   </Space>
                 )}
+              </Card>
+
+              <Card
+                size="small"
+                title="抄送（可选）"
+                extra={
+                  <Typography.Text type="secondary">
+                    {ccUserIds.length}/{OA_CC_MAX}
+                  </Typography.Text>
+                }
+              >
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <OaEmployeeMultiSelect
+                    ariaLabel="抄送人"
+                    value={ccUserIds}
+                    maxCount={OA_CC_MAX}
+                    disabled={Boolean(result)}
+                    onChange={setCcUserIds}
+                  />
+                  <Typography.Text type="secondary">
+                    抄送人可只读查看申请与审批轨迹，提交后会收到站内通知；不参与审批。
+                  </Typography.Text>
+                </Space>
               </Card>
 
               <Space wrap>

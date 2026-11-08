@@ -193,6 +193,40 @@ export function ApplicationFormCard({
   );
 }
 
+export function ApplicationCcCard({
+  detail,
+}: {
+  detail: OaApplicationDetailVo;
+}) {
+  const receivers = detail.ccReceivers ?? [];
+  if (!receivers.length) return null;
+  const readCount = receivers.filter((item) => item.status === 'READ').length;
+  return (
+    <Card
+      size="small"
+      title="抄送人"
+      extra={
+        <Typography.Text type="secondary">
+          已读 {readCount}/{receivers.length}
+        </Typography.Text>
+      }
+    >
+      <Space size={[8, 8]} wrap>
+        {receivers.map((item) => (
+          <Tag
+            key={String(item.receiverId)}
+            color={item.status === 'READ' ? 'green' : 'default'}
+            title={item.readTime ? `已读于 ${item.readTime}` : '未读'}
+          >
+            {item.receiverName || String(item.receiverId)} ·{' '}
+            {item.status === 'READ' ? '已读' : '未读'}
+          </Tag>
+        ))}
+      </Space>
+    </Card>
+  );
+}
+
 export function ApplicationTimelineCard({
   detail,
 }: {

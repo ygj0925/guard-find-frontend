@@ -8,6 +8,8 @@ export default {
   'menu.oa.launch.fill': 'Fill and Submit',
   'menu.oa.application': 'My Applications',
   'menu.oa.application.detail': 'Application Detail',
+  'menu.oa.cc': 'CC to Me',
+  'menu.oa.cc.detail': 'CC Detail',
   'menu.oa.tasks': 'Approval Tasks',
   'menu.oa.tasks.detail': 'Approval Detail',
   'menu.oa.employee': 'Employees',

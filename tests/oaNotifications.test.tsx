@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { history } from '@umijs/max';
 import NotificationsPage from '@/pages/oa/notifications';
 import {
   queryOaNotifications,
@@ -6,6 +7,10 @@ import {
   readAllOaNotifications,
   readOaNotification,
 } from '@/services/web/guardfind/oa';
+
+jest.mock('@umijs/max', () => ({
+  history: { push: jest.fn() },
+}));
 
 jest.mock('@/services/web/guardfind/oa', () => ({
   queryOaNotifications: jest.fn(),
@@ -83,5 +88,29 @@ describe('OA 站内通知', () => {
         expect.objectContaining({ unreadOnly: true }),
       ),
     );
+  });
+
+  it('抄送通知可跳转到抄送详情', async () => {
+    jest.mocked(queryOaNotifications).mockResolvedValue({
+      data: {
+        list: [
+          {
+            ...notification,
+            id: 2,
+            type: 'CC',
+            title: '抄送：差旅报销',
+            taskId: null,
+          },
+        ],
+        total: 1,
+      },
+    } as any);
+    render(<NotificationsPage />);
+
+    expect(await screen.findByText('抄送：差旅报销')).toBeTruthy();
+    expect(screen.getByText('抄送')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '查看抄送' }));
+    expect(history.push).toHaveBeenCalledWith('/oa/cc/detail?id=70');
+    await waitFor(() => expect(readOaNotification).toHaveBeenCalledWith(2));
   });
 });

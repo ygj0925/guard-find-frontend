@@ -23,6 +23,7 @@ import {
 } from '@/services/web/guardfind/oa';
 import { buildOaRequestId } from '@/utils/oaLaunch';
 import {
+  ApplicationCcCard,
   ApplicationFormCard,
   ApplicationInfoCard,
   ApplicationTimelineCard,
@@ -168,6 +169,7 @@ const ApplicationDetailPage: React.FC = () => {
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <ApplicationInfoCard detail={detail} />
             <ApplicationFormCard detail={detail} />
+            <ApplicationCcCard detail={detail} />
             <ApplicationTimelineCard detail={detail} />
           </Space>
         ) : !loading && !loadError ? (

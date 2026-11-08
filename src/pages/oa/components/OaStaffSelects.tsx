@@ -22,16 +22,9 @@ interface StaffSelectProps {
   ariaLabel?: string;
 }
 
-export function OaEmployeeSelect({
-  id,
-  value,
-  onChange,
-  disabled,
-  placeholder = '搜索姓名、账号或工号',
-  style,
-  allowClear,
-  ariaLabel,
-}: StaffSelectProps) {
+const EMPLOYEE_EMPTY = '暂无可选员工，请先在员工管理中建档';
+
+function useEmployeeOptions() {
   const [options, setOptions] = useState<OaEmployeeOptionVo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +45,27 @@ export function OaEmployeeSelect({
     };
   }, []);
 
+  return {
+    loading,
+    options: options.map((option) => ({
+      value: String(option.userId),
+      label: employeeLabel(option),
+    })),
+  };
+}
+
+export function OaEmployeeSelect({
+  id,
+  value,
+  onChange,
+  disabled,
+  placeholder = '搜索姓名、账号或工号',
+  style,
+  allowClear,
+  ariaLabel,
+}: StaffSelectProps) {
+  const { options, loading } = useEmployeeOptions();
+
   return (
     <Select<string>
       id={id}
@@ -64,13 +78,48 @@ export function OaEmployeeSelect({
       placeholder={placeholder}
       value={value || undefined}
       optionFilterProp="label"
-      notFoundContent={
-        loading ? '加载中…' : '暂无可选员工，请先在员工管理中建档'
-      }
-      options={options.map((option) => ({
-        value: String(option.userId),
-        label: employeeLabel(option),
-      }))}
+      notFoundContent={loading ? '加载中…' : EMPLOYEE_EMPTY}
+      options={options}
+      onChange={(next) => onChange?.(next)}
+    />
+  );
+}
+
+interface EmployeeMultiSelectProps {
+  value?: string[];
+  onChange?: (value: string[]) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  style?: CSSProperties;
+  maxCount?: number;
+  ariaLabel?: string;
+}
+
+export function OaEmployeeMultiSelect({
+  value,
+  onChange,
+  disabled,
+  placeholder = '搜索并选择员工',
+  style,
+  maxCount,
+  ariaLabel,
+}: EmployeeMultiSelectProps) {
+  const { options, loading } = useEmployeeOptions();
+
+  return (
+    <Select<string[]>
+      mode="multiple"
+      aria-label={ariaLabel}
+      style={style ?? { width: '100%' }}
+      allowClear
+      loading={loading}
+      disabled={disabled}
+      placeholder={placeholder}
+      value={value ?? []}
+      maxCount={maxCount}
+      optionFilterProp="label"
+      notFoundContent={loading ? '加载中…' : EMPLOYEE_EMPTY}
+      options={options}
       onChange={(next) => onChange?.(next)}
     />
   );

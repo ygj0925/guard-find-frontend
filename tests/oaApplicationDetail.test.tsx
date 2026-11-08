@@ -63,6 +63,20 @@ const detail = {
     approver: [102],
   },
   formLabels: { approver: '李四' },
+  ccReceivers: [
+    {
+      receiverId: '103',
+      receiverName: '王五',
+      status: 'READ',
+      readTime: '2026-11-06 18:30:00',
+    },
+    {
+      receiverId: '104',
+      receiverName: '赵六',
+      status: 'UNREAD',
+      readTime: null,
+    },
+  ],
   processInstanceId: 'inst-1',
   submittedTime: '2026-11-06 18:00:00',
   finishedTime: null,
@@ -143,6 +157,9 @@ describe('申请详情页', () => {
     expect(screen.getByText('转交给 赵六')).toBeTruthy();
     expect(screen.queryByText(/原处理人/)).toBeNull();
     expect(screen.getByText('inst-1')).toBeTruthy();
+    expect(screen.getByText('已读 1/2')).toBeTruthy();
+    expect(screen.getByText(/王五 · 已读/)).toBeTruthy();
+    expect(screen.getByText(/赵六 · 未读/)).toBeTruthy();
   });
 
   it('缺少申请 ID 时提示并从列表进入', async () => {

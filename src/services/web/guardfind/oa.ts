@@ -324,6 +324,8 @@ export interface OaLaunchSubmitParams {
   title?: string;
   formData: Record<string, unknown>;
   assignees: OaAssigneeBindingParam[];
+  /** 抄送人 userId（雪花 ID 用字符串传输），最多 20 人 */
+  ccUserIds?: string[];
 }
 
 export interface OaLaunchSubmitResultVo {
@@ -406,6 +408,46 @@ export interface OaApplicationDetailVo extends OaApplicationVo {
   /** 人员字段 key→姓名，服务端按表单 schema 解析 */
   formLabels?: Record<string, string>;
   timeline: OaApplicationTimelineVo[];
+  ccReceivers?: OaCcReceiverVo[];
+}
+
+export interface OaCcReceiverVo {
+  receiverId: number | string;
+  receiverName?: string | null;
+  status: string;
+  readTime?: string | null;
+}
+
+export interface OaCcItemVo {
+  id: number;
+  applicationId: number;
+  title: string;
+  businessKey: string;
+  applicationStatus: string;
+  applicantName?: string | null;
+  applicantDeptName?: string | null;
+  modelName?: string | null;
+  status: string;
+  readTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaCcQuery {
+  keyword?: string;
+  status?: string;
+}
+
+export function queryOaCcPage(params: QueryParam<OaCcQuery>) {
+  return request<R<PageResult<OaCcItemVo>>>('system/oa/cc/page', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaCcDetail(applicationId: number | string) {
+  return request<R<OaApplicationDetailVo>>(`system/oa/cc/${applicationId}`, {
+    method: 'GET',
+  });
 }
 
 export interface OaApplicationQuery {

@@ -7,6 +7,7 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import { Button, message, Space, Switch, Tag, Typography } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -26,6 +27,7 @@ const TYPE_META: Record<string, { text: string; color: string }> = {
   CANCELLED: { text: '已取消', color: 'default' },
   URGED: { text: '催办', color: 'volcano' },
   OVERDUE: { text: '超期', color: 'gold' },
+  CC: { text: '抄送', color: 'cyan' },
 };
 
 function errorText(error: unknown) {
@@ -100,7 +102,21 @@ const NotificationsPage: React.FC = () => {
       dataIndex: 'applicationId',
       width: 120,
       search: false,
-      render: (_, record) => record.applicationId ?? '—',
+      render: (_, record) =>
+        record.type === 'CC' && record.applicationId != null ? (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              void markRead(record);
+              history.push(`/oa/cc/detail?id=${record.applicationId}`);
+            }}
+          >
+            查看抄送
+          </Button>
+        ) : (
+          (record.applicationId ?? '—')
+        ),
     },
     {
       title: '状态',

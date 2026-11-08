@@ -128,6 +128,7 @@ describe('发起填写页', () => {
     expect(releaseId).toBe('21');
     expect(payload.requestId).toBeTruthy();
     expect(payload.title).toBeUndefined();
+    expect(payload.ccUserIds).toBeUndefined();
     expect(payload.formData).toEqual({ name: '张三', owner: '102' });
     expect(payload.assignees).toEqual([
       { variableName: 'approver', type: 'FORM_FIELD', value: 'owner' },
@@ -158,5 +159,23 @@ describe('发起填写页', () => {
     expect(await screen.findByText('请选择审批人来源')).toBeTruthy();
     expect(screen.getByText('需要手动选择')).toBeTruthy();
     expect(submitOaLaunch).not.toHaveBeenCalled();
+  });
+
+  it('选择抄送人后随提交携带抄送用户', async () => {
+    render(<LaunchFillPage />);
+    await screen.findByText('发起：请假审批');
+
+    expect(screen.getByText('抄送（可选）')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('姓名'), {
+      target: { value: '张三' },
+    });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: '抄送人' }));
+    fireEvent.click(await screen.findByText('李四 · 研发部 (E002)'));
+    expect(screen.getByText('1/20')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /提交并发起/ }));
+
+    await waitFor(() => expect(submitOaLaunch).toHaveBeenCalledTimes(1));
+    const [, payload] = jest.mocked(submitOaLaunch).mock.calls[0];
+    expect(payload.ccUserIds).toEqual(['102']);
   });
 });
