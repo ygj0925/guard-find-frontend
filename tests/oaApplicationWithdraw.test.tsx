@@ -10,6 +10,10 @@ jest.mock('@umijs/max', () => ({
   useSearchParams: () => [
     new URLSearchParams((globalThis as any).__oaWithdrawSearch || ''),
   ],
+  useModel: (_key: string, selector?: (model: unknown) => unknown) =>
+    selector
+      ? selector({ initialState: { user: { id: '101', nickname: '张三' } } })
+      : undefined,
   history: { push: jest.fn() },
 }));
 

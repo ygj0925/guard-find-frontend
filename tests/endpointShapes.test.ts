@@ -22,6 +22,7 @@ import {
   uploadFile,
 } from '@/services/web/file';
 import {
+  addOaTaskCc,
   createOaProcessModel,
   disableOaProcessModel,
   dispatchOaOutbox,
@@ -35,6 +36,7 @@ import {
   readAllOaNotifications,
   readOaNotification,
   retryOaOutboxEvent,
+  revokeOaCc,
   terminateOaApplication,
   updateOaProcessModel,
   uploadOaAttachment,
@@ -383,6 +385,27 @@ describe('OA 通知与运维端点', () => {
       expect.objectContaining({
         method: 'POST',
         data: { requestId: 'req-urge' },
+      }),
+    ]);
+
+    await addOaTaskCc('task-9', {
+      requestId: 'req-cc',
+      receiverIds: ['909993815497003053'],
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/approval/task/task-9/cc',
+      expect.objectContaining({
+        method: 'POST',
+        data: { requestId: 'req-cc', receiverIds: ['909993815497003053'] },
+      }),
+    ]);
+
+    await revokeOaCc(70, '909993815497003053', { requestId: 'req-revoke' });
+    expect(lastCall()).toEqual([
+      'system/oa/approval/application/70/cc/909993815497003053/revoke',
+      expect.objectContaining({
+        method: 'POST',
+        data: { requestId: 'req-revoke' },
       }),
     ]);
   });

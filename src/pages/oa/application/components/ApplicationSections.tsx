@@ -8,19 +8,21 @@ import {
   Descriptions,
   Empty,
   message,
+  Popconfirm,
   Space,
   Tag,
   Timeline,
   Typography,
 } from 'antd';
-import React, { useMemo } from 'react';
-import type {
-  OaApplicationDetailVo,
-  OaApplicationTimelineVo,
+import React, { useMemo, useState } from 'react';
+import {
+  type OaApplicationDetailVo,
+  type OaApplicationTimelineVo,
+  revokeOaCc,
 } from '@/services/web/guardfind/oa';
 import { download } from '@/utils/download';
 import { oaAttachmentFileId, parseOaFormSchema } from '@/utils/oaForm';
-import { formatOaFormValue } from '@/utils/oaLaunch';
+import { buildOaRequestId, formatOaFormValue } from '@/utils/oaLaunch';
 import { applicationStatusTag } from './ApplicationStatus';
 
 export const TIMELINE_ACTION: Record<string, string> = {
@@ -33,6 +35,8 @@ export const TIMELINE_ACTION: Record<string, string> = {
   TRANSFER: '转交',
   CLAIM: '领取任务',
   TERMINATE: '终止',
+  ADD_CC: '追加抄送',
+  REVOKE_CC: '撤销抄送',
 };
 
 function timelineRelation(item: OaApplicationTimelineVo) {
@@ -40,6 +44,11 @@ function timelineRelation(item: OaApplicationTimelineVo) {
   const actedForOther =
     original != null && String(original) !== String(item.operatorId ?? '');
   const originalLabel = item.originalAssigneeName || original;
+  if (item.action === 'REVOKE_CC') {
+    return item.targetUserId != null ? (
+      <Tag>撤销对 {item.targetUserName || item.targetUserId} 的抄送</Tag>
+    ) : null;
+  }
   if (item.action === 'TRANSFER') {
     return (
       <>
@@ -195,34 +204,116 @@ export function ApplicationFormCard({
 
 export function ApplicationCcCard({
   detail,
+  currentUserId,
+  onChanged,
+  extra,
 }: {
   detail: OaApplicationDetailVo;
+  /** 传入后，本人发起的抄送可撤销 */
+  currentUserId?: number | string | null;
+  onChanged?: () => void;
+  extra?: React.ReactNode;
 }) {
+  const [revokingId, setRevokingId] = useState<string | null>(null);
   const receivers = detail.ccReceivers ?? [];
-  if (!receivers.length) return null;
-  const readCount = receivers.filter((item) => item.status === 'READ').length;
+  if (!receivers.length && !extra) return null;
+  const active = receivers.filter((item) => item.status !== 'REVOKED');
+  const readCount = active.filter((item) => item.status === 'READ').length;
+
+  const revoke = async (receiverId: number | string) => {
+    const key = String(receiverId);
+    if (revokingId) return;
+    setRevokingId(key);
+    try {
+      await revokeOaCc(detail.id, receiverId, {
+        requestId: buildOaRequestId(),
+      });
+      message.success('已撤销抄送');
+      onChanged?.();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '撤销失败');
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
   return (
     <Card
       size="small"
       title="抄送人"
       extra={
-        <Typography.Text type="secondary">
-          已读 {readCount}/{receivers.length}
-        </Typography.Text>
+        <Space size={12}>
+          {active.length ? (
+            <Typography.Text type="secondary">
+              已读 {readCount}/{active.length}
+            </Typography.Text>
+          ) : null}
+          {extra}
+        </Space>
       }
     >
-      <Space size={[8, 8]} wrap>
-        {receivers.map((item) => (
-          <Tag
-            key={String(item.receiverId)}
-            color={item.status === 'READ' ? 'green' : 'default'}
-            title={item.readTime ? `已读于 ${item.readTime}` : '未读'}
-          >
-            {item.receiverName || String(item.receiverId)} ·{' '}
-            {item.status === 'READ' ? '已读' : '未读'}
-          </Tag>
-        ))}
-      </Space>
+      {receivers.length ? (
+        <Space size={[8, 8]} wrap>
+          {receivers.map((item) => {
+            const key = String(item.receiverId);
+            const revoked = item.status === 'REVOKED';
+            const name = item.receiverName || key;
+            const statusText = revoked
+              ? '已撤销'
+              : item.status === 'READ'
+                ? '已读'
+                : '未读';
+            const tip = [
+              item.ccByName ? `由 ${item.ccByName} 抄送` : null,
+              item.readTime ? `已读于 ${item.readTime}` : null,
+              item.revokeTime ? `撤销于 ${item.revokeTime}` : null,
+            ]
+              .filter(Boolean)
+              .join('；');
+            const canRevoke =
+              !revoked &&
+              currentUserId != null &&
+              item.ccById != null &&
+              String(item.ccById) === String(currentUserId);
+            return (
+              <Tag
+                key={key}
+                color={
+                  revoked
+                    ? undefined
+                    : item.status === 'READ'
+                      ? 'green'
+                      : 'default'
+                }
+                style={revoked ? { textDecoration: 'line-through' } : undefined}
+                title={tip || statusText}
+              >
+                {name} · {statusText}
+                {canRevoke ? (
+                  <Popconfirm
+                    title={`撤销对 ${name} 的抄送？`}
+                    description="撤销后对方将无法再查看该申请及附件。"
+                    okText="撤销"
+                    cancelText="取消"
+                    onConfirm={() => revoke(item.receiverId)}
+                  >
+                    <Button
+                      type="link"
+                      size="small"
+                      loading={revokingId === key}
+                      style={{ paddingInline: 4, height: 'auto' }}
+                    >
+                      撤销
+                    </Button>
+                  </Popconfirm>
+                ) : null}
+              </Tag>
+            );
+          })}
+        </Space>
+      ) : (
+        <Typography.Text type="secondary">暂无抄送人</Typography.Text>
+      )}
     </Card>
   );
 }

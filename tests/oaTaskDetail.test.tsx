@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { history } from '@umijs/max';
 import TaskDetailPage from '@/pages/oa/tasks/detail';
 import {
+  addOaTaskCc,
   approveOaTask,
   claimOaTask,
   getOaApprovalTask,
@@ -29,6 +30,8 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   claimOaTask: jest.fn(),
   transferOaTask: jest.fn(),
   queryOaEmployeeOptions: jest.fn(),
+  addOaTaskCc: jest.fn(),
+  revokeOaCc: jest.fn(),
 }));
 
 const application = {
@@ -243,5 +246,54 @@ describe('审批任务详情页', () => {
       ),
     );
     await waitFor(() => expect(history.push).toHaveBeenCalledWith('/oa/tasks'));
+  });
+
+  it('处理人可追加抄送并刷新抄送卡片', async () => {
+    jest.mocked(getOaApprovalTask).mockResolvedValue({
+      data: {
+        ...pendingDetail,
+        application: {
+          ...application,
+          ccReceivers: [
+            {
+              receiverId: '104',
+              receiverName: 'David',
+              status: 'UNREAD',
+              ccById: '101',
+              ccByName: '张三',
+            },
+          ],
+        },
+      },
+    } as any);
+    jest.mocked(addOaTaskCc).mockResolvedValue({
+      data: {
+        applicationId: 70,
+        status: 'RUNNING',
+        taskId: 'task-1',
+        replayed: false,
+      },
+    } as any);
+    render(<TaskDetailPage />);
+    expect(await screen.findByText(/David · 未读/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '撤销' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /追加抄送/ }));
+    await waitFor(() => expect(queryOaEmployeeOptions).toHaveBeenCalled());
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: '追加抄送人' }));
+    fireEvent.click(await screen.findByText('Carol (E003)'));
+    fireEvent.click(screen.getByRole('button', { name: '确认抄送' }));
+
+    await waitFor(() =>
+      expect(addOaTaskCc).toHaveBeenCalledWith(
+        'task-1',
+        expect.objectContaining({
+          receiverIds: ['103'],
+          requestId: expect.any(String),
+        }),
+      ),
+    );
+    await waitFor(() => expect(getOaApprovalTask).toHaveBeenCalledTimes(2));
+    expect(history.push).not.toHaveBeenCalled();
   });
 });

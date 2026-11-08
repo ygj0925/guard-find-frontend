@@ -2,7 +2,7 @@
  * 申请详情：展示发布版本对应的表单快照、申请人与审批轨迹；进行中的申请可由发起人撤回。
  */
 import { PageContainer } from '@ant-design/pro-components';
-import { history, useSearchParams } from '@umijs/max';
+import { history, useModel, useSearchParams } from '@umijs/max';
 import {
   Alert,
   Button,
@@ -37,6 +37,10 @@ function errorText(error: unknown) {
 const ApplicationDetailPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id');
+  const currentUser = useModel(
+    '@@initialState',
+    (model) => model.initialState?.user,
+  );
   const [detail, setDetail] = useState<OaApplicationDetailVo | null>(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -169,7 +173,11 @@ const ApplicationDetailPage: React.FC = () => {
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <ApplicationInfoCard detail={detail} />
             <ApplicationFormCard detail={detail} />
-            <ApplicationCcCard detail={detail} />
+            <ApplicationCcCard
+              detail={detail}
+              currentUserId={currentUser?.id}
+              onChanged={() => setReloadKey((value) => value + 1)}
+            />
             <ApplicationTimelineCard detail={detail} />
           </Space>
         ) : !loading && !loadError ? (

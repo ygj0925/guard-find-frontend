@@ -7,6 +7,7 @@ import {
   CloseOutlined,
   RollbackOutlined,
   SwapOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { history, useModel, useSearchParams } from '@umijs/max';
@@ -23,7 +24,9 @@ import {
   Typography,
 } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
+import { OaEmployeeMultiSelect } from '@/pages/oa/components/OaStaffSelects';
 import {
+  addOaTaskCc,
   approveOaTask,
   claimOaTask,
   getOaApprovalTask,
@@ -37,6 +40,7 @@ import {
 } from '@/services/web/guardfind/oa';
 import { buildOaRequestId } from '@/utils/oaLaunch';
 import {
+  ApplicationCcCard,
   ApplicationFormCard,
   ApplicationInfoCard,
   ApplicationTimelineCard,
@@ -44,6 +48,8 @@ import {
 import { applicationStatusTag } from '../../application/components/ApplicationStatus';
 
 type ActionType = 'approve' | 'reject' | 'return';
+
+const OA_TASK_CC_MAX = 20;
 
 const ACTION_META: Record<
   ActionType,
@@ -98,6 +104,11 @@ const TaskDetailPage: React.FC = () => {
   const [transferReason, setTransferReason] = useState('');
   const [transferRequestId, setTransferRequestId] = useState('');
   const [employees, setEmployees] = useState<OaEmployeeOptionVo[]>([]);
+  const [ccOpen, setCcOpen] = useState(false);
+  const [ccSaving, setCcSaving] = useState(false);
+  const [ccUserIds, setCcUserIds] = useState<string[]>([]);
+  const [ccReason, setCcReason] = useState('');
+  const [ccRequestId, setCcRequestId] = useState('');
 
   const loadDetail = useCallback(async () => {
     if (!taskId) {
@@ -164,6 +175,34 @@ const TaskDetailPage: React.FC = () => {
       message.error(errorText(error));
     } finally {
       setTransferSaving(false);
+    }
+  };
+
+  const openCc = () => {
+    setCcUserIds([]);
+    setCcReason('');
+    setCcRequestId(buildOaRequestId());
+    setCcOpen(true);
+  };
+
+  const submitCc = async () => {
+    if (!taskId || !ccUserIds.length || ccSaving) return;
+    setCcSaving(true);
+    try {
+      const response = await addOaTaskCc(taskId, {
+        requestId: ccRequestId,
+        receiverIds: ccUserIds,
+        reason: ccReason.trim() || undefined,
+      });
+      message.success(
+        response.data.replayed ? '已恢复此前抄送结果' : '已追加抄送',
+      );
+      setCcOpen(false);
+      await loadDetail();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setCcSaving(false);
     }
   };
 
@@ -306,6 +345,9 @@ const TaskDetailPage: React.FC = () => {
                         转交
                       </Button>
                     ) : null}
+                    <Button icon={<UserAddOutlined />} onClick={openCc}>
+                      追加抄送
+                    </Button>
                   </Space>
                 </Space>
               </Card>
@@ -319,6 +361,11 @@ const TaskDetailPage: React.FC = () => {
             )}
             <ApplicationInfoCard detail={application} />
             <ApplicationFormCard detail={application} />
+            <ApplicationCcCard
+              detail={application}
+              currentUserId={currentUser?.id}
+              onChanged={() => void loadDetail()}
+            />
             <ApplicationTimelineCard detail={application} />
           </Space>
         ) : !loading && !loadError ? (
@@ -395,6 +442,41 @@ const TaskDetailPage: React.FC = () => {
             placeholder="转交原因（可选）"
             value={transferReason}
             onChange={(event) => setTransferReason(event.target.value)}
+          />
+        </Space>
+      </Modal>
+
+      <Modal
+        title="追加抄送"
+        open={ccOpen}
+        okText="确认抄送"
+        cancelText="取消"
+        okButtonProps={{ disabled: !ccUserIds.length }}
+        confirmLoading={ccSaving}
+        onOk={() => void submitCc()}
+        onCancel={() => {
+          if (!ccSaving) setCcOpen(false);
+        }}
+        destroyOnHidden
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            抄送人可只读查看申请、轨迹与附件，不参与审批；已在名单中的人与申请人会自动跳过。你追加的抄送可由你本人撤销。
+          </Typography.Text>
+          <OaEmployeeMultiSelect
+            ariaLabel="追加抄送人"
+            value={ccUserIds}
+            maxCount={OA_TASK_CC_MAX}
+            onChange={(next) => setCcUserIds(next ?? [])}
+          />
+          <Input.TextArea
+            aria-label="抄送说明"
+            rows={3}
+            maxLength={500}
+            showCount
+            placeholder="抄送说明（可选）"
+            value={ccReason}
+            onChange={(event) => setCcReason(event.target.value)}
           />
         </Space>
       </Modal>

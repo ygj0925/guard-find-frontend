@@ -1,19 +1,24 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { history } from '@umijs/max';
 import ApplicationDetailPage from '@/pages/oa/application/detail';
-import { getOaApplication } from '@/services/web/guardfind/oa';
+import { getOaApplication, revokeOaCc } from '@/services/web/guardfind/oa';
 import { download } from '@/utils/download';
 
 jest.mock('@umijs/max', () => ({
   useSearchParams: () => [
     new URLSearchParams((globalThis as any).__oaApplicationSearch || ''),
   ],
+  useModel: (_key: string, selector?: (model: unknown) => unknown) =>
+    selector
+      ? selector({ initialState: { user: { id: '101', nickname: '张三' } } })
+      : undefined,
   history: { push: jest.fn() },
 }));
 
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaApplication: jest.fn(),
   urgeOaApplication: jest.fn(),
+  revokeOaCc: jest.fn(),
 }));
 
 jest.mock('@/utils/download', () => ({
@@ -160,6 +165,75 @@ describe('申请详情页', () => {
     expect(screen.getByText('已读 1/2')).toBeTruthy();
     expect(screen.getByText(/王五 · 已读/)).toBeTruthy();
     expect(screen.getByText(/赵六 · 未读/)).toBeTruthy();
+  });
+
+  it('仅本人发起的抄送可撤销，已撤销的不计入已读统计', async () => {
+    jest.mocked(getOaApplication).mockResolvedValue({
+      data: {
+        ...detail,
+        ccReceivers: [
+          {
+            receiverId: '103',
+            receiverName: '王五',
+            status: 'READ',
+            ccById: '102',
+            ccByName: '李四',
+          },
+          {
+            receiverId: '104',
+            receiverName: '赵六',
+            status: 'UNREAD',
+            ccById: '101',
+            ccByName: '张三',
+          },
+          {
+            receiverId: '105',
+            receiverName: '孙七',
+            status: 'REVOKED',
+            ccById: '101',
+            revokeTime: '2026-11-06 21:00:00',
+          },
+        ],
+        timeline: [
+          ...detail.timeline,
+          {
+            action: 'REVOKE_CC',
+            operatorId: 101,
+            operatorName: '张三',
+            taskId: null,
+            reason: null,
+            createTime: '2026-11-06 21:00:00',
+            targetUserId: '105',
+            targetUserName: '孙七',
+          },
+        ],
+      },
+    } as any);
+    jest
+      .mocked(revokeOaCc)
+      .mockResolvedValue({ data: { replayed: false } } as any);
+    render(<ApplicationDetailPage />);
+
+    expect(await screen.findByText('已读 1/2')).toBeTruthy();
+    expect(screen.getByText(/孙七 · 已撤销/)).toBeTruthy();
+    expect(screen.getByText('撤销抄送')).toBeTruthy();
+    expect(screen.getByText('撤销对 孙七 的抄送')).toBeTruthy();
+    const revokeButtons = screen.getAllByRole('button', { name: '撤销' });
+    expect(revokeButtons).toHaveLength(1);
+    fireEvent.click(revokeButtons[0]);
+    expect(await screen.findByText('撤销对 赵六 的抄送？')).toBeTruthy();
+    const confirm = screen
+      .getAllByRole('button', { name: /撤\s*销/ })
+      .find((button) => button.closest('.ant-popconfirm'));
+    fireEvent.click(confirm as HTMLElement);
+    await waitFor(() =>
+      expect(revokeOaCc).toHaveBeenCalledWith(
+        70,
+        '104',
+        expect.objectContaining({ requestId: expect.any(String) }),
+      ),
+    );
+    await waitFor(() => expect(getOaApplication).toHaveBeenCalledTimes(2));
   });
 
   it('缺少申请 ID 时提示并从列表进入', async () => {

@@ -498,8 +498,14 @@ export interface OaApplicationDetailVo extends OaApplicationVo {
 export interface OaCcReceiverVo {
   receiverId: number | string;
   receiverName?: string | null;
+  /** UNREAD / READ / REVOKED */
   status: string;
   readTime?: string | null;
+  /** 抄送发起人：发起时为申请人，审批中追加为追加人；只有本人可撤销 */
+  ccById?: number | string | null;
+  ccByName?: string | null;
+  sourceTaskId?: string | null;
+  revokeTime?: string | null;
 }
 
 export interface OaCcItemVo {
@@ -676,6 +682,31 @@ export function transferOaTask(
 ) {
   return request<R<OaApprovalActionResultVo>>(
     `system/oa/approval/task/${taskId}/transfer`,
+    { method: 'POST', data },
+  );
+}
+
+export interface OaTaskCcParams {
+  requestId: string;
+  /** 以字符串传递，避免雪花 ID 精度丢失 */
+  receiverIds: string[];
+  reason?: string;
+}
+
+export function addOaTaskCc(taskId: string, data: OaTaskCcParams) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/task/${taskId}/cc`,
+    { method: 'POST', data },
+  );
+}
+
+export function revokeOaCc(
+  applicationId: number | string,
+  receiverId: number | string,
+  data: OaApprovalActionParams,
+) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/approval/application/${applicationId}/cc/${receiverId}/revoke`,
     { method: 'POST', data },
   );
 }
