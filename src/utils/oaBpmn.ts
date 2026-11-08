@@ -36,6 +36,8 @@ const ALLOWED_BPMN_ELEMENTS = new Set([
   'process',
   'sequenceFlow',
   'conditionExpression',
+  'completionCondition',
+  'multiInstanceLoopCharacteristics',
   'timerEventDefinition',
   'timeDuration',
   'timeDate',
@@ -62,6 +64,8 @@ const ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
   boundaryEvent: new Set(['id', 'name', 'attachedToRef', 'cancelActivity']),
   sequenceFlow: new Set(['id', 'name', 'sourceRef', 'targetRef']),
   conditionExpression: new Set(['id', 'name']),
+  completionCondition: new Set(['id', 'name']),
+  multiInstanceLoopCharacteristics: new Set(['id', 'name', 'isSequential']),
   timerEventDefinition: new Set(['id']),
   timeDuration: new Set(['id']),
   timeDate: new Set(['id']),
@@ -96,6 +100,15 @@ const ISO_CYCLE = /^R[0-9]*\/[0-9A-Z./]+$/;
 const CRON = /^[0-9*?/,: -]+$/;
 const ISO_DATE = /^[0-9T:.+\-Z]+$/;
 const NUMBER = /^-?\d+(?:\.\d+)?$/;
+const ELEMENT_VARIABLE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+const COUNTERSIGN_OPERAND =
+  '(?:nrOfCompletedInstances|nrOfActiveInstances|nrOfInstances|\\d+(?:\\.\\d+)?)';
+const COUNTERSIGN_EXPRESSION = new RegExp(
+  `^\\$\\{\\s*${COUNTERSIGN_OPERAND}(?:\\s*[-+*/]\\s*${COUNTERSIGN_OPERAND})*\\s*(?:==|!=|<=|>=|<|>)\\s*${COUNTERSIGN_OPERAND}(?:\\s*[-+*/]\\s*${COUNTERSIGN_OPERAND})*\\s*\\}$`,
+);
+const COUNTERSIGN_RATIO =
+  /^\$\{\s*nrOfCompletedInstances\s*\/\s*nrOfInstances\s*>=\s*(\d+(?:\.\d+)?)\s*\}$/;
 
 const RESERVED_WORDS = new Set([
   'and',
@@ -128,6 +141,11 @@ export type OaBpmnSelection = {
   assignee: string;
   candidateUsers: string;
   candidateGroups: string;
+  isCountersign: boolean;
+  countersignCollection: string;
+  countersignElementVariable: string;
+  countersignSequential: boolean;
+  completionCondition: string;
   serviceClass: string;
   condition: string;
   timerType: string;
@@ -441,7 +459,9 @@ function validateAttributes(element: Element, type: string, errors: string[]) {
     if (attr.namespaceURI === OA_BPMN_NAMESPACES.xsi) {
       if (type === 'definitions' && name === 'schemaLocation') continue;
       if (
-        (type === 'conditionExpression' || TIMER_TYPES.has(type)) &&
+        (type === 'conditionExpression' ||
+          type === 'completionCondition' ||
+          TIMER_TYPES.has(type)) &&
         name === 'type' &&
         /^(bpmn:)?tFormalExpression$/.test(attr.value)
       ) {
@@ -464,7 +484,76 @@ function isAllowedFlowableAttribute(type: string, name: string) {
   if (type === 'userTask') {
     return ['assignee', 'candidateUsers', 'candidateGroups'].includes(name);
   }
+  if (type === 'multiInstanceLoopCharacteristics') {
+    return ['collection', 'elementVariable'].includes(name);
+  }
   return type === 'serviceTask' && name === 'class';
+}
+
+function flowableAttribute(element: Element, name: string) {
+  return element.getAttributeNS(OA_BPMN_NAMESPACES.flowable, name) || '';
+}
+
+/**
+ * 用户任务允许多实例子节点；会签集合按「审批人变量 + List」约定由发起端注入。
+ * 返回 elementVariable，非会签任务返回 null。
+ */
+function validateUserTaskChildren(
+  node: Element,
+  id: string,
+  errors: string[],
+): string | null {
+  const loops: Element[] = [];
+  for (const child of Array.from(node.children)) {
+    if (child.namespaceURI !== OA_BPMN_NAMESPACES.bpmn) {
+      errors.push(`任务 ${id} 不允许子节点: ${child.localName}`);
+      continue;
+    }
+    if (child.localName === 'multiInstanceLoopCharacteristics') {
+      loops.push(child);
+    } else if (
+      child.localName !== 'incoming' &&
+      child.localName !== 'outgoing'
+    ) {
+      errors.push(`任务 ${id} 不允许子节点: ${child.localName}`);
+    }
+  }
+  if (!loops.length) return null;
+  if (loops.length > 1) {
+    errors.push(`会签用户任务 ${id} 只能包含一个多实例配置`);
+  }
+  const loop = loops[0];
+  const sequential = (loop.getAttribute('isSequential') || '').trim();
+  if (sequential && sequential !== 'true' && sequential !== 'false') {
+    errors.push(`会签用户任务 ${id} 的 isSequential 只能是 true 或 false`);
+  }
+  const elementVariable = flowableAttribute(loop, 'elementVariable').trim();
+  if (!ELEMENT_VARIABLE.test(elementVariable)) {
+    errors.push(`会签用户任务 ${id} 的 elementVariable 必须是合法变量名`);
+  }
+  const expectedCollection = `\${${elementVariable}List}`;
+  if (flowableAttribute(loop, 'collection').trim() !== expectedCollection) {
+    errors.push(`会签用户任务 ${id} 的集合必须写成 ${expectedCollection}`);
+  }
+  let completion: Element | null = null;
+  for (const child of Array.from(loop.children)) {
+    if (
+      child.namespaceURI !== OA_BPMN_NAMESPACES.bpmn ||
+      child.localName !== 'completionCondition'
+    ) {
+      errors.push(`会签用户任务 ${id} 不允许子节点: ${child.localName}`);
+      continue;
+    }
+    if (completion) {
+      errors.push(`会签用户任务 ${id} 只能有一个完成条件`);
+    }
+    completion = child;
+    const error = oaCountersignConditionError(child.textContent || '');
+    if (error) {
+      errors.push(`会签用户任务 ${id} 的完成条件不安全: ${error}`);
+    }
+  }
+  return elementVariable;
 }
 
 function validateNode(
@@ -477,16 +566,25 @@ function validateNode(
   const id = node.getAttribute('id') || '';
   const type = node.localName;
   if (type === 'userTask') {
+    const multiInstance = validateUserTaskChildren(node, id, errors);
+    const assignee = flowableAttribute(node, 'assignee');
     if (!assignmentOf(node)) {
       errors.push(`用户任务 ${id} 必须配置审批人变量或候选范围`);
     }
     for (const name of ['assignee', 'candidateUsers', 'candidateGroups']) {
-      validateAssignment(
-        node.getAttributeNS(OA_BPMN_NAMESPACES.flowable, name) || '',
-        name,
-        id,
-        errors,
-      );
+      validateAssignment(flowableAttribute(node, name), name, id, errors);
+    }
+    if (multiInstance) {
+      const expected = `\${${multiInstance}}`;
+      if (assignee !== expected) {
+        errors.push(`会签用户任务 ${id} 的指定审批人必须是 ${expected}`);
+      }
+      if (
+        flowableAttribute(node, 'candidateUsers') ||
+        flowableAttribute(node, 'candidateGroups')
+      ) {
+        errors.push(`会签用户任务 ${id} 只能使用指定审批人，不能配置候选范围`);
+      }
     }
   }
   if (type === 'serviceTask') {
@@ -648,6 +746,30 @@ export function validateOaTimerValue(
         ? ISO_CYCLE.test(trimmed) || CRON.test(trimmed)
         : ISO_DATE.test(trimmed);
   return valid ? null : '定时器格式非法';
+}
+
+/** 会签完成条件白名单：只允许实例计数与数字做四则运算后比较。 */
+export function oaCountersignConditionError(expression: string): string | null {
+  const trimmed = expression?.trim() || '';
+  if (!trimmed) return '会签完成条件不能为空';
+  if (trimmed.length > 200) return '会签完成条件不能超过 200 个字符';
+  return COUNTERSIGN_EXPRESSION.test(trimmed)
+    ? null
+    : '会签完成条件只允许实例计数与数字的四则比较';
+}
+
+export function countersignConditionFromRatio(percent: number): string {
+  const ratio = Number((percent / 100).toFixed(4));
+  return `\${nrOfCompletedInstances / nrOfInstances >= ${ratio}}`;
+}
+
+/** 识别「比例通过」条件，返回百分比；全票通过或其他表达式返回 null。 */
+export function countersignRatioFromCondition(
+  expression: string,
+): number | null {
+  const match = (expression || '').trim().match(COUNTERSIGN_RATIO);
+  if (!match) return null;
+  return Math.round(Number(match[1]) * 100);
 }
 
 function assignmentOf(node: Element) {

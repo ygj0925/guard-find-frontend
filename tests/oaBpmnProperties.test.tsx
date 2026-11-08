@@ -16,6 +16,11 @@ function selection(patch: Partial<OaBpmnSelection> = {}): OaBpmnSelection {
     assignee: '',
     candidateUsers: '',
     candidateGroups: '',
+    isCountersign: false,
+    countersignCollection: '',
+    countersignElementVariable: '',
+    countersignSequential: false,
+    completionCondition: '',
     serviceClass: '',
     condition: '',
     timerType: '',
@@ -32,6 +37,7 @@ function props() {
   return {
     onChangeName: jest.fn(),
     onUpdateUserTask: jest.fn(),
+    onUpdateCountersign: jest.fn(),
     onUpdateServiceTask: jest.fn(),
     onUpdateCondition: jest.fn(),
     onUpdateDefaultFlow: jest.fn(),
@@ -72,6 +78,68 @@ describe('OaBpmnProperties', () => {
       'disabled',
       true,
     );
+  });
+
+  it('启用会签并提交审批人变量', () => {
+    const handlers = props();
+    render(
+      <OaBpmnProperties
+        selection={selection({ assignee: '${reviewer}' })}
+        {...handlers}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('启用会签'));
+    fireEvent.click(screen.getByRole('button', { name: '启用会签' }));
+    expect(handlers.onUpdateCountersign).toHaveBeenCalledWith({
+      enabled: true,
+      sequential: false,
+      ratioPercent: null,
+    });
+  });
+
+  it('会签审批人不是单个变量时禁止提交', async () => {
+    const handlers = props();
+    render(
+      <OaBpmnProperties
+        selection={selection({ assignee: 'user1,user2' })}
+        {...handlers}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('启用会签'));
+    expect(
+      await screen.findByText(/会签前需把「指定审批人」设为单个变量/),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: '启用会签' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
+  it('回显会签比例并可更新', () => {
+    const handlers = props();
+    render(
+      <OaBpmnProperties
+        selection={selection({
+          assignee: '${reviewer}',
+          isCountersign: true,
+          countersignCollection: '${reviewerList}',
+          countersignElementVariable: 'reviewer',
+          completionCondition:
+            '${nrOfCompletedInstances / nrOfInstances >= 0.6}',
+        })}
+        {...handlers}
+      />,
+    );
+    expect(screen.getByText('已启用')).toBeTruthy();
+    expect(
+      (screen.getByLabelText('会签通过比例') as HTMLInputElement).value,
+    ).toBe('60');
+    fireEvent.click(screen.getByRole('button', { name: '更新会签' }));
+    expect(handlers.onUpdateCountersign).toHaveBeenCalledWith({
+      enabled: true,
+      sequential: false,
+      ratioPercent: 60,
+    });
   });
 
   it('更新服务任务处理器', () => {

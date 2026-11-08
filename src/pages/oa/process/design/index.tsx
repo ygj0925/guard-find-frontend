@@ -584,7 +584,22 @@ const ProcessDesignPage: React.FC = () => {
                 }}
                 onUpdateUserTask={(attributes) => {
                   if (!selection) return;
-                  canvasRef.current?.updateUserTask(selection.id, attributes);
+                  try {
+                    canvasRef.current?.updateUserTask(selection.id, attributes);
+                  } catch (error) {
+                    message.error(errorText(error));
+                  }
+                }}
+                onUpdateCountersign={(settings) => {
+                  if (!selection) return;
+                  try {
+                    canvasRef.current?.updateCountersign(
+                      selection.id,
+                      settings,
+                    );
+                  } catch (error) {
+                    message.error(errorText(error));
+                  }
                 }}
                 onUpdateServiceTask={(className) => {
                   if (!selection) return;

@@ -2,22 +2,37 @@
  * 自定义属性面板：只暴露首版 BPMN 白名单内的属性。
  * 条件只允许写在排他网关的输出连线上，定时器只用于用户任务的边界事件。
  */
-import { Button, Empty, Input, Select, Space, Tag, Typography } from 'antd';
+import {
+  Button,
+  Empty,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Switch,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  countersignRatioFromCondition,
   OA_BPMN_TIMER_TYPES,
   type OaBpmnSelection,
   oaConditionError,
   validateOaAssignment,
   validateOaTimerValue,
 } from '@/utils/oaBpmn';
-import type { OaUserTaskAttributes } from './OaBpmnCanvas';
+import type {
+  OaCountersignSettings,
+  OaUserTaskAttributes,
+} from './OaBpmnCanvas';
 
 type OaBpmnPropertiesProps = {
   selection: OaBpmnSelection | null;
   readOnly?: boolean;
   onChangeName: (name: string) => void;
   onUpdateUserTask: (attributes: OaUserTaskAttributes) => void;
+  onUpdateCountersign: (settings: OaCountersignSettings) => void;
   onUpdateServiceTask: (className: string) => void;
   onUpdateCondition: (expression: string | null) => void;
   onUpdateDefaultFlow: (flowId: string | null) => void;
@@ -77,6 +92,7 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
   readOnly = false,
   onChangeName,
   onUpdateUserTask,
+  onUpdateCountersign,
   onUpdateServiceTask,
   onUpdateCondition,
   onUpdateDefaultFlow,
@@ -87,6 +103,12 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
   const [assignee, setAssignee] = useState('');
   const [candidateUsers, setCandidateUsers] = useState('');
   const [candidateGroups, setCandidateGroups] = useState('');
+  const [countersignEnabled, setCountersignEnabled] = useState(false);
+  const [countersignSequential, setCountersignSequential] = useState(false);
+  const [countersignMode, setCountersignMode] = useState<'ALL' | 'RATIO'>(
+    'ALL',
+  );
+  const [countersignPercent, setCountersignPercent] = useState(60);
   const [serviceClass, setServiceClass] = useState('');
   const [condition, setCondition] = useState('');
   const [timerType, setTimerType] = useState('');
@@ -97,6 +119,13 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
     setAssignee(selection?.assignee || '');
     setCandidateUsers(selection?.candidateUsers || '');
     setCandidateGroups(selection?.candidateGroups || '');
+    setCountersignEnabled(Boolean(selection?.isCountersign));
+    setCountersignSequential(Boolean(selection?.countersignSequential));
+    const ratio = selection
+      ? countersignRatioFromCondition(selection.completionCondition)
+      : null;
+    setCountersignMode(ratio == null ? 'ALL' : 'RATIO');
+    setCountersignPercent(ratio ?? 60);
     setServiceClass(selection?.serviceClass || '');
     setCondition(selection?.condition || '');
     setTimerType(selection?.timerType || '');
@@ -123,6 +152,21 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
         : null,
     [timerType, timerValue],
   );
+  const countersignError = useMemo(() => {
+    if (!countersignEnabled) return null;
+    if (!/^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(assignee.trim())) {
+      return '会签前需把「指定审批人」设为单个变量，例如 ${reviewer}';
+    }
+    if (
+      countersignMode === 'RATIO' &&
+      (!Number.isFinite(countersignPercent) ||
+        countersignPercent < 1 ||
+        countersignPercent > 100)
+    ) {
+      return '通过比例需在 1-100 之间';
+    }
+    return null;
+  }, [countersignEnabled, assignee, countersignMode, countersignPercent]);
 
   if (!selection) {
     return (
@@ -187,7 +231,7 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
           <AssignmentField
             label="候选用户"
             value={candidateUsers}
-            disabled={disabled}
+            disabled={disabled || countersignEnabled}
             error={assignmentErrors.candidateUsers}
             placeholder="如 ${approvers} 或 user1,user2"
             onChange={setCandidateUsers}
@@ -195,7 +239,7 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
           <AssignmentField
             label="候选组"
             value={candidateGroups}
-            disabled={disabled}
+            disabled={disabled || countersignEnabled}
             error={assignmentErrors.candidateGroups}
             placeholder="如 ${groupCode} 或 manager"
             onChange={setCandidateGroups}
@@ -212,6 +256,92 @@ const OaBpmnProperties: React.FC<OaBpmnPropertiesProps> = ({
           >
             更新审批范围
           </Button>
+
+          <div
+            style={{
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <Space>
+              <Switch
+                aria-label="启用会签"
+                checked={countersignEnabled}
+                disabled={disabled}
+                onChange={setCountersignEnabled}
+              />
+              <Typography.Text strong>会签</Typography.Text>
+              {selection.isCountersign ? (
+                <Tag color="purple">已启用</Tag>
+              ) : null}
+            </Space>
+            <Select
+              aria-label="会签策略"
+              style={{ width: '100%' }}
+              disabled={disabled || !countersignEnabled}
+              value={countersignMode}
+              options={[
+                { value: 'ALL', label: '全部通过后完成' },
+                { value: 'RATIO', label: '达到比例即完成' },
+              ]}
+              onChange={(value) => setCountersignMode(value)}
+            />
+            {countersignEnabled && countersignMode === 'RATIO' ? (
+              <InputNumber
+                aria-label="会签通过比例"
+                style={{ width: '100%' }}
+                min={1}
+                max={100}
+                precision={0}
+                addonAfter="%"
+                value={countersignPercent}
+                disabled={disabled}
+                onChange={(value) =>
+                  setCountersignPercent(typeof value === 'number' ? value : 0)
+                }
+              />
+            ) : null}
+            <Space>
+              <Switch
+                aria-label="顺序会签"
+                checked={countersignSequential}
+                disabled={disabled || !countersignEnabled}
+                onChange={setCountersignSequential}
+              />
+              <Typography.Text>顺序会签（依次审批）</Typography.Text>
+            </Space>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              会签实例集合由发起端按「审批人变量 +
+              List」注入，候选用户与候选组会被清空；达到比例后引擎自动取消剩余任务，任一驳回按一票否决终止流程。
+            </Typography.Text>
+            {countersignError ? (
+              <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                {countersignError}
+              </Typography.Text>
+            ) : null}
+            <Button
+              disabled={disabled || Boolean(countersignError)}
+              onClick={() =>
+                onUpdateCountersign({
+                  enabled: countersignEnabled,
+                  sequential: countersignSequential,
+                  ratioPercent:
+                    countersignEnabled && countersignMode === 'RATIO'
+                      ? countersignPercent
+                      : null,
+                })
+              }
+            >
+              {selection.isCountersign
+                ? countersignEnabled
+                  ? '更新会签'
+                  : '关闭会签'
+                : '启用会签'}
+            </Button>
+          </div>
         </Space>
       ) : null}
 

@@ -58,9 +58,14 @@ jest.mock('@/pages/oa/process/design/components/OaBpmnCanvas', () => {
     isSequenceFlow: false,
     isExclusiveGateway: false,
     isBoundaryEvent: false,
-    assignee: '',
+    assignee: '${reviewer}',
     candidateUsers: '',
     candidateGroups: '',
+    isCountersign: false,
+    countersignCollection: '',
+    countersignElementVariable: '',
+    countersignSequential: false,
+    completionCondition: '',
     serviceClass: '',
     condition: '',
     timerType: '',
@@ -85,6 +90,7 @@ jest.mock('@/pages/oa/process/design/components/OaBpmnCanvas', () => {
     exportXML: jest.fn(async () => buildXml()),
     updateName: jest.fn(),
     updateUserTask: jest.fn(),
+    updateCountersign: jest.fn(),
     updateServiceTask: jest.fn(),
     updateCondition: jest.fn(),
     updateDefaultFlow: jest.fn(),
@@ -221,6 +227,19 @@ describe('流程设计页', () => {
     fireEvent.click(screen.getByRole('button', { name: '选择用户任务' }));
     expect(screen.getByLabelText('指定审批人')).toBeTruthy();
     expect(screen.getByText('userTask')).toBeTruthy();
+  });
+
+  it('在属性面板启用会签并交给画布', async () => {
+    render(<ProcessDesignPage />);
+    fireEvent.click(screen.getByRole('button', { name: '选择用户任务' }));
+    fireEvent.click(screen.getByLabelText('启用会签'));
+    fireEvent.click(screen.getByRole('button', { name: '启用会签' }));
+    await waitFor(() =>
+      expect(canvasApi.updateCountersign).toHaveBeenCalledWith(
+        'Activity_approve',
+        { enabled: true, sequential: false, ratioPercent: null },
+      ),
+    );
   });
 
   it('校验当前模型并展示前端与服务端结果', async () => {

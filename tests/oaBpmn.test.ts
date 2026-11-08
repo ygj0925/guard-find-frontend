@@ -1,9 +1,12 @@
 import {
   compileOaConditionRule,
+  countersignConditionFromRatio,
+  countersignRatioFromCondition,
   defaultOaBpmnXml,
   isSafeOaCondition,
   OA_BPMN_LIMITS,
   oaConditionError,
+  oaCountersignConditionError,
   parseOaConditionValue,
   validateOaAssignment,
   validateOaBpmnXml,
@@ -67,6 +70,26 @@ function boundaryProcess(
     <bpmn:boundaryEvent id="Boundary_1" name="超时" attachedToRef="${attachedTo}" cancelActivity="true">
       <bpmn:timerEventDefinition>${timer}</bpmn:timerEventDefinition>
     </bpmn:boundaryEvent>
+    <bpmn:endEvent id="EndEvent_1"><bpmn:incoming>Flow_2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Activity_approve"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_approve" targetRef="EndEvent_1"/>
+  `);
+}
+
+function countersignProcess(condition?: string) {
+  const completion =
+    condition === undefined
+      ? ''
+      : `<bpmn:completionCondition xsi:type="bpmn:tFormalExpression">${condition}</bpmn:completionCondition>`;
+  return definitions(`
+    <bpmn:startEvent id="StartEvent_1"><bpmn:outgoing>Flow_1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:userTask id="Activity_approve" name="会签" flowable:assignee="\${reviewer}">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics isSequential="false" flowable:collection="\${reviewerList}" flowable:elementVariable="reviewer">
+        ${completion}
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:userTask>
     <bpmn:endEvent id="EndEvent_1"><bpmn:incoming>Flow_2</bpmn:incoming></bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Activity_approve"/>
     <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_approve" targetRef="EndEvent_1"/>
@@ -215,6 +238,47 @@ describe('validateOaBpmnXml', () => {
     );
   });
 
+  it('接受会签任务与比例完成条件', () => {
+    const report = validateOaBpmnXml(
+      countersignProcess('${nrOfCompletedInstances / nrOfInstances >= 0.6}'),
+    );
+    expect(report.valid).toBe(true);
+    expect(report.errors).toEqual([]);
+    expect(report.summary.userTasks[0]?.assignment).toBe('指定人 ${reviewer}');
+  });
+
+  it('拒绝不安全的会签完成条件', () => {
+    const unsafe = countersignProcess('${nrOfCompletedInstances >= 1 || true}');
+    expect(validateOaBpmnXml(unsafe).errors.join()).toContain('完成条件不安全');
+  });
+
+  it('拒绝会签集合与审批人变量不一致', () => {
+    const wrongCollection = countersignProcess().replace(
+      'flowable:collection="${reviewerList}"',
+      'flowable:collection="${approverList}"',
+    );
+    expect(validateOaBpmnXml(wrongCollection).errors.join()).toContain(
+      '集合必须写成',
+    );
+    const wrongAssignee = countersignProcess().replace(
+      'flowable:assignee="${reviewer}"',
+      'flowable:assignee="${approver}"',
+    );
+    expect(validateOaBpmnXml(wrongAssignee).errors.join()).toContain(
+      '指定审批人必须是',
+    );
+  });
+
+  it('拒绝会签任务同时配置候选范围', () => {
+    const withCandidates = countersignProcess().replace(
+      'flowable:assignee="${reviewer}"',
+      'flowable:assignee="${reviewer}" flowable:candidateUsers="${approvers}"',
+    );
+    expect(validateOaBpmnXml(withCandidates).errors.join()).toContain(
+      '不能配置候选范围',
+    );
+  });
+
   it('检查开始/结束节点、重复 id 与断链', () => {
     const noStart = SIMPLE_PROCESS.replace(
       /<bpmn:startEvent[\s\S]*?<\/bpmn:startEvent>/,
@@ -360,6 +424,40 @@ describe('属性校验', () => {
     expect(validateOaTimerValue('timeDuration', '${a b}')).toContain(
       '简单变量表达式',
     );
+  });
+});
+
+describe('会签完成条件', () => {
+  it('只接受实例计数与数字的四则比较', () => {
+    expect(
+      oaCountersignConditionError(
+        '${nrOfCompletedInstances / nrOfInstances >= 0.5}',
+      ),
+    ).toBeNull();
+    expect(
+      oaCountersignConditionError('${nrOfCompletedInstances >= 2}'),
+    ).toBeNull();
+    expect(
+      oaCountersignConditionError('${nrOfCompletedInstances >= 1 || true}'),
+    ).toContain('四则比较');
+    expect(
+      oaCountersignConditionError('${execution.getVariable("x")}'),
+    ).toContain('四则比较');
+    expect(oaCountersignConditionError('')).toContain('不能为空');
+  });
+
+  it('在比例与条件之间转换', () => {
+    expect(countersignConditionFromRatio(60)).toBe(
+      '${nrOfCompletedInstances / nrOfInstances >= 0.6}',
+    );
+    expect(
+      countersignRatioFromCondition(
+        '${nrOfCompletedInstances / nrOfInstances >= 0.6}',
+      ),
+    ).toBe(60);
+    expect(
+      countersignRatioFromCondition('${nrOfCompletedInstances >= 2}'),
+    ).toBe(null);
   });
 });
 

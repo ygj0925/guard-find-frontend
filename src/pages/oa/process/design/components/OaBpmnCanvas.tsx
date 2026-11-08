@@ -11,6 +11,7 @@ import React, {
   useState,
 } from 'react';
 import type { OaBpmnSelection } from '@/utils/oaBpmn';
+import { countersignConditionFromRatio } from '@/utils/oaBpmn';
 import { loadOaBpmnConstructors } from './bpmnLoader';
 import { FLOWABLE_MODDLE } from './flowableModdle';
 import 'bpmn-js/dist/assets/diagram-js.css';
@@ -23,11 +24,19 @@ export type OaUserTaskAttributes = {
   candidateGroups?: string;
 };
 
+export type OaCountersignSettings = {
+  enabled: boolean;
+  sequential?: boolean;
+  /** 百分比；留空表示全票通过。 */
+  ratioPercent?: number | null;
+};
+
 export type OaBpmnCanvasHandle = {
   importXML(xml: string): Promise<void>;
   exportXML(): Promise<string>;
   updateName(id: string, name: string): void;
   updateUserTask(id: string, attributes: OaUserTaskAttributes): void;
+  updateCountersign(id: string, settings: OaCountersignSettings): void;
   updateServiceTask(id: string, className: string): void;
   updateCondition(flowId: string, expression: string | null): void;
   updateDefaultFlow(gatewayId: string, flowId: string | null): void;
@@ -57,6 +66,11 @@ function localType(type?: string) {
   return String(type || '').replace(/^bpmn:/, '');
 }
 
+function countersignVariable(assignee: string) {
+  const match = assignee.match(/^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/);
+  return match ? match[1] : '';
+}
+
 function toSelection(element: any): OaBpmnSelection | null {
   const businessObject = element?.businessObject;
   if (!businessObject) return null;
@@ -69,6 +83,7 @@ function toSelection(element: any): OaBpmnSelection | null {
   );
   const timerType = timer ? localType(timer.$type) : '';
   const timerValue = timer ? (timer[timerType]?.body ?? '') : '';
+  const loop = businessObject.loopCharacteristics;
   return {
     id: businessObject.id || '',
     type,
@@ -82,6 +97,12 @@ function toSelection(element: any): OaBpmnSelection | null {
     assignee: businessObject.assignee || '',
     candidateUsers: businessObject.candidateUsers || '',
     candidateGroups: businessObject.candidateGroups || '',
+    isCountersign:
+      localType(loop?.$type) === 'MultiInstanceLoopCharacteristics',
+    countersignCollection: loop?.collection || '',
+    countersignElementVariable: loop?.elementVariable || '',
+    countersignSequential: Boolean(loop?.isSequential),
+    completionCondition: loop?.completionCondition?.body || '',
     serviceClass: businessObject.class || '',
     condition: businessObject.conditionExpression?.body || '',
     timerType,
@@ -207,10 +228,71 @@ const OaBpmnCanvas = forwardRef<OaBpmnCanvasHandle, OaBpmnCanvasProps>(
           const instance = requireInstance();
           const element = instance.get('elementRegistry').get(id);
           if (!element) return;
-          instance.get('modeling').updateProperties(element, {
-            assignee: attributes.assignee?.trim() || undefined,
+          const modeling = instance.get('modeling');
+          const businessObject = element.businessObject;
+          const assignee = attributes.assignee?.trim() || undefined;
+          const patch: Record<string, unknown> = {
+            assignee,
             candidateUsers: attributes.candidateUsers?.trim() || undefined,
             candidateGroups: attributes.candidateGroups?.trim() || undefined,
+          };
+          if (businessObject.loopCharacteristics) {
+            const variable = countersignVariable(assignee || '');
+            if (!variable) {
+              throw new Error(
+                '会签任务的指定审批人必须是单个变量，例如 ${reviewer}',
+              );
+            }
+            modeling.updateModdleProperties(
+              element,
+              businessObject.loopCharacteristics,
+              {
+                collection: `\${${variable}List}`,
+                elementVariable: variable,
+              },
+            );
+            patch.candidateUsers = undefined;
+            patch.candidateGroups = undefined;
+          }
+          modeling.updateProperties(element, patch);
+          refreshSelection(instance, id);
+        },
+        updateCountersign(id: string, settings: OaCountersignSettings) {
+          const instance = requireInstance();
+          const element = instance.get('elementRegistry').get(id);
+          if (!element) return;
+          const modeling = instance.get('modeling');
+          const businessObject = element.businessObject;
+          if (!settings.enabled) {
+            modeling.updateProperties(element, {
+              loopCharacteristics: undefined,
+            });
+            refreshSelection(instance, id);
+            return;
+          }
+          const variable = countersignVariable(
+            String(businessObject.assignee || '').trim(),
+          );
+          if (!variable) {
+            throw new Error(
+              '开启会签前请先把指定审批人设为单个变量，例如 ${reviewer}',
+            );
+          }
+          const moddle = instance.get('moddle');
+          const loop = moddle.create('bpmn:MultiInstanceLoopCharacteristics', {
+            isSequential: Boolean(settings.sequential),
+            collection: `\${${variable}List}`,
+            elementVariable: variable,
+          });
+          if (settings.ratioPercent != null) {
+            loop.completionCondition = moddle.create('bpmn:FormalExpression', {
+              body: countersignConditionFromRatio(settings.ratioPercent),
+            });
+          }
+          modeling.updateProperties(element, {
+            loopCharacteristics: loop,
+            candidateUsers: undefined,
+            candidateGroups: undefined,
           });
           refreshSelection(instance, id);
         },

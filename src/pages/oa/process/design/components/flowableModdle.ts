@@ -23,5 +23,13 @@ export const FLOWABLE_MODDLE = {
       extends: ['bpmn:ServiceTask'],
       properties: [{ name: 'class', isAttr: true, type: 'String' }],
     },
+    {
+      name: 'MultiInstanceLoopCharacteristics',
+      extends: ['bpmn:MultiInstanceLoopCharacteristics'],
+      properties: [
+        { name: 'collection', isAttr: true, type: 'String' },
+        { name: 'elementVariable', isAttr: true, type: 'String' },
+      ],
+    },
   ],
 };
