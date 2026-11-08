@@ -3,7 +3,7 @@
  * 服务端仍是范围、审批人与表单校验的最终裁决方。
  */
 import type { UploadFile } from 'antd';
-import type { Dayjs } from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import type { OaAssigneeVariableVo } from '@/services/web/guardfind/oa';
 import { type OaFormField, oaAttachmentFileId } from '@/utils/oaForm';
 
@@ -145,6 +145,58 @@ export function toOaSubmitFormData(
       }
     });
   return formData;
+}
+
+/** toOaSubmitFormData 的逆转换：把草稿里的提交值还原为渲染器的受控值。 */
+export function fromOaSubmitFormData(
+  fields: OaFormField[],
+  formData?: Record<string, unknown> | null,
+) {
+  const values: Record<string, unknown> = {};
+  if (!formData) return values;
+  fields
+    .filter((field) => !field.hidden && !field.readonly)
+    .forEach((field) => {
+      const value = formData[field.key];
+      if (value === undefined || value === null || value === '') return;
+      switch (field.type) {
+        case 'date': {
+          const date = dayjs(String(value));
+          if (date.isValid()) values[field.key] = date;
+          break;
+        }
+        case 'attachment': {
+          if (!Array.isArray(value)) break;
+          const files: UploadFile[] = value.flatMap((item, index) => {
+            if (!item || typeof item !== 'object') return [];
+            const file = item as { uid?: unknown; name?: unknown };
+            const fileId = oaAttachmentFileId(item as { fileId?: unknown });
+            if (!fileId) return [];
+            return [
+              {
+                uid: String(file.uid ?? `draft-${fileId}-${index}`),
+                name: String(file.name ?? '附件'),
+                status: 'done',
+                fileId,
+              } as UploadFile & { fileId: string },
+            ];
+          });
+          if (files.length) values[field.key] = files;
+          break;
+        }
+        case 'person':
+          values[field.key] = String(value);
+          break;
+        case 'checkbox':
+          values[field.key] = (Array.isArray(value) ? value : [value]).map(
+            String,
+          );
+          break;
+        default:
+          values[field.key] = value;
+      }
+    });
+  return values;
 }
 
 export function formatOaFormValue(field: OaFormField, value: unknown) {

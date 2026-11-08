@@ -2,10 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { history } from '@umijs/max';
 import LaunchFillPage from '@/pages/oa/launch/fill';
 import {
+  createOaDraft,
+  getOaDraft,
   getOaLaunch,
   queryOaEmployeeOptions,
   queryOaPositionOptions,
   submitOaLaunch,
+  updateOaDraft,
 } from '@/services/web/guardfind/oa';
 
 jest.mock('@umijs/max', () => ({
@@ -24,6 +27,9 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   submitOaLaunch: jest.fn(),
   queryOaEmployeeOptions: jest.fn(),
   queryOaPositionOptions: jest.fn(),
+  getOaDraft: jest.fn(),
+  createOaDraft: jest.fn(),
+  updateOaDraft: jest.fn(),
 }));
 
 const schema = {
@@ -177,5 +183,99 @@ describe('发起填写页', () => {
     await waitFor(() => expect(submitOaLaunch).toHaveBeenCalledTimes(1));
     const [, payload] = jest.mocked(submitOaLaunch).mock.calls[0];
     expect(payload.ccUserIds).toEqual(['102']);
+  });
+
+  it('未填完也能保存草稿，再次保存走乐观锁更新', async () => {
+    jest.mocked(createOaDraft).mockResolvedValue({
+      data: { id: '900000000000000001', version: 0 },
+    } as any);
+    jest.mocked(updateOaDraft).mockResolvedValue({
+      data: { id: '900000000000000001', version: 1 },
+    } as any);
+    render(<LaunchFillPage />);
+    await screen.findByText('发起：请假审批');
+
+    fireEvent.click(screen.getByRole('button', { name: /保存草稿/ }));
+    await waitFor(() => expect(createOaDraft).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(createOaDraft).mock.calls[0][0]).toEqual({
+      releaseId: '21',
+      title: undefined,
+      formData: {},
+      assignees: [
+        { variableName: 'approver', type: 'FORM_FIELD', value: 'owner' },
+        { variableName: 'supervisor', type: 'SUPERVISOR', value: undefined },
+      ],
+      ccUserIds: undefined,
+    });
+    expect(history.replace).toHaveBeenCalledWith(
+      '/oa/launch/fill?releaseId=21&draftId=900000000000000001',
+    );
+    expect(screen.queryByText('请填写姓名')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('姓名'), {
+      target: { value: '张三' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /更新草稿/ }));
+    await waitFor(() => expect(updateOaDraft).toHaveBeenCalledTimes(1));
+    const [id, payload] = jest.mocked(updateOaDraft).mock.calls[0];
+    expect(id).toBe('900000000000000001');
+    expect(payload.version).toBe(0);
+    expect(payload.formData).toEqual({ name: '张三' });
+  });
+
+  it('从草稿进入时回填内容，提交时携带草稿 ID', async () => {
+    (globalThis as any).__oaLaunchSearch =
+      'releaseId=21&draftId=900000000000000001';
+    jest.mocked(getOaDraft).mockResolvedValue({
+      data: {
+        id: '900000000000000001',
+        releaseId: '21',
+        title: '周五请假',
+        formData: { name: '王五', owner: '102' },
+        assignees: [
+          { variableName: 'approver', type: 'EMPLOYEE', value: '102' },
+        ],
+        ccUserIds: ['102'],
+        launchable: true,
+        version: 3,
+      },
+    } as any);
+    render(<LaunchFillPage />);
+    await screen.findByText('发起：请假审批');
+
+    expect(getOaDraft).toHaveBeenCalledWith('900000000000000001');
+    expect((screen.getByLabelText('姓名') as HTMLInputElement).value).toBe(
+      '王五',
+    );
+    expect((screen.getByLabelText('申请标题') as HTMLInputElement).value).toBe(
+      '周五请假',
+    );
+    expect(screen.getByText('1/20')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /更新草稿/ })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /提交并发起/ }));
+    await waitFor(() => expect(submitOaLaunch).toHaveBeenCalledTimes(1));
+    const [, payload] = jest.mocked(submitOaLaunch).mock.calls[0];
+    expect(payload.draftId).toBe('900000000000000001');
+    expect(payload.title).toBe('周五请假');
+    expect(payload.formData).toEqual({ name: '王五', owner: '102' });
+    expect(payload.ccUserIds).toEqual(['102']);
+    expect(payload.assignees).toEqual([
+      { variableName: 'approver', type: 'EMPLOYEE', value: '102' },
+      { variableName: 'supervisor', type: 'SUPERVISOR', value: undefined },
+    ]);
+  });
+
+  it('草稿与当前发布版本不匹配时拒绝加载', async () => {
+    (globalThis as any).__oaLaunchSearch = 'releaseId=21&draftId=9';
+    jest.mocked(getOaDraft).mockResolvedValue({
+      data: { id: '9', releaseId: '11', launchable: true, version: 0 },
+    } as any);
+    render(<LaunchFillPage />);
+
+    expect(
+      await screen.findByText('草稿与当前流程版本不匹配，请从草稿列表重新进入'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /提交并发起/ })).toBeNull();
   });
 });

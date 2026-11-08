@@ -326,6 +326,8 @@ export interface OaLaunchSubmitParams {
   assignees: OaAssigneeBindingParam[];
   /** 抄送人 userId（雪花 ID 用字符串传输），最多 20 人 */
   ccUserIds?: string[];
+  /** 从草稿提交时携带；提交成功后草稿在同一事务内被消费 */
+  draftId?: string;
 }
 
 export interface OaLaunchSubmitResultVo {
@@ -361,6 +363,77 @@ export function submitOaLaunch(
     `system/oa/launch/${releaseId}/submit`,
     { method: 'POST', data },
   );
+}
+
+export interface OaDraftVo {
+  id: string;
+  releaseId: string;
+  title?: string | null;
+  modelName?: string | null;
+  formName?: string | null;
+  releaseVersion?: number | null;
+  launchable: boolean;
+  version: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface OaDraftDetailVo {
+  id: string;
+  releaseId: string;
+  title?: string | null;
+  formData?: Record<string, unknown> | null;
+  assignees?: OaAssigneeBindingParam[] | null;
+  ccUserIds?: string[] | null;
+  launchable: boolean;
+  version: number;
+  updateTime?: string;
+}
+
+export interface OaDraftSaveParams {
+  releaseId: string;
+  title?: string;
+  formData: Record<string, unknown>;
+  assignees: OaAssigneeBindingParam[];
+  ccUserIds?: string[];
+  version?: number;
+}
+
+export interface OaDraftSaveResultVo {
+  id: string;
+  version: number;
+  updateTime?: string;
+}
+
+export function queryOaDrafts(params: QueryParam<{ keyword?: string }>) {
+  return request<R<PageResult<OaDraftVo>>>('system/oa/draft/page', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaDraft(id: string) {
+  return request<R<OaDraftDetailVo>>(`system/oa/draft/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function createOaDraft(data: OaDraftSaveParams) {
+  return request<R<OaDraftSaveResultVo>>('system/oa/draft', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaDraft(id: string, data: OaDraftSaveParams) {
+  return request<R<OaDraftSaveResultVo>>(`system/oa/draft/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function deleteOaDraft(id: string) {
+  return request<R<null>>(`system/oa/draft/${id}`, { method: 'DELETE' });
 }
 
 export interface OaApplicationVo {

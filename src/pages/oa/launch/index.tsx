@@ -15,6 +15,7 @@ import {
   type OaLaunchItemVo,
   queryOaLaunches,
 } from '@/services/web/guardfind/oa';
+import OaDraftTable from './components/OaDraftTable';
 
 function errorText(error: unknown) {
   return error instanceof Error ? error.message : '操作失败';
@@ -148,6 +149,11 @@ const LaunchListPage: React.FC = () => {
         }}
         pagination={{ defaultPageSize: 20, showSizeChanger: true }}
       />
+      <AccessControl permission="system:oa:launch:submit">
+        <div style={{ marginTop: 16 }}>
+          <OaDraftTable />
+        </div>
+      </AccessControl>
     </PageContainer>
   );
 };

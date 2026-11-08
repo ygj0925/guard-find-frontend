@@ -3,6 +3,7 @@ import type { OaFormField } from '@/utils/oaForm';
 import {
   buildOaRequestId,
   formatOaFormValue,
+  fromOaSubmitFormData,
   normalizeAssigneeType,
   oaPersonFieldOptions,
   parseOaLaunchScope,
@@ -140,5 +141,53 @@ describe('OA 发起工具', () => {
         undefined,
       ),
     ).toBe('—');
+  });
+
+  it('草稿提交值可还原为表单受控值并往返一致', () => {
+    const fields: OaFormField[] = [
+      { id: 'f1', key: 'start', label: '开始', type: 'date' },
+      { id: 'f2', key: 'proof', label: '证明', type: 'attachment' },
+      { id: 'f3', key: 'owner', label: '负责人', type: 'person' },
+      { id: 'f4', key: 'tags', label: '标签', type: 'checkbox' },
+      { id: 'f5', key: 'days', label: '天数', type: 'number' },
+      { id: 'f6', key: 'secret', label: '隐藏', type: 'text', hidden: true },
+    ];
+    const formData = {
+      start: '2026-11-20',
+      proof: [
+        { uid: 'u1', name: '证明.pdf', fileId: '900000000000000123' },
+        { name: '坏数据' },
+      ],
+      owner: '900000000000000102',
+      tags: 'urgent',
+      days: 2,
+      secret: '不应回填',
+    };
+    const values = fromOaSubmitFormData(fields, formData);
+    expect((values.start as dayjs.Dayjs).format('YYYY-MM-DD')).toBe(
+      '2026-11-20',
+    );
+    expect(values.proof).toEqual([
+      {
+        uid: 'u1',
+        name: '证明.pdf',
+        status: 'done',
+        fileId: '900000000000000123',
+      },
+    ]);
+    expect(values.owner).toBe('900000000000000102');
+    expect(values.tags).toEqual(['urgent']);
+    expect(values.days).toBe(2);
+    expect(values.secret).toBeUndefined();
+    expect(fromOaSubmitFormData(fields, { start: 'not-a-date' })).toEqual({});
+    expect(fromOaSubmitFormData(fields, null)).toEqual({});
+
+    expect(toOaSubmitFormData(fields, values)).toEqual({
+      start: '2026-11-20',
+      proof: [{ uid: 'u1', name: '证明.pdf', fileId: '900000000000000123' }],
+      owner: '900000000000000102',
+      tags: ['urgent'],
+      days: 2,
+    });
   });
 });

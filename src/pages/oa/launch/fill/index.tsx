@@ -2,7 +2,11 @@
  * 发起填写页：按发布版本渲染表单，补齐审批人变量绑定后一次性提交并启动流程。
  * 服务端会再次校验表单、发起范围与审批人；requestId 保证断线重试不会重复发起。
  */
-import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+} from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { history, useSearchParams } from '@umijs/max';
 import {
@@ -25,11 +29,14 @@ import {
   OaPositionSelect,
 } from '@/pages/oa/components/OaStaffSelects';
 import {
+  createOaDraft,
+  getOaDraft,
   getOaLaunch,
   type OaAssigneeBindingParam,
   type OaLaunchDetailVo,
   type OaLaunchSubmitResultVo,
   submitOaLaunch,
+  updateOaDraft,
 } from '@/services/web/guardfind/oa';
 import {
   type OaFormField,
@@ -38,6 +45,7 @@ import {
 } from '@/utils/oaForm';
 import {
   buildOaRequestId,
+  fromOaSubmitFormData,
   normalizeAssigneeType,
   OA_ASSIGNEE_TYPE_OPTIONS,
   oaPersonFieldOptions,
@@ -57,6 +65,10 @@ const OA_CC_MAX = 20;
 const LaunchFillPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const releaseId = searchParams.get('releaseId');
+  const [initialDraftId] = useState(() => searchParams.get('draftId'));
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
+  const [draftVersion, setDraftVersion] = useState<number | undefined>();
+  const [savingDraft, setSavingDraft] = useState(false);
   const [detail, setDetail] = useState<OaLaunchDetailVo | null>(null);
   const [fields, setFields] = useState<OaFormField[]>([]);
   const [values, setValues] = useState<Record<string, unknown>>({});
@@ -83,23 +95,42 @@ const LaunchFillPage: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     getOaLaunch(releaseId)
-      .then((response) => {
+      .then(async (response) => {
+        const draft = initialDraftId
+          ? (await getOaDraft(initialDraftId)).data
+          : null;
+        if (draft && String(draft.releaseId) !== releaseId) {
+          throw new Error('草稿与当前流程版本不匹配，请从草稿列表重新进入');
+        }
+        return { next: response.data, draft };
+      })
+      .then(({ next, draft }) => {
         if (cancelled) return;
-        const next = response.data;
+        const nextFields = parseOaFormSchema(next.schemaJson).fields;
         setDetail(next);
-        setFields(parseOaFormSchema(next.schemaJson).fields);
-        setValues({});
+        setFields(nextFields);
+        setValues(fromOaSubmitFormData(nextFields, draft?.formData));
         setErrors({});
-        setTitle('');
-        setCcUserIds([]);
+        setTitle(draft?.title ?? '');
+        setCcUserIds((draft?.ccUserIds ?? []).map(String));
+        setDraftVersion(draft?.version);
         setResult(null);
         setRequestId(buildOaRequestId());
+        const saved = new Map(
+          (draft?.assignees ?? []).map((item) => [item.variableName, item]),
+        );
         const initial: Record<string, BindingValue> = {};
         (next.assigneeVariables ?? []).forEach((variable) => {
-          initial[variable.name] = {
-            type: normalizeAssigneeType(variable.suggestedType),
-            value: variable.suggestedValue ?? undefined,
-          };
+          const binding = saved.get(variable.name);
+          initial[variable.name] = binding
+            ? {
+                type: normalizeAssigneeType(binding.type),
+                value: binding.value ?? undefined,
+              }
+            : {
+                type: normalizeAssigneeType(variable.suggestedType),
+                value: variable.suggestedValue ?? undefined,
+              };
         });
         setBindings(initial);
         setBindingErrors({});
@@ -113,7 +144,7 @@ const LaunchFillPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [releaseId]);
+  }, [releaseId, initialDraftId]);
 
   const visibleFields = useMemo(
     () => fields.filter((field) => !field.hidden),
@@ -135,8 +166,54 @@ const LaunchFillPage: React.FC = () => {
     });
   };
 
+  const buildAssignees = (): OaAssigneeBindingParam[] =>
+    variables.flatMap((variable) => {
+      const binding = bindings[variable.name] ?? {};
+      const type = normalizeAssigneeType(binding.type);
+      if (!type) return [];
+      const value = binding.value?.trim();
+      return [
+        {
+          variableName: variable.name,
+          type,
+          value:
+            type === 'DEPT_LEADER' || type === 'SUPERVISOR' ? undefined : value,
+        },
+      ];
+    });
+
+  const handleSaveDraft = async () => {
+    if (!detail || !releaseId || savingDraft || submitting) return;
+    setSavingDraft(true);
+    try {
+      const payload = {
+        releaseId,
+        title: title.trim() || undefined,
+        formData: toOaSubmitFormData(fields, values),
+        assignees: buildAssignees(),
+        ccUserIds: ccUserIds.length ? ccUserIds : undefined,
+      };
+      const response = draftId
+        ? await updateOaDraft(draftId, { ...payload, version: draftVersion })
+        : await createOaDraft(payload);
+      const saved = response.data;
+      setDraftId(String(saved.id));
+      setDraftVersion(saved.version);
+      if (!draftId) {
+        history.replace(
+          `/oa/launch/fill?releaseId=${releaseId}&draftId=${saved.id}`,
+        );
+      }
+      message.success('草稿已保存');
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!detail || !releaseId || submitting) return;
+    if (!detail || !releaseId || submitting || savingDraft) return;
     const formResult = validateOaFormValues(fields, values);
     const nextBindingErrors = validateAssigneeBindings(variables, bindings);
     setErrors(formResult.errors);
@@ -149,25 +226,15 @@ const LaunchFillPage: React.FC = () => {
       message.error('请补齐审批人来源');
       return;
     }
-    const assignees: OaAssigneeBindingParam[] = variables.map((variable) => {
-      const binding = bindings[variable.name] ?? {};
-      const type = normalizeAssigneeType(binding.type) as string;
-      const value = binding.value?.trim();
-      return {
-        variableName: variable.name,
-        type,
-        value:
-          type === 'DEPT_LEADER' || type === 'SUPERVISOR' ? undefined : value,
-      };
-    });
     setSubmitting(true);
     try {
       const response = await submitOaLaunch(releaseId, {
         requestId,
         title: title.trim() || undefined,
         formData: toOaSubmitFormData(fields, values),
-        assignees,
+        assignees: buildAssignees(),
         ccUserIds: ccUserIds.length ? ccUserIds : undefined,
+        draftId: draftId ?? undefined,
       });
       setResult(response.data);
       message.success(
@@ -203,7 +270,7 @@ const LaunchFillPage: React.FC = () => {
           type="info"
           showIcon
           message="提交后立即启动审批流程"
-          description="服务端会再次校验可发起范围、表单与审批人变量；同一 requestId 重试不会重复发起。"
+          description="服务端会再次校验可发起范围、表单与审批人变量；同一 requestId 重试不会重复发起。草稿只保存在本人名下，不校验必填，提交成功后自动移除。"
         />
 
         {loadError ? (
@@ -441,6 +508,14 @@ const LaunchFillPage: React.FC = () => {
                   onClick={() => void handleSubmit()}
                 >
                   提交并发起
+                </Button>
+                <Button
+                  icon={<SaveOutlined />}
+                  loading={savingDraft}
+                  disabled={submitting || Boolean(result)}
+                  onClick={() => void handleSaveDraft()}
+                >
+                  {draftId ? '更新草稿' : '保存草稿'}
                 </Button>
                 <Button
                   icon={<ReloadOutlined />}
