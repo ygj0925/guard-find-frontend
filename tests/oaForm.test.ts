@@ -165,8 +165,11 @@ describe('OA 表单 schema 工具', () => {
   });
 
   it('从上传响应中解析服务端文件 ID', () => {
-    expect(oaAttachmentFileId({ response: { id: '501' } })).toBe(501);
-    expect(oaAttachmentFileId({ fileId: 12 })).toBe(12);
+    expect(oaAttachmentFileId({ response: { id: '501' } })).toBe('501');
+    expect(oaAttachmentFileId({ fileId: 12 })).toBe('12');
+    expect(oaAttachmentFileId({ response: { id: '909905811461898299' } })).toBe(
+      '909905811461898299',
+    );
     expect(oaAttachmentFileId({ response: { id: 0 } })).toBeUndefined();
     expect(oaAttachmentFileId({ response: { id: 'abc' } })).toBeUndefined();
     expect(oaAttachmentFileId({})).toBeUndefined();

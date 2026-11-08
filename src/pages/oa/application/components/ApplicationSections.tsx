@@ -82,7 +82,7 @@ export function ApplicationInfoCard({
 
 interface AttachmentItem {
   key: string;
-  fileId: number;
+  fileId: string;
   name: string;
 }
 

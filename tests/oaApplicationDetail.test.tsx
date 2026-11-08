@@ -56,7 +56,7 @@ const detail = {
   formData: {
     name: '张三',
     days: 2,
-    files: [{ uid: 'u1', name: '证明.pdf', fileId: 501 }],
+    files: [{ uid: 'u1', name: '证明.pdf', fileId: '501' }],
     secret: '不应展示',
   },
   processInstanceId: 'inst-1',

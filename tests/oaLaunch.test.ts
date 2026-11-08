@@ -79,7 +79,7 @@ describe('OA 发起工具', () => {
       name: '张三',
       day: '2026-11-06',
       tags: ['urgent'],
-      files: [{ uid: 'u1', name: '证明.pdf', fileId: 501 }],
+      files: [{ uid: 'u1', name: '证明.pdf', fileId: '501' }],
       owner: '102',
     });
   });

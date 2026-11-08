@@ -246,12 +246,11 @@ export interface OaFormValueValidation {
 export function oaAttachmentFileId(file: {
   response?: unknown;
   fileId?: unknown;
-}): number | undefined {
+}): string | undefined {
   const response = file.response as { id?: unknown } | undefined;
   const text = String(response?.id ?? file.fileId ?? '').trim();
-  if (!/^[1-9]\d*$/.test(text)) return undefined;
-  const fileId = Number(text);
-  return Number.isSafeInteger(fileId) ? fileId : undefined;
+  // 雪花 ID 超出 JS 安全整数范围，必须全程按字符串透传，避免精度丢失
+  return /^[1-9]\d*$/.test(text) ? text : undefined;
 }
 
 function isEmptyValue(value: unknown) {
