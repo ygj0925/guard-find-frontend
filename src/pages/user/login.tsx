@@ -1,4 +1,5 @@
 import {
+  ApartmentOutlined,
   LockOutlined,
   MailOutlined,
   MobileOutlined,
@@ -38,6 +39,7 @@ import Settings from '../../../config/defaultSettings';
 
 type LoginMode = 'account' | 'phone' | 'email';
 type LoginFormValues = {
+  tenantCode?: string;
   username?: string;
   password?: string;
   phone?: string;
@@ -111,27 +113,37 @@ const AuthLogin: React.FC = () => {
 
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
+    const tenantCode = values.tenantCode?.trim() || undefined;
     try {
       if (mode === 'account') {
-        const response = await login({
-          username: values.username || '',
-          password: encryptByRsa(values.password || ''),
-          captcha: values.captcha || '',
-          uuid: captcha.uuid,
-          clientId: CLIENT_ID,
-        });
+        const response = await login(
+          {
+            username: values.username || '',
+            password: encryptByRsa(values.password || ''),
+            captcha: values.captcha || '',
+            uuid: captcha.uuid,
+            clientId: CLIENT_ID,
+          },
+          tenantCode,
+        );
         await finishLogin(response.data.token, response.data.tenantId);
       } else if (mode === 'phone') {
-        const response = await phoneLogin({
-          phone: values.phone || '',
-          captcha: values.captcha || '',
-        });
+        const response = await phoneLogin(
+          {
+            phone: values.phone || '',
+            captcha: values.captcha || '',
+          },
+          tenantCode,
+        );
         await finishLogin(response.data.token, response.data.tenantId);
       } else {
-        const response = await emailLogin({
-          email: values.email || '',
-          captcha: values.captcha || '',
-        });
+        const response = await emailLogin(
+          {
+            email: values.email || '',
+            captcha: values.captcha || '',
+          },
+          tenantCode,
+        );
         await finishLogin(response.data.token, response.data.tenantId);
       }
     } catch {
@@ -244,7 +256,13 @@ const AuthLogin: React.FC = () => {
             activeKey={mode}
             onChange={(key) => {
               setMode(key as LoginMode);
-              form.resetFields();
+              form.resetFields([
+                'username',
+                'password',
+                'phone',
+                'email',
+                'captcha',
+              ]);
             }}
             items={[
               { key: 'account', label: '账号登录' },
@@ -259,6 +277,24 @@ const AuthLogin: React.FC = () => {
             onFinish={handleSubmit}
             requiredMark={false}
           >
+            <Form.Item
+              name="tenantCode"
+              normalize={(value?: string) => value?.trim()}
+              rules={[
+                {
+                  pattern: /^[A-Za-z0-9_-]{1,64}$/,
+                  message: '租户编码只能包含字母、数字、下划线和短横线',
+                },
+              ]}
+            >
+              <Input
+                size="large"
+                prefix={<ApartmentOutlined />}
+                placeholder="租户编码（平台账号无需填写）"
+                autoComplete="organization"
+                allowClear
+              />
+            </Form.Item>
             {mode === 'account' && (
               <>
                 <Form.Item

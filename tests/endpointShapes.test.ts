@@ -37,6 +37,7 @@ import {
   retryOaOutboxEvent,
   terminateOaApplication,
   updateOaProcessModel,
+  uploadOaAttachment,
   urgeOaApplication,
   validateOaProcessBpmn,
 } from '@/services/web/guardfind/oa';
@@ -76,6 +77,16 @@ describe('文件端点', () => {
     expect([...options.data.keys()]).toEqual(['file']);
     expect(options.params).toEqual({ parentPath: '/2026/09' });
     // 这条断言就是当年那个 bug 的墓碑
+    expect(options.body).toBeUndefined();
+  });
+
+  it('OA 附件上传走登录即可用的公共上传，不依赖文件管理权限', async () => {
+    await uploadOaAttachment(new File(['x'], 'a.txt'));
+    const [url, options] = lastCall();
+    expect(url).toBe('system/common/file');
+    expect(options.method).toBe('POST');
+    expect(options.data).toBeInstanceOf(FormData);
+    expect([...options.data.keys()]).toEqual(['file']);
     expect(options.body).toBeUndefined();
   });
 

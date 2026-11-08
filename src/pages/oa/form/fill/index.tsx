@@ -1,6 +1,5 @@
 /**
- * 表单填写页：按不可变发布版本渲染字段并做前端校验。
- * 提交/发起、附件上传与人员选择分别在 10.1、10.5 接入，本页不写入任何申请数据。
+ * 表单填写页：按不可变发布版本渲染字段并做前端校验，不写入任何申请数据。
  */
 import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
@@ -167,8 +166,8 @@ const FormFillPage: React.FC = () => {
         <Alert
           type="info"
           showIcon
-          message="本页用于 9.8 表单渲染与填写校验"
-          description="提交/发起、附件上传与组织人员选择尚未接入（10.1/10.5），本页不会写入申请数据。"
+          message="本页只做表单渲染与填写校验预览"
+          description="不会生成申请；这里上传的附件不会挂到任何申请上。正式提交请从“发起流程”进入。"
         />
 
         <Card size="small">

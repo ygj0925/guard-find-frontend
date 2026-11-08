@@ -25,6 +25,8 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   queryOaFormVersionOptions: jest.fn(),
   queryOaEmployeeOptions: jest.fn(),
   queryOaPositionOptions: jest.fn(),
+  uploadOaAttachment: jest.requireActual('@/services/web/guardfind/oa')
+    .uploadOaAttachment,
 }));
 
 const schema = {
@@ -148,7 +150,7 @@ describe('表单填写页', () => {
 
     expect(screen.queryByLabelText('内部备注')).toBeNull();
     expect(screen.getByText(/另有 1 个隐藏字段未展示/)).toBeTruthy();
-    expect(screen.getByText(/本页不会写入申请数据/)).toBeTruthy();
+    expect(screen.getByText(/不会生成申请/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /提交/ })).toBeNull();
     expect(screen.getByRole('button', { name: /校验填写/ })).toBeTruthy();
   });
@@ -238,7 +240,7 @@ describe('表单填写页', () => {
 
     expect(await screen.findByText('证明.pdf')).toBeTruthy();
     expect(request).toHaveBeenCalledWith(
-      'system/file/upload',
+      'system/common/file',
       expect.objectContaining({ method: 'POST' }),
     );
     expect(screen.getByText(/上传完成后才能提交/)).toBeTruthy();

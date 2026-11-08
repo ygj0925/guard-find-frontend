@@ -1,5 +1,6 @@
 import { request } from 'umi';
 import type { PageResult, QueryParam, R } from '@/typings';
+import type { FileUploadResp } from '../file/typings';
 
 export type OaProcessStatus = 'DRAFT' | 'PUBLISHED' | 'DISABLED';
 
@@ -279,6 +280,16 @@ export function getOaFormVersion(versionId: number | string) {
     `system/oa/form/version/${versionId}`,
     { method: 'GET' },
   );
+}
+
+/** 申请附件走登录即可用的公共上传，不要求文件管理权限；归属在发起时由服务端校验 */
+export function uploadOaAttachment(file: File) {
+  const data = new FormData();
+  data.append('file', file);
+  return request<R<FileUploadResp>>('system/common/file', {
+    method: 'POST',
+    data,
+  });
 }
 
 export interface OaLaunchItemVo {

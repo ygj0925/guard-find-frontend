@@ -21,7 +21,7 @@ import {
 import type { Dayjs } from 'dayjs';
 import React from 'react';
 import { OaEmployeeSelect } from '@/pages/oa/components/OaStaffSelects';
-import { uploadFile } from '@/services/web/file';
+import { uploadOaAttachment } from '@/services/web/guardfind/oa';
 import { OA_FORM_LIMITS, type OaFormField } from '@/utils/oaForm';
 
 export interface OaFormRendererProps {
@@ -133,7 +133,7 @@ const OaFormRenderer: React.FC<OaFormRendererProps> = ({
           const { file, onProgress, onSuccess: onUploaded, onError } = options;
           onProgress?.({ percent: 30 });
           try {
-            const response = await uploadFile(file as File);
+            const response = await uploadOaAttachment(file as File);
             onProgress?.({ percent: 100 });
             onUploaded?.(response.data);
           } catch (error) {
