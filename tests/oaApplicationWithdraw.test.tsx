@@ -93,7 +93,9 @@ describe('我的申请撤回', () => {
         expect.objectContaining({ reason: '信息填错了' }),
       ),
     );
-    expect(withdrawOaApplication.mock.calls[0][1].requestId).toBeTruthy();
+    expect(
+      jest.mocked(withdrawOaApplication).mock.calls[0][1].requestId,
+    ).toBeTruthy();
     await waitFor(() => expect(getOaApplication).toHaveBeenCalledTimes(2));
   });
 

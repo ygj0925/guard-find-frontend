@@ -1,6 +1,6 @@
 /**
- * 通用表单渲染器：只负责按不可变 schema 渲染可见字段与采集填写值。
- * 提交、附件上传与人员选择分别在 10.1、10.5 接入。
+ * 通用表单渲染器：按不可变 schema 渲染可见字段并采集填写值。
+ * 附件在 10.5 接入文件上传，提交前必须拿到服务端 fileId。
  */
 import { UploadOutlined } from '@ant-design/icons';
 import {
@@ -10,15 +10,18 @@ import {
   Empty,
   Input,
   InputNumber,
+  message,
   Radio,
   Space,
   Typography,
   Upload,
   type UploadFile,
+  type UploadProps,
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 import React from 'react';
-import type { OaFormField } from '@/utils/oaForm';
+import { uploadFile } from '@/services/web/file';
+import { OA_FORM_LIMITS, type OaFormField } from '@/utils/oaForm';
 
 export interface OaFormRendererProps {
   fields: OaFormField[];
@@ -124,14 +127,33 @@ const OaFormRenderer: React.FC<OaFormRendererProps> = ({
             }))}
           />
         );
-      case 'attachment':
+      case 'attachment': {
+        const customRequest: UploadProps['customRequest'] = async (options) => {
+          const { file, onProgress, onSuccess: onUploaded, onError } = options;
+          onProgress?.({ percent: 30 });
+          try {
+            const response = await uploadFile(file as File);
+            onProgress?.({ percent: 100 });
+            onUploaded?.(response.data);
+          } catch (error) {
+            onError?.(error as Error);
+          }
+        };
         return (
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
             <Upload
               id={id}
-              beforeUpload={() => false}
+              multiple
+              customRequest={customRequest}
               fileList={Array.isArray(value) ? (value as UploadFile[]) : []}
               disabled={fieldDisabled}
+              beforeUpload={(file) => {
+                if (file.size > OA_FORM_LIMITS.maxAttachmentBytes) {
+                  message.error(`「${file.name}」超过 10MB，请压缩后重新上传`);
+                  return Upload.LIST_IGNORE;
+                }
+                return true;
+              }}
               onChange={(info) => update(info.fileList)}
             >
               <Button icon={<UploadOutlined />} disabled={fieldDisabled}>
@@ -139,10 +161,11 @@ const OaFormRenderer: React.FC<OaFormRendererProps> = ({
               </Button>
             </Upload>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              附件暂只做本地选择，上传与实例授权待 10.5 接入。
+              单个文件不超过 10MB，上传完成后才能提交。
             </Typography.Text>
           </Space>
         );
+      }
       case 'person':
         return (
           <Space direction="vertical" size={4} style={{ width: '100%' }}>

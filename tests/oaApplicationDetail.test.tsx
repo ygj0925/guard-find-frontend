@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { history } from '@umijs/max';
 import ApplicationDetailPage from '@/pages/oa/application/detail';
 import { getOaApplication } from '@/services/web/guardfind/oa';
+import { download } from '@/utils/download';
 
 jest.mock('@umijs/max', () => ({
   useSearchParams: () => [
@@ -12,6 +13,10 @@ jest.mock('@umijs/max', () => ({
 
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaApplication: jest.fn(),
+}));
+
+jest.mock('@/utils/download', () => ({
+  download: jest.fn(),
 }));
 
 const schema = {
@@ -51,7 +56,7 @@ const detail = {
   formData: {
     name: '张三',
     days: 2,
-    files: [{ uid: 'u1', name: '证明.pdf' }],
+    files: [{ uid: 'u1', name: '证明.pdf', fileId: 501 }],
     secret: '不应展示',
   },
   processInstanceId: 'inst-1',
@@ -97,6 +102,12 @@ describe('申请详情页', () => {
     expect(screen.getAllByText('v2').length).toBeGreaterThan(0);
     expect(screen.getByText('2')).toBeTruthy();
     expect(screen.getByText('证明.pdf')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /证明.pdf/ }));
+    await waitFor(() =>
+      expect(download).toHaveBeenCalledWith('system/oa/attachment/501', {
+        filename: '证明.pdf',
+      }),
+    );
     expect(screen.queryByText('内部备注')).toBeNull();
     expect(screen.queryByText('不应展示')).toBeNull();
     expect(screen.getByText('提交申请')).toBeTruthy();

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { history } from '@umijs/max';
+import { request } from 'umi';
 import FormFillPage from '@/pages/oa/form/fill';
 import {
   getOaFormVersion,
@@ -11,6 +12,10 @@ jest.mock('@umijs/max', () => ({
     new URLSearchParams((globalThis as any).__oaFillSearch || ''),
   ],
   history: { push: jest.fn(), replace: jest.fn() },
+}));
+
+jest.mock('umi', () => ({
+  request: jest.fn(),
 }));
 
 jest.mock('@/services/web/guardfind/oa', () => ({
@@ -196,6 +201,32 @@ describe('表单填写页', () => {
     expect(history.replace).toHaveBeenCalledWith('/oa/form/fill?versionId=41');
     expect(await screen.findByText('报销申请单 · v1')).toBeTruthy();
     expect(screen.getByLabelText('报销金额必填')).toBeTruthy();
+  });
+
+  it('附件上传成功后由服务端 fileId 回显文件', async () => {
+    (request as unknown as jest.Mock).mockResolvedValue({
+      code: 200,
+      data: { id: 501, url: '/file/2026/11/08/proof.pdf' },
+      msg: 'ok',
+    });
+    render(<FormFillPage />);
+    await screen.findByText('请假申请单 · v2');
+
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [new File(['proof'], '证明.pdf', { type: 'application/pdf' })],
+      },
+    });
+
+    expect(await screen.findByText('证明.pdf')).toBeTruthy();
+    expect(request).toHaveBeenCalledWith(
+      'system/file/upload',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(screen.getByText(/上传完成后才能提交/)).toBeTruthy();
   });
 
   it('版本加载失败时展示错误且不渲染表单', async () => {

@@ -118,7 +118,7 @@ describe('审批任务详情页', () => {
         expect.objectContaining({ reason: '同意' }),
       ),
     );
-    expect(approveOaTask.mock.calls[0][1].requestId).toBeTruthy();
+    expect(jest.mocked(approveOaTask).mock.calls[0][1].requestId).toBeTruthy();
     await waitFor(() => expect(history.push).toHaveBeenCalledWith('/oa/tasks'));
   });
 

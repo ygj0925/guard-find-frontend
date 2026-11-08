@@ -1,6 +1,7 @@
 import {
   createOaFormField,
   emptyOaFormSchema,
+  oaAttachmentFileId,
   parseOaFormSchema,
   serializeOaFormSchema,
   validateOaFormSchema,
@@ -161,6 +162,44 @@ describe('OA 表单 schema 工具', () => {
     );
     expect(allHidden.valid).toBe(false);
     expect(allHidden.errors).toContain('表单至少需要一个可见字段才能发布');
+  });
+
+  it('从上传响应中解析服务端文件 ID', () => {
+    expect(oaAttachmentFileId({ response: { id: '501' } })).toBe(501);
+    expect(oaAttachmentFileId({ fileId: 12 })).toBe(12);
+    expect(oaAttachmentFileId({ response: { id: 0 } })).toBeUndefined();
+    expect(oaAttachmentFileId({ response: { id: 'abc' } })).toBeUndefined();
+    expect(oaAttachmentFileId({})).toBeUndefined();
+  });
+
+  it('上传中、失败或缺少文件 ID 的附件不能提交', () => {
+    const fields = [
+      {
+        id: 'f1',
+        key: 'files',
+        label: '附件',
+        type: 'attachment' as const,
+        required: true,
+      },
+    ];
+    expect(
+      validateOaFormValues(fields, {
+        files: [{ uid: 'u1', status: 'uploading' }],
+      }).errors,
+    ).toEqual({ files: '请等待附件上传完成' });
+    expect(
+      validateOaFormValues(fields, {
+        files: [{ uid: 'u1', status: 'error' }],
+      }).errors,
+    ).toEqual({ files: '附件存在未完成的上传，请删除后重试' });
+    expect(
+      validateOaFormValues(fields, {
+        files: [{ uid: 'u1', response: { id: '501' } }],
+      }).valid,
+    ).toBe(true);
+    expect(validateOaFormValues(fields, {}).errors).toEqual({
+      files: '请选择或上传附件',
+    });
   });
 
   it('填写校验跳过只读与隐藏字段，并校验必填/数字/人员', () => {

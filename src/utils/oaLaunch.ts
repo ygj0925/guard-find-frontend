@@ -5,7 +5,7 @@
 import type { UploadFile } from 'antd';
 import type { Dayjs } from 'dayjs';
 import type { OaAssigneeVariableVo } from '@/services/web/guardfind/oa';
-import type { OaFormField } from '@/utils/oaForm';
+import { type OaFormField, oaAttachmentFileId } from '@/utils/oaForm';
 
 export interface OaLaunchScopeValue {
   users: number[];
@@ -125,11 +125,11 @@ export function toOaSubmitFormData(
           break;
         }
         case 'attachment': {
-          formData[field.key] = (value as UploadFile[]).map((file) => ({
-            uid: file.uid,
-            name: file.name,
-            ...(file.url ? { url: file.url } : {}),
-          }));
+          const files = (value as UploadFile[]).flatMap((file) => {
+            const fileId = oaAttachmentFileId(file);
+            return fileId ? [{ uid: file.uid, name: file.name, fileId }] : [];
+          });
+          if (files.length) formData[field.key] = files;
           break;
         }
         case 'person':

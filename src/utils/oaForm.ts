@@ -28,6 +28,8 @@ export const OA_FORM_LIMITS = {
   maxBytes: 1024 * 1024,
   maxFields: 100,
   maxOptions: 50,
+  /** 与服务端 OaAttachmentService.MAX_ATTACHMENT_BYTES 一致 */
+  maxAttachmentBytes: 10 * 1024 * 1024,
 } as const;
 
 export interface OaFormOption {
@@ -240,6 +242,18 @@ export interface OaFormValueValidation {
   errors: Record<string, string>;
 }
 
+/** 从 Upload 组件状态中取服务端文件 ID；上传未完成或失败时返回 undefined。 */
+export function oaAttachmentFileId(file: {
+  response?: unknown;
+  fileId?: unknown;
+}): number | undefined {
+  const response = file.response as { id?: unknown } | undefined;
+  const text = String(response?.id ?? file.fileId ?? '').trim();
+  if (!/^[1-9]\d*$/.test(text)) return undefined;
+  const fileId = Number(text);
+  return Number.isSafeInteger(fileId) ? fileId : undefined;
+}
+
 function isEmptyValue(value: unknown) {
   if (Array.isArray(value)) return value.length === 0;
   return value === undefined || value === null || String(value).trim() === '';
@@ -267,6 +281,25 @@ export function validateOaFormValues(
         return;
       }
       if (isEmptyValue(value)) return;
+      if (field.type === 'attachment') {
+        const files = Array.isArray(value) ? value : [];
+        if (
+          files.some(
+            (item) => (item as { status?: string })?.status === 'uploading',
+          )
+        ) {
+          errors[field.key] = `请等待${field.label}上传完成`;
+        } else if (
+          files.some(
+            (item) =>
+              (item as { status?: string })?.status === 'error' ||
+              !oaAttachmentFileId(item as { response?: unknown }),
+          )
+        ) {
+          errors[field.key] = `${field.label}存在未完成的上传，请删除后重试`;
+        }
+        return;
+      }
       if (field.type === 'number') {
         if (typeof value !== 'number' || !Number.isFinite(value)) {
           errors[field.key] = '请输入有效数字';

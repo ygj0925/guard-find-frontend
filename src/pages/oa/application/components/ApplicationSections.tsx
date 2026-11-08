@@ -1,10 +1,13 @@
 /**
  * 申请详情的只读分区：申请信息、表单快照与审批轨迹，供我的申请与审批中心复用。
  */
+import { DownloadOutlined } from '@ant-design/icons';
 import {
+  Button,
   Card,
   Descriptions,
   Empty,
+  message,
   Space,
   Tag,
   Timeline,
@@ -12,7 +15,8 @@ import {
 } from 'antd';
 import React, { useMemo } from 'react';
 import type { OaApplicationDetailVo } from '@/services/web/guardfind/oa';
-import { parseOaFormSchema } from '@/utils/oaForm';
+import { download } from '@/utils/download';
+import { oaAttachmentFileId, parseOaFormSchema } from '@/utils/oaForm';
 import { formatOaFormValue } from '@/utils/oaLaunch';
 import { applicationStatusTag } from './ApplicationStatus';
 
@@ -76,6 +80,54 @@ export function ApplicationInfoCard({
   );
 }
 
+interface AttachmentItem {
+  key: string;
+  fileId: number;
+  name: string;
+}
+
+function attachmentItems(value: unknown): AttachmentItem[] {
+  return (Array.isArray(value) ? value : []).flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const fileId = oaAttachmentFileId(item as { fileId?: unknown });
+    if (!fileId) return [];
+    const file = item as { uid?: unknown; name?: unknown };
+    return [
+      {
+        key: String(file.uid ?? fileId),
+        fileId,
+        name: String(file.name ?? '附件'),
+      },
+    ];
+  });
+}
+
+function AttachmentLinks({ items }: { items: AttachmentItem[] }) {
+  const handleDownload = async (item: AttachmentItem) => {
+    try {
+      await download(`system/oa/attachment/${item.fileId}`, {
+        filename: item.name,
+      });
+    } catch {
+      message.error('附件下载失败，请稍后重试');
+    }
+  };
+  return (
+    <Space size={8} wrap>
+      {items.map((item) => (
+        <Button
+          key={item.key}
+          size="small"
+          icon={<DownloadOutlined />}
+          onClick={() => handleDownload(item)}
+        >
+          {item.name}
+        </Button>
+      ))}
+    </Space>
+  );
+}
+
 export function ApplicationFormCard({
   detail,
 }: {
@@ -92,11 +144,20 @@ export function ApplicationFormCard({
     <Card size="small" title="表单快照">
       {formFields.length ? (
         <Descriptions column={1} size="small" bordered>
-          {formFields.map((field) => (
-            <Descriptions.Item key={field.key} label={field.label}>
-              {formatOaFormValue(field, detail.formData[field.key])}
-            </Descriptions.Item>
-          ))}
+          {formFields.map((field) => {
+            const value = detail.formData[field.key];
+            const attachments =
+              field.type === 'attachment' ? attachmentItems(value) : [];
+            return (
+              <Descriptions.Item key={field.key} label={field.label}>
+                {attachments.length ? (
+                  <AttachmentLinks items={attachments} />
+                ) : (
+                  formatOaFormValue(field, value)
+                )}
+              </Descriptions.Item>
+            );
+          })}
         </Descriptions>
       ) : (
         <Empty description="该申请没有表单字段" />

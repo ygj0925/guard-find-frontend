@@ -66,7 +66,10 @@ describe('OA 发起工具', () => {
       name: '张三',
       day: dayjs('2026-11-06'),
       tags: ['urgent'],
-      files: [{ uid: 'u1', name: '证明.pdf' }],
+      files: [
+        { uid: 'u1', name: '证明.pdf', response: { id: '501' } },
+        { uid: 'u2', name: '上传中.pdf', status: 'uploading' },
+      ],
       owner: ' 102 ',
       secret: 'x',
       applicant: '101',
@@ -76,7 +79,7 @@ describe('OA 发起工具', () => {
       name: '张三',
       day: '2026-11-06',
       tags: ['urgent'],
-      files: [{ uid: 'u1', name: '证明.pdf' }],
+      files: [{ uid: 'u1', name: '证明.pdf', fileId: 501 }],
       owner: '102',
     });
   });

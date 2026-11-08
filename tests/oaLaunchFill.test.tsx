@@ -10,6 +10,10 @@ jest.mock('@umijs/max', () => ({
   history: { push: jest.fn(), replace: jest.fn() },
 }));
 
+jest.mock('umi', () => ({
+  request: jest.fn(),
+}));
+
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaLaunch: jest.fn(),
   submitOaLaunch: jest.fn(),
