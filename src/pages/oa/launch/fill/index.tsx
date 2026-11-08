@@ -451,12 +451,25 @@ const LaunchFillPage: React.FC = () => {
                     style={{ marginTop: 12 }}
                     showIcon
                     role="status"
-                    type={expensePreview.message ? 'warning' : 'info'}
+                    type={
+                      expensePreview.message || expensePreview.overBudget
+                        ? 'warning'
+                        : 'info'
+                    }
                     message={
                       expensePreview.message ??
                       `报销合计 ${formatAmount(expensePreview.totalAmount)}，共 ${expensePreview.itemCount} 行明细`
                     }
-                    description="以提交时服务端校验的结果为准；审批通过后进入待支付，由财务登记实际支付。"
+                    description={
+                      <>
+                        {expensePreview.budgetHint ? (
+                          <div>{expensePreview.budgetHint}</div>
+                        ) : null}
+                        <div>
+                          以提交时服务端校验的结果为准；审批通过后进入待支付，由财务登记实际支付。
+                        </div>
+                      </>
+                    }
                   />
                 ) : null}
               </Card>

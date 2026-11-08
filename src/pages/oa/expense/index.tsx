@@ -11,6 +11,7 @@ import {
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import {
+  Alert,
   Button,
   DatePicker,
   Drawer,
@@ -39,9 +40,11 @@ import {
   type OaExpenseDetailVo,
   type OaExpensePayMethod,
   type OaExpenseVo,
+  type OaLoanVo,
   payOaExpense,
   queryOaExpenseCategories,
   queryOaExpenseRecords,
+  queryOaOutstandingLoans,
   updateOaExpenseCategory,
 } from '@/services/web/guardfind/oa';
 import {
@@ -49,6 +52,7 @@ import {
   EXPENSE_STATUS_META,
   formatAmount,
 } from '@/utils/oaExpense';
+import { toCents } from '@/utils/oaTravel';
 import { applicationStatusTag } from '../application/components/ApplicationStatus';
 import {
   ExpenseDetailContent,
@@ -285,7 +289,15 @@ type PayFormValues = {
   payMethod: OaExpensePayMethod;
   payReference?: string;
   remark?: string;
+  writeOffs?: Record<string, number | null | undefined>;
 };
+
+function writeOffCents(values?: PayFormValues['writeOffs']) {
+  return Object.values(values ?? {}).reduce<number>(
+    (sum, value) => sum + toCents(value),
+    0,
+  );
+}
 
 const RecordTab: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -295,6 +307,8 @@ const RecordTab: React.FC = () => {
   const [paying, setPaying] = useState<OaExpenseVo | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [payForm] = Form.useForm<PayFormValues>();
+  const [loans, setLoans] = useState<OaLoanVo[]>([]);
+  const [loansLoading, setLoansLoading] = useState(false);
 
   const openDetail = async (record: OaExpenseVo) => {
     setDetailOpen(true);
@@ -310,7 +324,7 @@ const RecordTab: React.FC = () => {
     }
   };
 
-  const openPay = (record: OaExpenseVo) => {
+  const openPay = async (record: OaExpenseVo) => {
     setPaying(record);
     payForm.resetFields();
     payForm.setFieldsValue({
@@ -318,15 +332,53 @@ const RecordTab: React.FC = () => {
       payDate: dayjs(),
       payMethod: 'BANK_TRANSFER',
     });
+    setLoans([]);
+    setLoansLoading(true);
+    try {
+      const response = await queryOaOutstandingLoans(record.applicantId);
+      setLoans(response.data ?? []);
+    } catch (error) {
+      message.error(`待还借款加载失败：${errorText(error)}`);
+    } finally {
+      setLoansLoading(false);
+    }
+  };
+
+  const syncPaidAmount = (
+    changed: Partial<PayFormValues>,
+    all: PayFormValues,
+  ) => {
+    if (!paying || !('writeOffs' in changed)) return;
+    const rest = toCents(paying.totalAmount) - writeOffCents(all.writeOffs);
+    payForm.setFieldValue('paidAmount', Math.max(0, rest) / 100);
   };
 
   const handlePay = async () => {
     if (!paying) return;
     const values = await payForm.validateFields();
+    const writeOffs = Object.entries(values.writeOffs ?? {})
+      .filter(([, amount]) => toCents(amount) > 0)
+      .map(([loanId, amount]) => ({
+        loanId: Number(loanId),
+        amount: Number(amount),
+      }));
+    const remaining =
+      toCents(paying.totalAmount) - writeOffCents(values.writeOffs);
+    if (remaining < 0) {
+      message.error('核销合计不能超过报销合计');
+      return;
+    }
+    if (toCents(values.paidAmount) !== remaining) {
+      message.error(
+        `实付金额应为报销合计减核销金额 ${formatAmount(remaining / 100)}`,
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       await payOaExpense(paying.id, {
         paidAmount: values.paidAmount,
+        writeOffs: writeOffs.length ? writeOffs : undefined,
         payDate: values.payDate.format('YYYY-MM-DD'),
         payMethod: values.payMethod,
         payReference: values.payReference?.trim() || undefined,
@@ -418,7 +470,7 @@ const RecordTab: React.FC = () => {
         </Button>,
         record.status === 'PENDING_PAYMENT' ? (
           <AccessControl key="pay" permission="system:oa:expense:pay">
-            <Button type="link" onClick={() => openPay(record)}>
+            <Button type="link" onClick={() => void openPay(record)}>
               登记支付
             </Button>
           </AccessControl>
@@ -463,7 +515,7 @@ const RecordTab: React.FC = () => {
       <Modal
         title={paying ? `登记支付：${paying.title || paying.id}` : '登记支付'}
         open={Boolean(paying)}
-        width={520}
+        width={640}
         confirmLoading={submitting}
         okText="确认登记"
         destroyOnHidden
@@ -471,15 +523,79 @@ const RecordTab: React.FC = () => {
         onOk={() => void handlePay()}
       >
         {paying ? (
-          <Form form={payForm} name="oaExpensePayForm" layout="vertical">
+          <Form
+            form={payForm}
+            name="oaExpensePayForm"
+            layout="vertical"
+            onValuesChange={syncPaidAmount}
+          >
+            {paying.travelNo ? (
+              <Alert
+                style={{ marginBottom: 12 }}
+                showIcon
+                type={paying.overBudget ? 'warning' : 'info'}
+                message={`关联出差 ${paying.travelNo}${paying.overBudget ? '，报销已超出差预算' : ''}`}
+              />
+            ) : null}
+            <Spin spinning={loansLoading}>
+              {loans.length > 0 ? (
+                <Form.Item
+                  label="冲抵借款"
+                  extra="填写核销金额后，实付金额自动按报销合计减核销合计计算；每笔核销不能超过借款余额"
+                >
+                  <Table<OaLoanVo>
+                    rowKey="id"
+                    size="small"
+                    bordered
+                    pagination={false}
+                    dataSource={loans}
+                    aria-label="待还借款"
+                    columns={[
+                      {
+                        title: '借款',
+                        key: 'title',
+                        ellipsis: true,
+                        render: (_, loan) =>
+                          `${loan.title || `借款 #${loan.id}`}${loan.travelNo ? `（${loan.travelNo}）` : ''}`,
+                      },
+                      {
+                        title: '余额',
+                        dataIndex: 'balance',
+                        width: 110,
+                        render: (value) => formatAmount(value),
+                      },
+                      {
+                        title: '核销金额',
+                        key: 'writeOff',
+                        width: 150,
+                        render: (_, loan) => (
+                          <Form.Item
+                            name={['writeOffs', String(loan.id)]}
+                            noStyle
+                          >
+                            <InputNumber
+                              min={0}
+                              max={Number(loan.balance)}
+                              precision={2}
+                              style={{ width: '100%' }}
+                              aria-label={`核销借款 ${loan.id}`}
+                            />
+                          </Form.Item>
+                        ),
+                      },
+                    ]}
+                  />
+                </Form.Item>
+              ) : null}
+            </Spin>
             <Form.Item
               name="paidAmount"
               label="实付金额（元）"
-              extra={`报销合计 ${formatAmount(paying.totalAmount)}，实付必须与合计一致`}
+              extra={`报销合计 ${formatAmount(paying.totalAmount)}，实付 = 合计 − 借款核销`}
               rules={[{ required: true, message: '请输入实付金额' }]}
             >
               <InputNumber
-                min={0.01}
+                min={0}
                 precision={2}
                 style={{ width: '100%' }}
                 aria-label="实付金额"

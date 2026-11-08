@@ -358,11 +358,17 @@ describe('发起填写页', () => {
     expect(previewOaExpense).not.toHaveBeenCalled();
   });
 
-  it('报销流程按已填写的明细预览合计金额', async () => {
+  it('报销流程按已填写的明细与关联出差预览合计和预算', async () => {
     (globalThis as any).__oaLaunchSearch = 'releaseId=21&draftId=6';
     const expenseSchema = {
       version: 1,
       fields: [
+        {
+          id: 'f_travel',
+          key: 'travelNo',
+          label: '关联出差单号',
+          type: 'text',
+        },
         {
           id: 'f_items',
           key: 'expenseItems',
@@ -396,6 +402,7 @@ describe('发起填写页', () => {
         id: '6',
         releaseId: '21',
         formData: {
+          travelNo: 'TR-20261109-0001',
           expenseItems: [
             { category: 'TRAFFIC', amount: 32.5, expenseDate: '2026-11-02' },
           ],
@@ -405,7 +412,14 @@ describe('发起填写页', () => {
       },
     } as any);
     jest.mocked(previewOaExpense).mockResolvedValue({
-      data: { totalAmount: '32.50', itemCount: 1, message: null },
+      data: {
+        totalAmount: '32.50',
+        itemCount: 1,
+        message: null,
+        overBudget: true,
+        budgetHint:
+          '出差 TR-20261109-0001 预算 30 元，含本单累计报销 32.5 元，已超预算，将追加总经理复核',
+      },
     } as any);
     render(<LaunchFillPage />);
     await screen.findByLabelText('报销明细第 1 行金额');
@@ -415,7 +429,13 @@ describe('发起填写页', () => {
         timeout: 3000,
       }),
     ).toBeTruthy();
+    expect(
+      screen.getByText(
+        '出差 TR-20261109-0001 预算 30 元，含本单累计报销 32.5 元，已超预算，将追加总经理复核',
+      ),
+    ).toBeTruthy();
     expect(previewOaExpense).toHaveBeenCalledWith({
+      travelNo: 'TR-20261109-0001',
       expenseItems: [
         { category: 'TRAFFIC', amount: 32.5, expenseDate: '2026-11-02' },
       ],

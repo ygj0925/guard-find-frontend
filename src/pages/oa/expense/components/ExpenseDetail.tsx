@@ -1,5 +1,5 @@
 import { history } from '@umijs/max';
-import { Button, Descriptions, Space, Table, Tag } from 'antd';
+import { Button, Descriptions, Space, Table, Tag, Typography } from 'antd';
 import React from 'react';
 import type { OaExpenseDetailVo } from '@/services/web/guardfind/oa';
 import {
@@ -21,6 +21,7 @@ export const ExpenseDetailContent: React.FC<{ detail: OaExpenseDetailVo }> = ({
   detail,
 }) => {
   const { expense, items } = detail;
+  const writeOffs = detail.writeOffs ?? [];
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
@@ -44,10 +45,21 @@ export const ExpenseDetailContent: React.FC<{ detail: OaExpenseDetailVo }> = ({
             ? applicationStatusTag(expense.applicationStatus)
             : '—'}
         </Descriptions.Item>
+        {expense.travelNo ? (
+          <Descriptions.Item label="关联出差" span={2}>
+            <Space size={8}>
+              {expense.travelNo}
+              {expense.overBudget ? <Tag color="red">超预算</Tag> : null}
+            </Space>
+          </Descriptions.Item>
+        ) : null}
         {expense.status === 'PAID' ? (
           <>
             <Descriptions.Item label="实付金额">
               {formatAmount(expense.paidAmount)}
+            </Descriptions.Item>
+            <Descriptions.Item label="借款核销">
+              {formatAmount(expense.writeOffAmount ?? 0)}
             </Descriptions.Item>
             <Descriptions.Item label="支付日期">
               {expense.payDate || '—'}
@@ -107,6 +119,37 @@ export const ExpenseDetailContent: React.FC<{ detail: OaExpenseDetailVo }> = ({
           },
         ]}
       />
+      {writeOffs.length > 0 ? (
+        <>
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            借款核销
+          </Typography.Title>
+          <Table
+            rowKey="id"
+            size="small"
+            bordered
+            pagination={false}
+            dataSource={writeOffs}
+            aria-label="借款核销"
+            columns={[
+              { title: '借款单', dataIndex: 'loanId', width: 100 },
+              {
+                title: '核销金额',
+                dataIndex: 'amount',
+                width: 120,
+                render: (value) => formatAmount(value),
+              },
+              {
+                title: '核销后余额',
+                dataIndex: 'balanceAfter',
+                width: 120,
+                render: (value) => formatAmount(value),
+              },
+              { title: '日期', dataIndex: 'bizDate', width: 110 },
+            ]}
+          />
+        </>
+      ) : null}
       <Button
         type="link"
         style={{ padding: 0 }}

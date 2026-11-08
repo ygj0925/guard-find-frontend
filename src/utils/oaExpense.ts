@@ -5,6 +5,8 @@ import type { OaDecimal } from '@/services/web/guardfind/oa';
 
 export const EXPENSE_ITEMS_KEY = 'expenseItems';
 
+export const EXPENSE_TRAVEL_NO_KEY = 'travelNo';
+
 export const EXPENSE_STATUS_META: Record<
   string,
   { text: string; color: string }
@@ -39,7 +41,7 @@ export function formatAmount(value: OaDecimal | null | undefined) {
   })}`;
 }
 
-/** 只有至少一行填了金额时才请求服务端合计，避免空表单反复打后端 */
+/** 只有至少一行填了金额时才请求服务端合计，避免空表单反复打后端；关联出差单号用于预算提示 */
 export function expensePreviewInput(
   values: Record<string, unknown>,
 ): Record<string, unknown> | null {
@@ -51,5 +53,9 @@ export function expensePreviewInput(
       typeof row === 'object' &&
       typeof (row as Record<string, unknown>).amount === 'number',
   );
-  return hasAmount ? { [EXPENSE_ITEMS_KEY]: rows } : null;
+  if (!hasAmount) return null;
+  const travelNo = values[EXPENSE_TRAVEL_NO_KEY];
+  return typeof travelNo === 'string' && travelNo.trim()
+    ? { [EXPENSE_ITEMS_KEY]: rows, [EXPENSE_TRAVEL_NO_KEY]: travelNo.trim() }
+    : { [EXPENSE_ITEMS_KEY]: rows };
 }

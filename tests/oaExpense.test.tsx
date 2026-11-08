@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react';
 import { history } from '@umijs/max';
+import { message } from 'antd';
 import dayjs from 'dayjs';
 import ExpenseManagePage from '@/pages/oa/expense';
 import MyExpensePage from '@/pages/oa/expense/mine';
@@ -18,6 +19,7 @@ import {
   queryMyOaExpenses,
   queryOaExpenseCategories,
   queryOaExpenseRecords,
+  queryOaOutstandingLoans,
 } from '@/services/web/guardfind/oa';
 import {
   expensePreviewInput,
@@ -50,6 +52,7 @@ jest.mock('@/services/web/guardfind/oa', () => ({
   queryMyOaExpenses: jest.fn(),
   queryOaExpenseCategories: jest.fn(),
   queryOaExpenseRecords: jest.fn(),
+  queryOaOutstandingLoans: jest.fn(),
   updateOaExpenseCategory: jest.fn(),
 }));
 
@@ -130,6 +133,15 @@ describe('报销工具函数', () => {
         expenseItems: [{ category: 'TRAFFIC', amount: 32 }],
       }),
     ).toEqual({ expenseItems: [{ category: 'TRAFFIC', amount: 32 }] });
+    expect(
+      expensePreviewInput({
+        travelNo: ' TR-1 ',
+        expenseItems: [{ category: 'TRAFFIC', amount: 32 }],
+      }),
+    ).toEqual({
+      travelNo: 'TR-1',
+      expenseItems: [{ category: 'TRAFFIC', amount: 32 }],
+    });
   });
 });
 
@@ -143,6 +155,7 @@ describe('报销管理', () => {
     jest.mocked(queryOaExpenseCategories).mockResolvedValue({
       data: [traffic],
     } as any);
+    jest.mocked(queryOaOutstandingLoans).mockResolvedValue({ data: [] } as any);
   });
 
   it('台账展示待支付并登记支付', async () => {
@@ -176,6 +189,78 @@ describe('报销管理', () => {
       },
     ]);
     await waitFor(() => expect(queryOaExpenseRecords).toHaveBeenCalledTimes(2));
+  });
+
+  it('登记支付时用借款核销冲抵，实付自动等于合计减核销', async () => {
+    jest.mocked(queryOaExpenseRecords).mockResolvedValue({
+      data: {
+        list: [{ ...pending, travelNo: 'TR-20261109-0001', overBudget: true }],
+        total: 1,
+      },
+    } as any);
+    jest.mocked(queryOaOutstandingLoans).mockResolvedValue({
+      data: [
+        {
+          id: 31,
+          applicationId: 70,
+          title: '差旅借款',
+          applicantId: 101,
+          travelNo: 'TR-20261109-0001',
+          amount: '1000.00',
+          balance: '1000.00',
+          status: 'OUTSTANDING',
+        },
+      ],
+    } as any);
+    jest.mocked(payOaExpense).mockResolvedValue({
+      data: { ...pending, status: 'PAID' },
+    } as any);
+    render(<ExpenseManagePage />);
+
+    await screen.findByText('11 月差旅报销');
+    fireEvent.click(screen.getByRole('button', { name: '登记支付' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      await within(dialog).findByText(
+        '关联出差 TR-20261109-0001，报销已超出差预算',
+      ),
+    ).toBeTruthy();
+    expect(queryOaOutstandingLoans).toHaveBeenCalledWith(101);
+    const writeOff = await within(dialog).findByLabelText('核销借款 31');
+    fireEvent.change(writeOff, { target: { value: '1000' } });
+    fireEvent.blur(writeOff);
+    await waitFor(() =>
+      expect(
+        (within(dialog).getByLabelText('实付金额') as HTMLInputElement).value,
+      ).toBe('234.50'),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: /确认登记/ }));
+
+    await waitFor(() => expect(payOaExpense).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(payOaExpense).mock.calls[0][1]).toMatchObject({
+      paidAmount: 234.5,
+      writeOffs: [{ loanId: 31, amount: 1000 }],
+    });
+  });
+
+  it('实付与合计减核销不一致时拦截提交', async () => {
+    const errorSpy = jest.spyOn(message, 'error');
+    render(<ExpenseManagePage />);
+    await screen.findByText('11 月差旅报销');
+    fireEvent.click(screen.getByRole('button', { name: '登记支付' }));
+    const dialog = await screen.findByRole('dialog');
+    const paid = within(dialog).getByLabelText('实付金额');
+    fireEvent.change(paid, { target: { value: '100' } });
+    fireEvent.blur(paid);
+    fireEvent.click(within(dialog).getByRole('button', { name: /确认登记/ }));
+
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(
+        '实付金额应为报销合计减核销金额 ¥1,234.50',
+      ),
+    );
+    expect(payOaExpense).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it('详情抽屉展示报销明细并可跳转审批轨迹', async () => {
@@ -280,7 +365,21 @@ describe('我的报销', () => {
           payDate: '2026-11-08',
           payMethod: 'CASH',
           payerName: '财务李四',
+          travelNo: 'TR-20261109-0001',
+          overBudget: true,
+          writeOffAmount: '1000.00',
         },
+        writeOffs: [
+          {
+            id: 5,
+            loanId: 31,
+            action: 'WRITE_OFF',
+            amount: '1000.00',
+            balanceAfter: '0.00',
+            expenseId: 9,
+            bizDate: '2026-11-08',
+          },
+        ],
       },
     } as any);
   });
@@ -295,6 +394,9 @@ describe('我的报销', () => {
     expect(await screen.findByText('财务李四')).toBeTruthy();
     expect(getMyOaExpense).toHaveBeenCalledWith(9);
     expect(screen.getByText('现金')).toBeTruthy();
+    expect(screen.getByText('TR-20261109-0001')).toBeTruthy();
+    expect(screen.getByText('超预算')).toBeTruthy();
+    expect(screen.getByRole('table', { name: '借款核销' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '发起报销' }));
     expect(history.push).toHaveBeenCalledWith('/oa/launch');

@@ -1336,6 +1336,10 @@ export interface OaExpenseVo {
   totalAmount: OaDecimal;
   itemCount: number;
   status: OaExpenseStatus | string;
+  travelId?: number | null;
+  travelNo?: string | null;
+  overBudget?: boolean;
+  writeOffAmount?: OaDecimal | null;
   paidAmount?: OaDecimal | null;
   payDate?: string | null;
   payMethod?: OaExpensePayMethod | string | null;
@@ -1360,6 +1364,7 @@ export interface OaExpenseItemVo {
 export interface OaExpenseDetailVo {
   expense: OaExpenseVo;
   items: OaExpenseItemVo[];
+  writeOffs?: OaLoanLedgerVo[];
 }
 
 export interface OaExpenseRecordQuery {
@@ -1373,12 +1378,20 @@ export interface OaExpensePayParams {
   payMethod: OaExpensePayMethod;
   payReference?: string;
   remark?: string;
+  writeOffs?: OaExpenseWriteOffParams[];
+}
+
+export interface OaExpenseWriteOffParams {
+  loanId: number;
+  amount: number;
 }
 
 export interface OaExpensePreviewVo {
   totalAmount?: OaDecimal | null;
   itemCount: number;
   message?: string | null;
+  overBudget?: boolean;
+  budgetHint?: string | null;
 }
 
 export interface OaExpenseTemplateVo {
@@ -1457,5 +1470,199 @@ export function previewOaExpense(formData: Record<string, unknown>) {
   return request<R<OaExpensePreviewVo>>('system/oa/expense/preview', {
     method: 'POST',
     data: formData,
+  });
+}
+
+export type OaTravelStatus = 'APPROVING' | 'APPROVED' | 'CLOSED';
+
+export type OaLoanStatus =
+  | 'APPROVING'
+  | 'PENDING_DISBURSE'
+  | 'OUTSTANDING'
+  | 'SETTLED'
+  | 'CLOSED';
+
+export type OaLoanLedgerAction = 'DISBURSE' | 'WRITE_OFF' | 'REPAY';
+
+export interface OaTravelVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  travelNo: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  budgetAmount: OaDecimal;
+  status: OaTravelStatus | string;
+  loanAmount?: OaDecimal | null;
+  loanBalance?: OaDecimal | null;
+  expenseAmount?: OaDecimal | null;
+  createTime?: string;
+}
+
+export interface OaLoanVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  travelId?: number | null;
+  travelNo?: string | null;
+  amount: OaDecimal;
+  balance: OaDecimal;
+  status: OaLoanStatus | string;
+  expectedRepayDate?: string | null;
+  disburseDate?: string | null;
+  disburseMethod?: OaExpensePayMethod | string | null;
+  disburseReference?: string | null;
+  disburserId?: number | null;
+  disburserName?: string | null;
+  disbursedTime?: string | null;
+  settledTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaLoanLedgerVo {
+  id: number;
+  loanId: number;
+  action: OaLoanLedgerAction | string;
+  amount: OaDecimal;
+  balanceAfter: OaDecimal;
+  expenseId?: number | null;
+  bizDate: string;
+  method?: OaExpensePayMethod | string | null;
+  reference?: string | null;
+  operatorId?: number | null;
+  operatorName?: string | null;
+  remark?: string | null;
+  createTime?: string;
+}
+
+export interface OaTravelDetailVo {
+  travel: OaTravelVo;
+  loans: OaLoanVo[];
+  expenses: OaExpenseVo[];
+}
+
+export interface OaLoanDetailVo {
+  loan: OaLoanVo;
+  ledger: OaLoanLedgerVo[];
+}
+
+export interface OaTravelQuery {
+  status?: string;
+  keyword?: string;
+}
+
+export interface OaLoanDisburseParams {
+  amount: number;
+  disburseDate: string;
+  method: OaExpensePayMethod;
+  reference?: string;
+  remark?: string;
+}
+
+export interface OaLoanRepayParams {
+  requestId: string;
+  amount: number;
+  repayDate: string;
+  method: OaExpensePayMethod;
+  reference?: string;
+  remark?: string;
+}
+
+export interface OaTravelTemplateVo {
+  travelFormId: number;
+  travelModelId: number;
+  travelModelKey: string;
+  loanFormId: number;
+  loanModelId: number;
+  loanModelKey: string;
+}
+
+export function queryOaTravels(params: QueryParam<OaTravelQuery>) {
+  return request<R<PageResult<OaTravelVo>>>('system/oa/travel/records', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaTravel(id: number | string) {
+  return request<R<OaTravelDetailVo>>(`system/oa/travel/records/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryOaLoans(params: QueryParam<OaTravelQuery>) {
+  return request<R<PageResult<OaLoanVo>>>('system/oa/travel/loans', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaLoan(id: number | string) {
+  return request<R<OaLoanDetailVo>>(`system/oa/travel/loans/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryOaOutstandingLoans(applicantId: number | string) {
+  return request<R<OaLoanVo[]>>('system/oa/travel/loans/outstanding', {
+    method: 'GET',
+    params: { applicantId },
+  });
+}
+
+export function disburseOaLoan(
+  id: number | string,
+  data: OaLoanDisburseParams,
+) {
+  return request<R<OaLoanVo>>(`system/oa/travel/loans/${id}/disburse`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function repayOaLoan(id: number | string, data: OaLoanRepayParams) {
+  return request<R<OaLoanVo>>(`system/oa/travel/loans/${id}/repay`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function createOaTravelTemplate() {
+  return request<R<OaTravelTemplateVo>>('system/oa/travel/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaTravels(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaTravelVo>>>('system/oa/travel/mine', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getMyOaTravel(id: number | string) {
+  return request<R<OaTravelDetailVo>>(`system/oa/travel/mine/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryMyOaLoans(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaLoanVo>>>('system/oa/travel/mine/loans', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getMyOaLoan(id: number | string) {
+  return request<R<OaLoanDetailVo>>(`system/oa/travel/mine/loans/${id}`, {
+    method: 'GET',
   });
 }
