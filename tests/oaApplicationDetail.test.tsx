@@ -13,6 +13,7 @@ jest.mock('@umijs/max', () => ({
 
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaApplication: jest.fn(),
+  urgeOaApplication: jest.fn(),
 }));
 
 jest.mock('@/utils/download', () => ({

@@ -12,4 +12,6 @@ export default {
   'menu.oa.tasks.detail': '审批详情',
   'menu.oa.employee': '员工管理',
   'menu.oa.position': '岗位管理',
+  'menu.oa.notifications': '通知消息',
+  'menu.oa.operations': 'OA 运维',
 };

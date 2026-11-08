@@ -24,11 +24,20 @@ import {
 import {
   createOaProcessModel,
   disableOaProcessModel,
+  dispatchOaOutbox,
   getOaProcessModel,
   publishOaProcessModel,
+  queryOaNotifications,
+  queryOaOutboxEvents,
   queryOaProcessModels,
   queryOaProcessReleases,
+  queryOaUnreadCount,
+  readAllOaNotifications,
+  readOaNotification,
+  retryOaOutboxEvent,
+  terminateOaApplication,
   updateOaProcessModel,
+  urgeOaApplication,
   validateOaProcessBpmn,
 } from '@/services/web/guardfind/oa';
 import {
@@ -277,6 +286,93 @@ describe('OA 流程模型端点', () => {
     expect(lastCall()).toEqual([
       'system/oa/process/model/9/releases',
       expect.objectContaining({ method: 'GET' }),
+    ]);
+  });
+});
+
+describe('OA 通知与运维端点', () => {
+  it('通知：分页/未读数 GET，已读 POST 且 id 只走路径', async () => {
+    await queryOaNotifications({ page: 1, size: 10, unreadOnly: true });
+    expect(lastCall()).toEqual([
+      'system/oa/notification/page',
+      expect.objectContaining({
+        method: 'GET',
+        params: { page: 1, size: 10, unreadOnly: true },
+      }),
+    ]);
+
+    await queryOaUnreadCount();
+    expect(lastCall()).toEqual([
+      'system/oa/notification/unread-count',
+      expect.objectContaining({ method: 'GET' }),
+    ]);
+
+    await readOaNotification(5);
+    expect(lastCall()).toEqual([
+      'system/oa/notification/5/read',
+      expect.objectContaining({ method: 'POST' }),
+    ]);
+
+    await readAllOaNotifications();
+    expect(lastCall()).toEqual([
+      'system/oa/notification/read-all',
+      expect.objectContaining({ method: 'POST' }),
+    ]);
+  });
+
+  it('outbox：分页 GET、重试 POST、立即投递 POST', async () => {
+    await queryOaOutboxEvents({
+      page: 1,
+      size: 10,
+      status: 'FAILED',
+      keyword: 'SUBMITTED',
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/ops/outbox',
+      expect.objectContaining({
+        method: 'GET',
+        params: {
+          page: 1,
+          size: 10,
+          status: 'FAILED',
+          keyword: 'SUBMITTED',
+        },
+      }),
+    ]);
+
+    await retryOaOutboxEvent(11);
+    expect(lastCall()).toEqual([
+      'system/oa/ops/outbox/11/retry',
+      expect.objectContaining({ method: 'POST' }),
+    ]);
+
+    await dispatchOaOutbox();
+    expect(lastCall()).toEqual([
+      'system/oa/ops/outbox/dispatch',
+      expect.objectContaining({ method: 'POST' }),
+    ]);
+  });
+
+  it('终止与催办：application id 只走路径，原因与 requestId 走 body', async () => {
+    await terminateOaApplication(70, {
+      requestId: 'req-terminate',
+      reason: '信息不实',
+    });
+    expect(lastCall()).toEqual([
+      'system/oa/ops/application/70/terminate',
+      expect.objectContaining({
+        method: 'POST',
+        data: { requestId: 'req-terminate', reason: '信息不实' },
+      }),
+    ]);
+
+    await urgeOaApplication(70, { requestId: 'req-urge' });
+    expect(lastCall()).toEqual([
+      'system/oa/application/70/urge',
+      expect.objectContaining({
+        method: 'POST',
+        data: { requestId: 'req-urge' },
+      }),
     ]);
   });
 });

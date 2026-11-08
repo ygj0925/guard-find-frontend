@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ApplicationDetailPage from '@/pages/oa/application/detail';
 import {
   getOaApplication,
+  urgeOaApplication,
   withdrawOaApplication,
 } from '@/services/web/guardfind/oa';
 
@@ -15,6 +16,7 @@ jest.mock('@umijs/max', () => ({
 jest.mock('@/services/web/guardfind/oa', () => ({
   getOaApplication: jest.fn(),
   withdrawOaApplication: jest.fn(),
+  urgeOaApplication: jest.fn(),
 }));
 
 const detail = {
@@ -73,6 +75,15 @@ describe('我的申请撤回', () => {
         replayed: false,
       },
     } as any);
+    jest.mocked(urgeOaApplication).mockResolvedValue({
+      data: {
+        applicationId: 70,
+        taskCount: 1,
+        recipients: [102],
+        urgedAt: '2026-11-08 10:00:00',
+        nextAllowedTime: '2026-11-08 10:10:00',
+      },
+    } as any);
   });
 
   it('进行中的申请可填写原因后撤回并刷新', async () => {
@@ -97,6 +108,27 @@ describe('我的申请撤回', () => {
       jest.mocked(withdrawOaApplication).mock.calls[0][1].requestId,
     ).toBeTruthy();
     await waitFor(() => expect(getOaApplication).toHaveBeenCalledTimes(2));
+  });
+
+  it('进行中的申请可填写备注后催办', async () => {
+    render(<ApplicationDetailPage />);
+
+    expect(await screen.findByText('差旅报销')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /催\s*办/ }));
+    fireEvent.change(await screen.findByLabelText('催办备注'), {
+      target: { value: '请尽快处理' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '发送催办' }));
+
+    await waitFor(() =>
+      expect(urgeOaApplication).toHaveBeenCalledWith(
+        '70',
+        expect.objectContaining({ reason: '请尽快处理' }),
+      ),
+    );
+    expect(
+      jest.mocked(urgeOaApplication).mock.calls[0][1].requestId,
+    ).toBeTruthy();
   });
 
   it('已结束的申请不显示撤回按钮', async () => {

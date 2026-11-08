@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react';
 import {
   getOaApplication,
   type OaApplicationDetailVo,
+  urgeOaApplication,
   withdrawOaApplication,
 } from '@/services/web/guardfind/oa';
 import { buildOaRequestId } from '@/utils/oaLaunch';
@@ -43,6 +44,10 @@ const ApplicationDetailPage: React.FC = () => {
   const [withdrawReason, setWithdrawReason] = useState('');
   const [withdrawRequestId, setWithdrawRequestId] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
+  const [urgeOpen, setUrgeOpen] = useState(false);
+  const [urgeReason, setUrgeReason] = useState('');
+  const [urgeRequestId, setUrgeRequestId] = useState('');
+  const [urging, setUrging] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -92,6 +97,34 @@ const ApplicationDetailPage: React.FC = () => {
     }
   };
 
+  const openUrge = () => {
+    setUrgeReason('');
+    setUrgeRequestId(buildOaRequestId());
+    setUrgeOpen(true);
+  };
+
+  const confirmUrge = async () => {
+    if (!id || urging) return;
+    setUrging(true);
+    try {
+      const response = await urgeOaApplication(id, {
+        requestId: urgeRequestId,
+        reason: urgeReason.trim() || undefined,
+      });
+      const nextAllowed = response.data.nextAllowedTime
+        ? `，下次可催办时间 ${response.data.nextAllowedTime}`
+        : '';
+      message.success(
+        `已提醒 ${response.data.taskCount} 个审批任务${nextAllowed}`,
+      );
+      setUrgeOpen(false);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setUrging(false);
+    }
+  };
+
   return (
     <PageContainer
       onBack={() => history.push('/oa/application')}
@@ -102,9 +135,12 @@ const ApplicationDetailPage: React.FC = () => {
           <Space wrap>
             {applicationStatusTag(detail.status)}
             {detail.status === 'RUNNING' ? (
-              <Button danger onClick={openWithdraw}>
-                撤回申请
-              </Button>
+              <>
+                <Button onClick={openUrge}>催办</Button>
+                <Button danger onClick={openWithdraw}>
+                  撤回申请
+                </Button>
+              </>
             ) : null}
           </Space>
         ) : undefined,
@@ -166,6 +202,33 @@ const ApplicationDetailPage: React.FC = () => {
             placeholder="撤回原因（可选）"
             value={withdrawReason}
             onChange={(event) => setWithdrawReason(event.target.value)}
+          />
+        </Space>
+      </Modal>
+
+      <Modal
+        title="催办审批"
+        open={urgeOpen}
+        okText="发送催办"
+        cancelText="取消"
+        confirmLoading={urging}
+        onOk={() => void confirmUrge()}
+        onCancel={() => {
+          if (!urging) setUrgeOpen(false);
+        }}
+      >
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            提醒当前处理人处理待办；同一任务有冷却时间与每日上限，且不会重置超期计时。
+          </Typography.Text>
+          <Input.TextArea
+            aria-label="催办备注"
+            rows={3}
+            maxLength={500}
+            showCount
+            placeholder="催办备注（可选）"
+            value={urgeReason}
+            onChange={(event) => setUrgeReason(event.target.value)}
           />
         </Space>
       </Modal>

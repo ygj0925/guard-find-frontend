@@ -12,4 +12,6 @@ export default {
   'menu.oa.tasks.detail': 'Approval Detail',
   'menu.oa.employee': 'Employees',
   'menu.oa.position': 'Positions',
+  'menu.oa.notifications': 'Notifications',
+  'menu.oa.operations': 'OA Operations',
 };

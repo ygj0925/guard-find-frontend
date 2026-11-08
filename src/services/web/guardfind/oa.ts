@@ -788,3 +788,129 @@ export function queryOaPositionOptions() {
     method: 'GET',
   });
 }
+
+export interface OaNotificationVo {
+  id: number;
+  type: string;
+  title: string;
+  content?: string | null;
+  applicationId?: number | null;
+  taskId?: string | null;
+  status: 'UNREAD' | 'READ';
+  readTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaNotificationQuery {
+  unreadOnly?: boolean;
+}
+
+export interface OaUnreadCountVo {
+  count: number;
+}
+
+export function queryOaNotifications(
+  params: QueryParam<OaNotificationQuery>,
+) {
+  return request<R<PageResult<OaNotificationVo>>>(
+    'system/oa/notification/page',
+    { method: 'GET', params },
+  );
+}
+
+export function queryOaUnreadCount() {
+  return request<R<OaUnreadCountVo>>('system/oa/notification/unread-count', {
+    method: 'GET',
+  });
+}
+
+export function readOaNotification(id: number | string) {
+  return request<R<null>>(`system/oa/notification/${id}/read`, {
+    method: 'POST',
+  });
+}
+
+export function readAllOaNotifications() {
+  return request<R<number>>('system/oa/notification/read-all', {
+    method: 'POST',
+  });
+}
+
+export interface OaOutboxEventVo {
+  id: number;
+  tenantId: number;
+  eventId: string;
+  aggregateType: string;
+  aggregateId: string;
+  eventType: string;
+  payload?: string | null;
+  status: string;
+  retryCount: number;
+  nextRetryTime?: string | null;
+  lastError?: string | null;
+  createTime?: string;
+  sentTime?: string | null;
+}
+
+export interface OaOutboxQuery {
+  status?: string;
+  keyword?: string;
+}
+
+export interface OaOutboxDispatchResultVo {
+  scanned: number;
+  sent: number;
+  failed: number;
+}
+
+export function queryOaOutboxEvents(params: QueryParam<OaOutboxQuery>) {
+  return request<R<PageResult<OaOutboxEventVo>>>('system/oa/ops/outbox', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function retryOaOutboxEvent(id: number | string) {
+  return request<R<null>>(`system/oa/ops/outbox/${id}/retry`, {
+    method: 'POST',
+  });
+}
+
+export function dispatchOaOutbox() {
+  return request<R<OaOutboxDispatchResultVo>>('system/oa/ops/outbox/dispatch', {
+    method: 'POST',
+  });
+}
+
+export interface OaOpsTerminateParams {
+  requestId: string;
+  reason: string;
+}
+
+export function terminateOaApplication(
+  id: number | string,
+  data: OaOpsTerminateParams,
+) {
+  return request<R<OaApprovalActionResultVo>>(
+    `system/oa/ops/application/${id}/terminate`,
+    { method: 'POST', data },
+  );
+}
+
+export interface OaUrgeResultVo {
+  applicationId: number;
+  taskCount: number;
+  recipients: number[];
+  urgedAt?: string;
+  nextAllowedTime?: string;
+}
+
+export function urgeOaApplication(
+  id: number | string,
+  data: OaApprovalActionParams,
+) {
+  return request<R<OaUrgeResultVo>>(
+    `system/oa/application/${id}/urge`,
+    { method: 'POST', data },
+  );
+}
