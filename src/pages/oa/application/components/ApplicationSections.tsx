@@ -14,7 +14,10 @@ import {
   Typography,
 } from 'antd';
 import React, { useMemo } from 'react';
-import type { OaApplicationDetailVo } from '@/services/web/guardfind/oa';
+import type {
+  OaApplicationDetailVo,
+  OaApplicationTimelineVo,
+} from '@/services/web/guardfind/oa';
 import { download } from '@/utils/download';
 import { oaAttachmentFileId, parseOaFormSchema } from '@/utils/oaForm';
 import { formatOaFormValue } from '@/utils/oaLaunch';
@@ -31,6 +34,26 @@ export const TIMELINE_ACTION: Record<string, string> = {
   CLAIM: '领取任务',
   TERMINATE: '终止',
 };
+
+function timelineRelation(item: OaApplicationTimelineVo) {
+  const original = item.originalAssigneeId;
+  const actedForOther =
+    original != null && String(original) !== String(item.operatorId ?? '');
+  const originalLabel = item.originalAssigneeName || original;
+  if (item.action === 'TRANSFER') {
+    return (
+      <>
+        {actedForOther ? <Tag>原处理人 {originalLabel}</Tag> : null}
+        {item.targetUserId != null ? (
+          <Tag color="blue">
+            转交给 {item.targetUserName || item.targetUserId}
+          </Tag>
+        ) : null}
+      </>
+    );
+  }
+  return actedForOther ? <Tag color="gold">代 {originalLabel}</Tag> : null;
+}
 
 export function ApplicationInfoCard({
   detail,
@@ -148,10 +171,14 @@ export function ApplicationFormCard({
             const value = detail.formData[field.key];
             const attachments =
               field.type === 'attachment' ? attachmentItems(value) : [];
+            const personLabel =
+              field.type === 'person' ? detail.formLabels?.[field.key] : null;
             return (
               <Descriptions.Item key={field.key} label={field.label}>
                 {attachments.length ? (
                   <AttachmentLinks items={attachments} />
+                ) : personLabel ? (
+                  personLabel
                 ) : (
                   formatOaFormValue(field, value)
                 )}
@@ -190,6 +217,7 @@ export function ApplicationTimelineCard({
                     {TIMELINE_ACTION[item.action] || item.action}
                   </Typography.Text>
                   <Tag>{item.operatorName || item.operatorId}</Tag>
+                  {timelineRelation(item)}
                 </Space>
                 {item.reason ? (
                   <Typography.Text type="secondary">

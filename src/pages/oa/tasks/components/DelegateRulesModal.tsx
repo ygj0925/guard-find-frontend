@@ -101,8 +101,8 @@ const DelegateRulesModal: React.FC<Props> = ({ open, onClose }) => {
     try {
       await createOaDelegateRule({
         delegateId: values.delegateId,
-        startTime: start.format('YYYY-MM-DDTHH:mm:ss'),
-        endTime: end.format('YYYY-MM-DDTHH:mm:ss'),
+        startTime: start.format('YYYY-MM-DD HH:mm:ss'),
+        endTime: end.format('YYYY-MM-DD HH:mm:ss'),
         reason: values.reason?.trim() || undefined,
       });
       message.success('代理规则已创建');

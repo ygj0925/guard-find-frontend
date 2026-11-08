@@ -176,6 +176,8 @@ describe('员工管理页', () => {
     expect(
       (within(dialog).getByLabelText('后台用户') as HTMLInputElement).disabled,
     ).toBe(true);
+    expect(within(dialog).getByText('张三 · 研发部')).toBeTruthy();
+    expect(within(dialog).queryByText('1001')).toBeNull();
 
     fireEvent.change(within(dialog).getByLabelText('工号'), {
       target: { value: 'E001X' },
@@ -195,6 +197,19 @@ describe('员工管理页', () => {
     );
     const [, payload] = jest.mocked(updateOaEmployee).mock.calls[0];
     expect(payload).not.toHaveProperty('userId');
+  });
+
+  it('编辑时直属主管已不在职则显示姓名并提示更换', async () => {
+    jest.mocked(queryOaEmployeeOptions).mockResolvedValue({ data: [] } as any);
+    render(<EmployeePage />);
+    await screen.findByText('张三');
+
+    fireEvent.click(screen.getByRole('button', { name: /编辑/ }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      await within(dialog).findByText('王五（非在职，请更换）'),
+    ).toBeTruthy();
+    expect(within(dialog).queryByText('1003')).toBeNull();
   });
 });
 

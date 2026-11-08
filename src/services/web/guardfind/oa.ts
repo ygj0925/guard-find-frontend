@@ -383,6 +383,10 @@ export interface OaApplicationTimelineVo {
   taskId?: string | null;
   reason?: string | null;
   createTime?: string;
+  originalAssigneeId?: number | string | null;
+  originalAssigneeName?: string | null;
+  targetUserId?: number | string | null;
+  targetUserName?: string | null;
 }
 
 export interface OaApplicationDetailVo extends OaApplicationVo {
@@ -399,6 +403,8 @@ export interface OaApplicationDetailVo extends OaApplicationVo {
   modelKey?: string | null;
   schemaJson?: string | null;
   formData: Record<string, unknown>;
+  /** 人员字段 key→姓名，服务端按表单 schema 解析 */
+  formLabels?: Record<string, string>;
   timeline: OaApplicationTimelineVo[];
 }
 

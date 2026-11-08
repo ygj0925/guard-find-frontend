@@ -32,6 +32,7 @@ const schema = {
       type: 'attachment',
     },
     { id: 'f4', key: 'secret', label: '内部备注', type: 'text', hidden: true },
+    { id: 'f5', key: 'approver', label: '审批人', type: 'person' },
   ],
 };
 
@@ -59,7 +60,9 @@ const detail = {
     days: 2,
     files: [{ uid: 'u1', name: '证明.pdf', fileId: '501' }],
     secret: '不应展示',
+    approver: [102],
   },
+  formLabels: { approver: '李四' },
   processInstanceId: 'inst-1',
   submittedTime: '2026-11-06 18:00:00',
   finishedTime: null,
@@ -72,6 +75,28 @@ const detail = {
       taskId: null,
       reason: null,
       createTime: '2026-11-06 18:00:00',
+    },
+    {
+      action: 'APPROVE',
+      operatorId: '103',
+      operatorName: '王五',
+      taskId: 't1',
+      reason: '代理审批',
+      createTime: '2026-11-06 19:00:00',
+      originalAssigneeId: '102',
+      originalAssigneeName: '李四',
+    },
+    {
+      action: 'TRANSFER',
+      operatorId: '103',
+      operatorName: '王五',
+      taskId: 't2',
+      reason: null,
+      createTime: '2026-11-06 20:00:00',
+      originalAssigneeId: '103',
+      originalAssigneeName: '王五',
+      targetUserId: '104',
+      targetUserName: '赵六',
     },
   ],
 };
@@ -102,6 +127,8 @@ describe('申请详情页', () => {
     expect(screen.getByText('请假申请单 v1')).toBeTruthy();
     expect(screen.getAllByText('v2').length).toBeGreaterThan(0);
     expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.getByText('李四')).toBeTruthy();
+    expect(screen.queryByText('102')).toBeNull();
     expect(screen.getByText('证明.pdf')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /证明.pdf/ }));
     await waitFor(() =>
@@ -112,6 +139,9 @@ describe('申请详情页', () => {
     expect(screen.queryByText('内部备注')).toBeNull();
     expect(screen.queryByText('不应展示')).toBeNull();
     expect(screen.getByText('提交申请')).toBeTruthy();
+    expect(screen.getByText('代 李四')).toBeTruthy();
+    expect(screen.getByText('转交给 赵六')).toBeTruthy();
+    expect(screen.queryByText(/原处理人/)).toBeNull();
     expect(screen.getByText('inst-1')).toBeTruthy();
   });
 

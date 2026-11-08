@@ -335,7 +335,7 @@ const EmployeePage: React.FC = () => {
               loading={optionsLoading}
               optionFilterProp="label"
               placeholder="选择后台用户"
-              options={users.map((user) => ({
+              options={(editing ? [editing] : users).map((user) => ({
                 value: user.userId,
                 label: user.deptName
                   ? `${user.nickname} · ${user.deptName}`
@@ -353,14 +353,25 @@ const EmployeePage: React.FC = () => {
               loading={optionsLoading}
               optionFilterProp="label"
               placeholder="选填，必须是本租户在职员工"
-              options={employees
-                .filter((employee) => employee.userId !== editing?.userId)
-                .map((employee) => ({
-                  value: employee.userId,
-                  label: employee.employeeNo
-                    ? `${employee.nickname}（${employee.employeeNo}）`
-                    : employee.nickname,
-                }))}
+              options={[
+                ...employees
+                  .filter((employee) => employee.userId !== editing?.userId)
+                  .map((employee) => ({
+                    value: employee.userId,
+                    label: employee.employeeNo
+                      ? `${employee.nickname}（${employee.employeeNo}）`
+                      : employee.nickname,
+                  })),
+                ...(editing?.supervisorId &&
+                !employees.some((e) => e.userId === editing.supervisorId)
+                  ? [
+                      {
+                        value: editing.supervisorId,
+                        label: `${editing.supervisorName || editing.supervisorId}（非在职，请更换）`,
+                      },
+                    ]
+                  : []),
+              ]}
             />
           </Form.Item>
           <Space size={12} align="start" style={{ width: '100%' }}>
