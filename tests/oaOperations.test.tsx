@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import OperationsPage from '@/pages/oa/operations';
 import {
   dispatchOaOutbox,
+  queryOaOpsAudits,
+  queryOaOpsExports,
   queryOaOutboxEvents,
   retryOaOutboxEvent,
   terminateOaApplication,
@@ -20,6 +22,8 @@ jest.mock('umi', () => ({
 
 jest.mock('@/services/web/guardfind/oa', () => ({
   queryOaOutboxEvents: jest.fn(),
+  queryOaOpsAudits: jest.fn(),
+  queryOaOpsExports: jest.fn(),
   retryOaOutboxEvent: jest.fn(),
   dispatchOaOutbox: jest.fn(),
   terminateOaApplication: jest.fn(),
@@ -110,5 +114,79 @@ describe('OA 运维页', () => {
     expect(
       jest.mocked(terminateOaApplication).mock.calls[0][1].requestId,
     ).toBeTruthy();
+  });
+
+  it('干预审计页签按动作展示运维记录', async () => {
+    jest.mocked(queryOaOpsAudits).mockResolvedValue({
+      data: {
+        list: [
+          {
+            id: 1,
+            action: 'OUTBOX_RETRY',
+            targetType: 'OUTBOX',
+            targetId: '11',
+            operatorId: 999,
+            operatorName: 'Ops',
+            reason: null,
+            detailJson: '{"previousStatus":"FAILED"}',
+            createTime: '2026-11-08 10:00:00',
+          },
+          {
+            id: 2,
+            action: 'OUTBOX_DISPATCH',
+            targetType: 'OUTBOX_BATCH',
+            targetId: null,
+            operatorId: 999,
+            operatorName: null,
+            createTime: '2026-11-08 10:01:00',
+          },
+        ],
+        total: 2,
+      },
+    } as any);
+    render(<OperationsPage />);
+    await screen.findByText('通知负载不是合法 JSON');
+
+    fireEvent.click(screen.getByRole('tab', { name: '干预审计' }));
+    expect(await screen.findByText('OUTBOX #11')).toBeTruthy();
+    expect(screen.getByText('OUTBOX_BATCH')).toBeTruthy();
+    expect(screen.getByText('Ops')).toBeTruthy();
+    expect(screen.getByText('#999')).toBeTruthy();
+    expect(queryOaOpsAudits).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1 }),
+    );
+  });
+
+  it('导出任务页签默认筛选失败任务且不提供下载', async () => {
+    jest.mocked(queryOaOpsExports).mockResolvedValue({
+      data: {
+        list: [
+          {
+            id: 5,
+            userId: 101,
+            userName: 'Alice',
+            exportType: 'APPLICATION',
+            dateFrom: '2026-11-01',
+            dateTo: '2026-11-08',
+            businessType: null,
+            status: 'FAILED',
+            rowCount: null,
+            errorMessage: '生成失败',
+            createTime: '2026-11-08 09:00:00',
+          },
+        ],
+        total: 1,
+      },
+    } as any);
+    render(<OperationsPage />);
+    await screen.findByText('通知负载不是合法 JSON');
+
+    fireEvent.click(screen.getByRole('tab', { name: '导出任务' }));
+    expect(await screen.findByText('生成失败')).toBeTruthy();
+    expect(screen.getByText('Alice')).toBeTruthy();
+    expect(queryOaOpsExports).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'FAILED' }),
+    );
+    expect(screen.queryByRole('button', { name: '下载' })).toBeNull();
   });
 });

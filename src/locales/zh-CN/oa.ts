@@ -38,4 +38,6 @@ export default {
   'menu.oa.vehicle.mine': '我的用车',
   'menu.oa.calendar': '我的日程',
   'menu.oa.report': '工作报告',
+  'menu.oa.workbench': 'OA 工作台',
+  'menu.oa.stats': '统计报表',
 };

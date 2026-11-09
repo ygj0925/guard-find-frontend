@@ -1081,6 +1081,47 @@ export function terminateOaApplication(
   );
 }
 
+export interface OaOpsAuditVo {
+  id: number;
+  action: string;
+  targetType: string;
+  targetId?: string | null;
+  operatorId: number;
+  operatorName?: string | null;
+  reason?: string | null;
+  detailJson?: string | null;
+  createTime?: string;
+}
+
+export function queryOaOpsAudits(params: QueryParam<{ action?: string }>) {
+  return request<R<PageResult<OaOpsAuditVo>>>('system/oa/ops/audits', {
+    method: 'GET',
+    params,
+  });
+}
+
+export interface OaOpsExportVo {
+  id: number;
+  userId: number;
+  userName?: string | null;
+  exportType: string;
+  dateFrom: string;
+  dateTo: string;
+  businessType?: string | null;
+  status: string;
+  rowCount?: number | null;
+  errorMessage?: string | null;
+  createTime?: string;
+  finishTime?: string | null;
+}
+
+export function queryOaOpsExports(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaOpsExportVo>>>('system/oa/ops/exports', {
+    method: 'GET',
+    params,
+  });
+}
+
 export interface OaUrgeResultVo {
   applicationId: number;
   taskCount: number;
@@ -3702,4 +3743,142 @@ export function remindOaWorkReport(data: {
     method: 'POST',
     data,
   });
+}
+
+export interface OaWorkbenchItemVo {
+  id: number | string;
+  title: string;
+  subtitle?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  status: string;
+}
+
+export interface OaWorkbenchApplicationVo {
+  id: number | string;
+  businessType: OaBusinessType;
+  title: string;
+  status: string;
+  submittedTime?: string | null;
+}
+
+export interface OaWorkbenchVo {
+  todoCount: number;
+  overdueTodoCount: number;
+  overdueHours: number;
+  runningCount: number;
+  unreadNotificationCount: number;
+  unreadCcCount: number;
+  dailyReportSubmitted: boolean;
+  recentApplications: OaWorkbenchApplicationVo[];
+  todayEvents: OaWorkbenchItemVo[];
+  upcomingMeetings: OaWorkbenchItemVo[];
+  activeVehicleRequests: OaWorkbenchItemVo[];
+}
+
+export function getOaWorkbench() {
+  return request<R<OaWorkbenchVo>>('system/oa/workbench', { method: 'GET' });
+}
+
+export interface OaStatsTypeRowVo {
+  businessType?: OaBusinessType | null;
+  total: number;
+  running: number;
+  approved: number;
+  rejected: number;
+  withdrawn: number;
+  cancelled: number;
+  avgHours?: number | null;
+  requestedAmount: number | string;
+  approvedAmount: number | string;
+}
+
+export interface OaStatsDeptRowVo {
+  deptName: string;
+  total: number;
+  approved: number;
+  approvedAmount: number | string;
+}
+
+export interface OaStatsOverdueTaskVo {
+  taskId: string;
+  taskName?: string | null;
+  applicationId?: number | string | null;
+  title?: string | null;
+  businessType?: OaBusinessType | null;
+  applicantName?: string | null;
+  assigneeName?: string | null;
+  createTime: string;
+  pendingHours: number;
+}
+
+export interface OaStatsVo {
+  from: string;
+  to: string;
+  total: OaStatsTypeRowVo;
+  byType: OaStatsTypeRowVo[];
+  byDept: OaStatsDeptRowVo[];
+  overdueHours: number;
+  overdueTaskCount: number;
+  overdueTasks: OaStatsOverdueTaskVo[];
+}
+
+export function getOaStatsOverview(params: {
+  from: string;
+  to: string;
+  businessType?: OaBusinessType;
+}) {
+  return request<R<OaStatsVo>>('system/oa/stats/overview', {
+    method: 'GET',
+    params,
+  });
+}
+
+export type OaExportType = 'APPLICATION' | 'VEHICLE_USE';
+
+export type OaExportStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'DONE'
+  | 'FAILED'
+  | 'EXPIRED';
+
+export interface OaExportTaskVo {
+  id: number | string;
+  exportType: OaExportType;
+  dateFrom: string;
+  dateTo: string;
+  businessType?: OaBusinessType | null;
+  status: OaExportStatus;
+  fileName?: string | null;
+  rowCount?: number | null;
+  errorMessage?: string | null;
+  createTime: string;
+  finishTime?: string | null;
+  expireTime?: string | null;
+}
+
+export interface OaExportCreateParams {
+  requestId: string;
+  exportType: OaExportType;
+  from: string;
+  to: string;
+  businessType?: OaBusinessType;
+}
+
+export function createOaExport(data: OaExportCreateParams) {
+  return request<R<OaExportTaskVo>>('system/oa/stats/exports', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaExports() {
+  return request<R<OaExportTaskVo[]>>('system/oa/stats/exports', {
+    method: 'GET',
+  });
+}
+
+export function oaExportDownloadUrl(id: number | string) {
+  return `system/oa/stats/exports/${id}/download`;
 }

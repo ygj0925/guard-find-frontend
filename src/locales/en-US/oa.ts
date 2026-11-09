@@ -38,4 +38,6 @@ export default {
   'menu.oa.vehicle.mine': 'My Vehicle Requests',
   'menu.oa.calendar': 'My Calendar',
   'menu.oa.report': 'Work Reports',
+  'menu.oa.workbench': 'OA Workbench',
+  'menu.oa.stats': 'Statistics',
 };

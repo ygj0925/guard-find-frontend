@@ -1,5 +1,5 @@
 /**
- * OA 运维：outbox 失败事件重试/立即投递，以及独立授权的流程终止。
+ * OA 运维：outbox 失败事件重试/立即投递、独立授权的流程终止、干预审计与租户导出任务排查。
  * 终止与审批动作权限分离，必须填写原因并生成幂等 requestId。
  */
 import {
@@ -17,6 +17,7 @@ import {
   Modal,
   message,
   Space,
+  Tabs,
   Tag,
   Typography,
 } from 'antd';
@@ -24,12 +25,159 @@ import React, { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import {
   dispatchOaOutbox,
+  type OaOpsAuditVo,
+  type OaOpsExportVo,
   type OaOutboxEventVo,
+  queryOaOpsAudits,
+  queryOaOpsExports,
   queryOaOutboxEvents,
   retryOaOutboxEvent,
   terminateOaApplication,
 } from '@/services/web/guardfind/oa';
 import { buildOaRequestId } from '@/utils/oaLaunch';
+import {
+  businessTypeText,
+  EXPORT_STATUS_META,
+  EXPORT_TYPE_META,
+} from '@/utils/oaStats';
+
+const AUDIT_ACTION_META: Record<string, { text: string; color: string }> = {
+  TERMINATE: { text: '终止申请', color: 'red' },
+  OUTBOX_RETRY: { text: '重试事件', color: 'orange' },
+  OUTBOX_DISPATCH: { text: '立即投递', color: 'blue' },
+};
+
+const auditColumns: ProColumns<OaOpsAuditVo>[] = [
+  {
+    title: '时间',
+    dataIndex: 'createTime',
+    width: 180,
+    search: false,
+  },
+  {
+    title: '动作',
+    dataIndex: 'action',
+    valueType: 'select',
+    valueEnum: {
+      TERMINATE: { text: '终止申请' },
+      OUTBOX_RETRY: { text: '重试事件' },
+      OUTBOX_DISPATCH: { text: '立即投递' },
+    },
+    width: 120,
+    render: (_, record) => {
+      const meta = AUDIT_ACTION_META[record.action] ?? {
+        text: record.action,
+        color: 'default',
+      };
+      return <Tag color={meta.color}>{meta.text}</Tag>;
+    },
+  },
+  {
+    title: '对象',
+    dataIndex: 'targetId',
+    search: false,
+    render: (_, record) =>
+      record.targetId
+        ? `${record.targetType} #${record.targetId}`
+        : record.targetType,
+  },
+  {
+    title: '操作人',
+    dataIndex: 'operatorName',
+    width: 120,
+    search: false,
+    render: (_, record) => record.operatorName || `#${record.operatorId}`,
+  },
+  {
+    title: '原因',
+    dataIndex: 'reason',
+    search: false,
+    render: (_, record) => record.reason || '—',
+  },
+  {
+    title: '详情',
+    dataIndex: 'detailJson',
+    search: false,
+    ellipsis: true,
+    render: (_, record) =>
+      record.detailJson ? (
+        <Typography.Text code>{record.detailJson}</Typography.Text>
+      ) : (
+        '—'
+      ),
+  },
+];
+
+const exportColumns: ProColumns<OaOpsExportVo>[] = [
+  {
+    title: '创建时间',
+    dataIndex: 'createTime',
+    width: 180,
+    search: false,
+  },
+  {
+    title: '发起人',
+    dataIndex: 'userName',
+    width: 120,
+    search: false,
+    render: (_, record) => record.userName || `#${record.userId}`,
+  },
+  {
+    title: '类型',
+    dataIndex: 'exportType',
+    width: 110,
+    search: false,
+    render: (_, record) => {
+      const meta = EXPORT_TYPE_META[record.exportType];
+      return <Tag color={meta?.color}>{meta?.text ?? record.exportType}</Tag>;
+    },
+  },
+  {
+    title: '区间 / 业务',
+    dataIndex: 'dateFrom',
+    search: false,
+    render: (_, record) =>
+      `${record.dateFrom} ~ ${record.dateTo} · ${businessTypeText(record.businessType)}`,
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    valueType: 'select',
+    initialValue: 'FAILED',
+    valueEnum: {
+      PENDING: { text: '排队中' },
+      RUNNING: { text: '生成中' },
+      DONE: { text: '可下载' },
+      FAILED: { text: '失败' },
+      EXPIRED: { text: '已过期' },
+    },
+    width: 110,
+    render: (_, record) => {
+      const meta = EXPORT_STATUS_META[
+        record.status as keyof typeof EXPORT_STATUS_META
+      ] ?? { text: record.status, color: 'default' };
+      return <Tag color={meta.color}>{meta.text}</Tag>;
+    },
+  },
+  {
+    title: '行数',
+    dataIndex: 'rowCount',
+    width: 80,
+    search: false,
+    render: (_, record) => record.rowCount ?? '—',
+  },
+  {
+    title: '错误',
+    dataIndex: 'errorMessage',
+    search: false,
+    render: (_, record) =>
+      record.errorMessage ? (
+        <Typography.Text type="danger">{record.errorMessage}</Typography.Text>
+      ) : (
+        '—'
+      ),
+  },
+];
 
 const STATUS_META: Record<string, { text: string; color: string }> = {
   PENDING: { text: '待投递', color: 'blue' },
@@ -200,28 +348,88 @@ const OperationsPage: React.FC = () => {
         </Space>
       </Card>
 
-      <ProTable<OaOutboxEventVo>
-        rowKey="id"
-        actionRef={actionRef}
-        columns={columns}
-        scroll={{ x: 1100 }}
-        search={{
-          labelWidth: 'auto',
-          defaultCollapsed: false,
-        }}
-        request={async (params) => {
-          const response = await queryOaOutboxEvents({
-            page: params.current ?? 1,
-            size: params.pageSize ?? 10,
-            status: params.status,
-            keyword: params.keyword,
-          });
-          return {
-            data: response.data.list,
-            total: response.data.total,
-            success: true,
-          };
-        }}
+      <Tabs
+        destroyOnHidden
+        items={[
+          {
+            key: 'outbox',
+            label: '通知投递',
+            children: (
+              <ProTable<OaOutboxEventVo>
+                rowKey="id"
+                actionRef={actionRef}
+                columns={columns}
+                scroll={{ x: 1100 }}
+                search={{
+                  labelWidth: 'auto',
+                  defaultCollapsed: false,
+                }}
+                request={async (params) => {
+                  const response = await queryOaOutboxEvents({
+                    page: params.current ?? 1,
+                    size: params.pageSize ?? 10,
+                    status: params.status,
+                    keyword: params.keyword,
+                  });
+                  return {
+                    data: response.data.list,
+                    total: response.data.total,
+                    success: true,
+                  };
+                }}
+              />
+            ),
+          },
+          {
+            key: 'audits',
+            label: '干预审计',
+            children: (
+              <ProTable<OaOpsAuditVo>
+                rowKey="id"
+                columns={auditColumns}
+                scroll={{ x: 1000 }}
+                search={{ labelWidth: 'auto', defaultCollapsed: false }}
+                request={async (params) => {
+                  const response = await queryOaOpsAudits({
+                    page: params.current ?? 1,
+                    size: params.pageSize ?? 10,
+                    action: params.action,
+                  });
+                  return {
+                    data: response.data.list,
+                    total: response.data.total,
+                    success: true,
+                  };
+                }}
+              />
+            ),
+          },
+          {
+            key: 'exports',
+            label: '导出任务',
+            children: (
+              <ProTable<OaOpsExportVo>
+                rowKey="id"
+                columns={exportColumns}
+                scroll={{ x: 1000 }}
+                search={{ labelWidth: 'auto', defaultCollapsed: false }}
+                headerTitle="租户导出任务（只读，文件仅发起人可下载）"
+                request={async (params) => {
+                  const response = await queryOaOpsExports({
+                    page: params.current ?? 1,
+                    size: params.pageSize ?? 10,
+                    status: params.status,
+                  });
+                  return {
+                    data: response.data.list,
+                    total: response.data.total,
+                    success: true,
+                  };
+                }}
+              />
+            ),
+          },
+        ]}
       />
 
       <Modal
