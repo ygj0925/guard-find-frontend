@@ -22,6 +22,9 @@ export default {
   'menu.oa.expense.mine': '我的报销',
   'menu.oa.travel': '出差借款',
   'menu.oa.travel.mine': '我的出差借款',
+  'menu.oa.purchase': '采购管理',
+  'menu.oa.asset': '资产用品',
+  'menu.oa.asset.mine': '我的采购资产',
   'menu.oa.attendance': '假勤管理',
   'menu.oa.attendance.mine': '我的考勤',
 };

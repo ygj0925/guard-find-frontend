@@ -65,6 +65,9 @@ const OA_BUSINESS_TYPE_META: Record<
   ATTENDANCE_CORRECTION: { text: '补卡', color: 'purple' },
   OVERTIME: { text: '加班', color: 'magenta' },
   OUTING: { text: '外出', color: 'geekblue' },
+  PURCHASE: { text: '采购', color: 'volcano' },
+  SUPPLY_REQUEST: { text: '领用', color: 'lime' },
+  ASSET_SCRAP: { text: '资产报废', color: 'red' },
 };
 
 const RELEASE_STATUS_META: Record<string, { text: string; color: string }> = {

@@ -12,7 +12,10 @@ export type OaBusinessType =
   | 'LOAN'
   | 'ATTENDANCE_CORRECTION'
   | 'OVERTIME'
-  | 'OUTING';
+  | 'OUTING'
+  | 'PURCHASE'
+  | 'SUPPLY_REQUEST'
+  | 'ASSET_SCRAP';
 
 export interface OaProcessModelVo {
   id: number;
@@ -1948,6 +1951,643 @@ export function queryMyOaAttendanceRequests(
 ) {
   return request<R<PageResult<OaAttendanceRequestVo>>>(
     'system/oa/attendance/mine/requests',
+    { method: 'GET', params },
+  );
+}
+
+export type OaPurchaseStatus =
+  | 'APPROVING'
+  | 'PENDING_ORDER'
+  | 'ORDERED'
+  | 'PARTIAL'
+  | 'RECEIVED'
+  | 'CLOSED';
+
+export type OaPurchaseCategory = 'SUPPLY' | 'ASSET' | 'OTHER';
+
+export interface OaDeptOptionVo {
+  id: number;
+  name: string;
+}
+
+export interface OaPurchaseBudgetVo {
+  id: number;
+  deptId: number;
+  deptName?: string | null;
+  budgetYear: number;
+  amount: OaDecimal;
+  usedAmount: OaDecimal;
+  occupiedAmount: OaDecimal;
+  availableAmount: OaDecimal;
+  remark?: string | null;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaPurchaseBudgetLedgerVo {
+  id: number;
+  budgetId: number;
+  action: string;
+  amount: OaDecimal;
+  purchaseId?: number | null;
+  purchaseNo?: string | null;
+  operatorId: number;
+  operatorName?: string | null;
+  remark?: string | null;
+  createTime?: string;
+}
+
+export interface OaPurchaseBudgetParams {
+  deptId: number;
+  budgetYear: number;
+  amount: number;
+  remark?: string;
+  version?: number;
+}
+
+export interface OaPurchaseVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  deptId: number;
+  deptName?: string | null;
+  purchaseNo: string;
+  totalAmount: OaDecimal;
+  itemCount: number;
+  expectedDate?: string | null;
+  status: OaPurchaseStatus | string;
+  supplier?: string | null;
+  orderNo?: string | null;
+  orderDate?: string | null;
+  ordererId?: number | null;
+  ordererName?: string | null;
+  orderedTime?: string | null;
+  receivedTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaPurchaseItemVo {
+  id: number;
+  lineNo: number;
+  itemName: string;
+  category: OaPurchaseCategory | string;
+  supplyCode?: string | null;
+  spec?: string | null;
+  quantity: number;
+  unitPrice: OaDecimal;
+  amount: OaDecimal;
+  receivedQty: number;
+}
+
+export interface OaPurchaseReceiptLineVo {
+  receiptId: number;
+  itemId: number;
+  itemName: string;
+  quantity: number;
+}
+
+export interface OaPurchaseReceiptVo {
+  id: number;
+  requestId: string;
+  receiveDate: string;
+  receiverId: number;
+  receiverName?: string | null;
+  remark?: string | null;
+  createTime?: string;
+  lines: OaPurchaseReceiptLineVo[];
+}
+
+export interface OaPurchaseDetailVo {
+  purchase: OaPurchaseVo;
+  items: OaPurchaseItemVo[];
+  receipts: OaPurchaseReceiptVo[];
+  assets: OaAssetVo[];
+}
+
+export interface OaPurchaseOrderParams {
+  supplier: string;
+  orderNo?: string;
+  orderDate: string;
+}
+
+export interface OaPurchaseReceiveParams {
+  requestId: string;
+  receiveDate: string;
+  location?: string;
+  remark?: string;
+  lines: { itemId: number; quantity: number }[];
+}
+
+export interface OaPurchaseTemplateVo {
+  formId: number;
+  modelId: number;
+  modelKey: string;
+}
+
+export type OaAssetStatus = 'IN_STOCK' | 'IN_USE' | 'REPAIR' | 'SCRAPPED';
+
+export type OaAssetAction =
+  | 'ASSIGN'
+  | 'RETURN'
+  | 'TRANSFER'
+  | 'REPAIR'
+  | 'REPAIRED';
+
+export interface OaSupplyItemVo {
+  id: number;
+  code: string;
+  name: string;
+  spec?: string | null;
+  unit: string;
+  stock: number;
+  safetyStock: number;
+  belowSafety: boolean;
+  status: 'ENABLED' | 'DISABLED' | string;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaSupplyItemParams {
+  code: string;
+  name: string;
+  spec?: string;
+  unit: string;
+  safetyStock: number;
+  status?: 'ENABLED' | 'DISABLED';
+  version?: number;
+}
+
+export interface OaSupplyStockParams {
+  requestId: string;
+  quantity: number;
+  remark?: string;
+}
+
+export interface OaSupplyLedgerVo {
+  id: number;
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  action: string;
+  quantity: number;
+  balanceAfter: number;
+  refType: string;
+  refId?: number | null;
+  requestId?: string | null;
+  operatorId: number;
+  operatorName?: string | null;
+  remark?: string | null;
+  createTime?: string;
+}
+
+export interface OaSupplyRequestVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  itemCount: number;
+  totalQuantity: number;
+  status: string;
+  issuerId?: number | null;
+  issuerName?: string | null;
+  issuedTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaSupplyRequestItemVo {
+  itemId: number;
+  code: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  stock: number;
+}
+
+export interface OaSupplyRequestDetailVo {
+  request: OaSupplyRequestVo;
+  items: OaSupplyRequestItemVo[];
+}
+
+export interface OaOperationParams {
+  requestId: string;
+  remark?: string;
+}
+
+export interface OaAssetVo {
+  id: number;
+  assetNo: string;
+  name: string;
+  category?: string | null;
+  spec?: string | null;
+  status: OaAssetStatus | string;
+  holderId?: number | null;
+  holderName?: string | null;
+  deptId?: number | null;
+  deptName?: string | null;
+  location?: string | null;
+  originalValue: OaDecimal;
+  purchaseId?: number | null;
+  purchaseNo?: string | null;
+  acquiredDate?: string | null;
+  scrapPending: boolean;
+  version: number;
+  createTime?: string;
+}
+
+export interface OaAssetLogVo {
+  id: number;
+  assetId: number;
+  action: string;
+  fromStatus?: string | null;
+  toStatus?: string | null;
+  fromHolderId?: number | null;
+  fromHolderName?: string | null;
+  toHolderId?: number | null;
+  toHolderName?: string | null;
+  location?: string | null;
+  refType?: string | null;
+  refId?: number | null;
+  requestId?: string | null;
+  operatorId: number;
+  operatorName?: string | null;
+  remark?: string | null;
+  createTime?: string;
+}
+
+export interface OaAssetScrapVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  assetId: number;
+  assetNo: string;
+  assetName: string;
+  originalValue: OaDecimal;
+  status: string;
+  executorId?: number | null;
+  executorName?: string | null;
+  executedTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaAssetDetailVo {
+  asset: OaAssetVo;
+  logs: OaAssetLogVo[];
+  scraps: OaAssetScrapVo[];
+}
+
+export interface OaAssetCreateParams {
+  requestId: string;
+  name: string;
+  category?: string;
+  spec?: string;
+  originalValue: number;
+  location?: string;
+  acquiredDate?: string;
+}
+
+export interface OaAssetActionParams {
+  requestId: string;
+  action: OaAssetAction;
+  /** 雪花 ID 以字符串原样提交，避免 Number 精度丢失 */
+  holderId?: string;
+  location?: string;
+  remark?: string;
+}
+
+export interface OaStocktakeVo {
+  id: number;
+  title: string;
+  status: 'OPEN' | 'CLOSED' | string;
+  lineCount: number;
+  countedCount: number;
+  varianceCount: number;
+  createUser: number;
+  createUserName?: string | null;
+  createTime?: string;
+  closedBy?: number | null;
+  closedByName?: string | null;
+  closedTime?: string | null;
+}
+
+export interface OaStocktakeLineVo {
+  id: number;
+  targetType: 'SUPPLY' | 'ASSET' | string;
+  targetId: number;
+  targetCode: string;
+  targetName: string;
+  bookQty: number;
+  countedQty?: number | null;
+  adjustedQty?: number | null;
+}
+
+export interface OaStocktakeDetailVo {
+  stocktake: OaStocktakeVo;
+  lines: OaStocktakeLineVo[];
+}
+
+export interface OaAssetTemplateVo {
+  supplyFormId: number;
+  supplyModelId: number;
+  supplyModelKey: string;
+  scrapFormId: number;
+  scrapModelId: number;
+  scrapModelKey: string;
+}
+
+export function queryOaPurchaseDepts() {
+  return request<R<OaDeptOptionVo[]>>('system/oa/purchase/depts', {
+    method: 'GET',
+  });
+}
+
+export function queryOaPurchaseBudgets(year?: number) {
+  return request<R<OaPurchaseBudgetVo[]>>('system/oa/purchase/budgets', {
+    method: 'GET',
+    params: { year },
+  });
+}
+
+export function queryOaPurchaseBudgetLedger(id: number | string) {
+  return request<R<OaPurchaseBudgetLedgerVo[]>>(
+    `system/oa/purchase/budgets/${id}/ledger`,
+    { method: 'GET' },
+  );
+}
+
+export function saveOaPurchaseBudget(data: OaPurchaseBudgetParams) {
+  return request<R<OaPurchaseBudgetVo>>('system/oa/purchase/budgets', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaPurchases(
+  params: QueryParam<{ status?: string; keyword?: string }>,
+) {
+  return request<R<PageResult<OaPurchaseVo>>>('system/oa/purchase/records', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaPurchase(id: number | string) {
+  return request<R<OaPurchaseDetailVo>>(`system/oa/purchase/records/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function orderOaPurchase(
+  id: number | string,
+  data: OaPurchaseOrderParams,
+) {
+  return request<R<OaPurchaseVo>>(`system/oa/purchase/records/${id}/order`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function receiveOaPurchase(
+  id: number | string,
+  data: OaPurchaseReceiveParams,
+) {
+  return request<R<OaPurchaseDetailVo>>(
+    `system/oa/purchase/records/${id}/receive`,
+    { method: 'POST', data },
+  );
+}
+
+export function createOaPurchaseTemplate() {
+  return request<R<OaPurchaseTemplateVo>>('system/oa/purchase/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaPurchases(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaPurchaseVo>>>('system/oa/purchase/mine', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getMyOaPurchase(id: number | string) {
+  return request<R<OaPurchaseDetailVo>>(`system/oa/purchase/mine/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryOaSupplyItems(params?: {
+  status?: string;
+  keyword?: string;
+}) {
+  return request<R<OaSupplyItemVo[]>>('system/oa/asset/supplies', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function createOaSupplyItem(data: OaSupplyItemParams) {
+  return request<R<OaSupplyItemVo>>('system/oa/asset/supplies', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaSupplyItem(
+  id: number | string,
+  data: OaSupplyItemParams,
+) {
+  return request<R<OaSupplyItemVo>>(`system/oa/asset/supplies/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function stockInOaSupply(
+  id: number | string,
+  data: OaSupplyStockParams,
+) {
+  return request<R<OaSupplyItemVo>>(
+    `system/oa/asset/supplies/${id}/stock-in`,
+    { method: 'POST', data },
+  );
+}
+
+export function stockOutOaSupply(
+  id: number | string,
+  data: OaSupplyStockParams,
+) {
+  return request<R<OaSupplyItemVo>>(
+    `system/oa/asset/supplies/${id}/stock-out`,
+    { method: 'POST', data },
+  );
+}
+
+export function queryOaSupplyLedger(id: number | string) {
+  return request<R<OaSupplyLedgerVo[]>>(
+    `system/oa/asset/supplies/${id}/ledger`,
+    { method: 'GET' },
+  );
+}
+
+export function queryOaSupplyRequests(
+  params: QueryParam<{ status?: string; keyword?: string }>,
+) {
+  return request<R<PageResult<OaSupplyRequestVo>>>(
+    'system/oa/asset/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function getOaSupplyRequest(id: number | string) {
+  return request<R<OaSupplyRequestDetailVo>>(
+    `system/oa/asset/requests/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function issueOaSupplyRequest(
+  id: number | string,
+  data: OaOperationParams,
+) {
+  return request<R<OaSupplyRequestDetailVo>>(
+    `system/oa/asset/requests/${id}/issue`,
+    { method: 'POST', data },
+  );
+}
+
+export function queryOaAssets(
+  params: QueryParam<{ status?: string; keyword?: string }>,
+) {
+  return request<R<PageResult<OaAssetVo>>>('system/oa/asset/assets', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaAsset(id: number | string) {
+  return request<R<OaAssetDetailVo>>(`system/oa/asset/assets/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function createOaAsset(data: OaAssetCreateParams) {
+  return request<R<OaAssetVo>>('system/oa/asset/assets', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function operateOaAsset(
+  id: number | string,
+  data: OaAssetActionParams,
+) {
+  return request<R<OaAssetVo>>(`system/oa/asset/assets/${id}/operate`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaAssetScraps(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaAssetScrapVo>>>('system/oa/asset/scraps', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function executeOaAssetScrap(
+  id: number | string,
+  data: OaOperationParams,
+) {
+  return request<R<OaAssetScrapVo>>(`system/oa/asset/scraps/${id}/execute`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaStocktakes(params: QueryParam<{}>) {
+  return request<R<PageResult<OaStocktakeVo>>>('system/oa/asset/stocktakes', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaStocktake(id: number | string) {
+  return request<R<OaStocktakeDetailVo>>(
+    `system/oa/asset/stocktakes/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function createOaStocktake(data: { title: string }) {
+  return request<R<OaStocktakeDetailVo>>('system/oa/asset/stocktakes', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function countOaStocktake(
+  id: number | string,
+  data: { counts: { lineId: number; countedQty: number }[] },
+) {
+  return request<R<OaStocktakeDetailVo>>(
+    `system/oa/asset/stocktakes/${id}/count`,
+    { method: 'POST', data },
+  );
+}
+
+export function closeOaStocktake(id: number | string) {
+  return request<R<OaStocktakeDetailVo>>(
+    `system/oa/asset/stocktakes/${id}/close`,
+    { method: 'POST' },
+  );
+}
+
+export function createOaAssetTemplate() {
+  return request<R<OaAssetTemplateVo>>('system/oa/asset/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaAssets(params: QueryParam<{}>) {
+  return request<R<PageResult<OaAssetVo>>>('system/oa/asset/mine/assets', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getMyOaAsset(id: number | string) {
+  return request<R<OaAssetDetailVo>>(`system/oa/asset/mine/assets/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryMyOaSupplyRequests(
+  params: QueryParam<{ status?: string }>,
+) {
+  return request<R<PageResult<OaSupplyRequestVo>>>(
+    'system/oa/asset/mine/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function getMyOaSupplyRequest(id: number | string) {
+  return request<R<OaSupplyRequestDetailVo>>(
+    `system/oa/asset/mine/requests/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function queryMyOaAssetScraps(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaAssetScrapVo>>>(
+    'system/oa/asset/mine/scraps',
     { method: 'GET', params },
   );
 }

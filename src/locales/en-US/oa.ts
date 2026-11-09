@@ -22,6 +22,9 @@ export default {
   'menu.oa.expense.mine': 'My Expenses',
   'menu.oa.travel': 'Travel & Loans',
   'menu.oa.travel.mine': 'My Travel & Loans',
+  'menu.oa.purchase': 'Purchasing',
+  'menu.oa.asset': 'Assets & Supplies',
+  'menu.oa.asset.mine': 'My Purchases & Assets',
   'menu.oa.attendance': 'Attendance Management',
   'menu.oa.attendance.mine': 'My Attendance',
 };
