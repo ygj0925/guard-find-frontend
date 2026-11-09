@@ -106,7 +106,7 @@ export default defineConfig({
    * @description 设为 false 禁用 Umi 自带的 Pro Layout，改用 layouts 中的自定义 ProLayout
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Ant Design Pro',
+  title: defaultSettings.title as string,
 
   layout: false,
   /**
@@ -125,7 +125,7 @@ export default defineConfig({
   locale: {
     default: 'zh-CN',
     antd: true,
-    title: true,
+    title: false,
     baseNavigator: true,
     baseSeparator: '-',
   },

@@ -18,6 +18,7 @@ import {
   Typography,
 } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
+import useSiteSettings from '@/hooks/useSiteSettings';
 import {
   emailLogin,
   getEmailCaptcha,
@@ -33,7 +34,7 @@ import {
 import { encryptByRsa } from '@/utils/Encrypt';
 import { CLIENT_ID } from '@/utils/env';
 import { isPasswordLoginEnabled, redirectToLogin } from '@/utils/LoginRedirect';
-import { loadSiteSettings, type SiteSettings } from '@/utils/siteSettings';
+import { loadSiteSettings } from '@/utils/siteSettings';
 import Settings from '../../../config/defaultSettings';
 
 type LoginMode = 'account' | 'phone' | 'email';
@@ -52,11 +53,9 @@ const AuthLogin: React.FC = () => {
   const passwordLoginEnabled = isPasswordLoginEnabled();
   const searchParams = new URLSearchParams(history.location.search);
   // 站点配置(系统名称/LOGO/版权/备案号):后台“站点配置”保存后登录页实时生效
-  const [site, setSite] = useState<SiteSettings>(() => ({
-    title: typeof Settings.title === 'string' ? Settings.title : undefined,
-  }));
+  const site = useSiteSettings();
   useEffect(() => {
-    void loadSiteSettings().then(setSite);
+    void loadSiteSettings();
   }, []);
   const ssoError = searchParams.get('ssoError') === '1';
   const loginRedirect = searchParams.get('redirect') || '/';

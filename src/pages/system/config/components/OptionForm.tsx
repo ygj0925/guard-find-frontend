@@ -9,6 +9,10 @@ import { request } from 'umi';
 import { useAccess } from '@/hooks/useAccess';
 import type { OptionCategory } from '@/services/web/system';
 import { getOptionPermission } from '@/utils/optionAccess';
+import {
+  loadSiteSettings,
+  updateSiteSettingsFromOptions,
+} from '@/utils/siteSettings';
 
 /**
  * 系统参数表单（后端 `/system/option`）。
@@ -92,8 +96,12 @@ const OptionForm: React.FC<Props> = ({ category, fields }) => {
         if (!row) return undefined;
         return { id: row.id, code: row.code, value: values[field.code] ?? '' };
       })
-      .filter(Boolean);
+      .filter((row) => row !== undefined);
     await request('system/option', { method: 'PUT', data: payload });
+    if (category === 'SITE') {
+      updateSiteSettingsFromOptions(payload);
+      void loadSiteSettings(true);
+    }
     message.success('保存成功');
     return true;
   };

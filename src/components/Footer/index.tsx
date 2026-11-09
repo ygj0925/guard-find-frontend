@@ -1,15 +1,27 @@
 import { GithubOutlined } from '@ant-design/icons';
 import { DefaultFooter } from '@ant-design/pro-components';
 import React from 'react';
+import useSiteSettings from '@/hooks/useSiteSettings';
 
 const Footer: React.FC = () => {
+  const site = useSiteSettings();
   return (
     <DefaultFooter
       style={{
         background: 'none',
       }}
-      copyright="Powered by Ant Desgin"
+      copyright={site.copyright ?? 'Guard Find Backend'}
       links={[
+        ...(site.beian
+          ? [
+              {
+                key: 'beian',
+                title: site.beian,
+                href: 'https://beian.miit.gov.cn/',
+                blankTarget: true,
+              },
+            ]
+          : []),
         {
           key: 'Ant Design Pro',
           title: 'Ant Design Pro',

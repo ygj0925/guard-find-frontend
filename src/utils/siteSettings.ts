@@ -1,6 +1,7 @@
 import { request } from 'umi';
 import type { LabelValue } from '@/services/web/crud';
 import { get, set } from '@/utils/Web';
+import defaultSettings from '../../config/defaultSettings';
 
 /**
  * 站点配置注入（后端 `GET /system/common/dict/option/site`）。
@@ -24,17 +25,30 @@ export interface SiteSettings {
 }
 
 let cached: SiteSettings | undefined;
+let pending: Promise<SiteSettings> | undefined;
+let revision = 0;
+const listeners = new Set<() => void>();
+
+export function subscribeSiteSettings(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 
 export function getSiteSettings(): SiteSettings {
   if (cached) return cached;
-  const raw = get(SITE_KEY);
-  if (raw) {
-    try {
-      cached = JSON.parse(raw) as SiteSettings;
-      return cached;
-    } catch {
-      /* 忽略损坏缓存 */
+  try {
+    const raw = get(SITE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        cached = parsed as SiteSettings;
+        return cached;
+      }
     }
+  } catch {
+    /* 忽略损坏或不可用的浏览器缓存 */
   }
   cached = {};
   return cached;
@@ -49,18 +63,61 @@ const CODE_MAP: Record<string, keyof SiteSettings> = {
   SITE_LOGO: 'logo',
 };
 
-/** 应用到 DOM；失败或未配置时保持 index.html 的默认值 */
+/** 清空字段时也覆盖旧缓存和 DOM，避免恢复旧图标。 */
 function applyToDocument(site: SiteSettings) {
-  if (site.title) document.title = site.title;
-  if (site.favicon) {
-    let link = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-    link.href = site.favicon;
+  document.title =
+    site.title || String(defaultSettings.title || 'Guard Find Backend');
+  const links = [
+    ...document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']"),
+  ];
+  if (!links.length) {
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    document.head.appendChild(link);
+    links.push(link);
   }
+  for (const link of links) {
+    link.href = site.favicon || '/favicon.ico';
+    link.removeAttribute('type');
+    link.removeAttribute('sizes');
+  }
+  let description = document.querySelector<HTMLMetaElement>(
+    'meta[name="description"]',
+  );
+  if (!description) {
+    description = document.createElement('meta');
+    description.name = 'description';
+    document.head.appendChild(description);
+  }
+  description.content = site.description || '';
+}
+
+function publish(site: SiteSettings) {
+  cached = site;
+  try {
+    set(SITE_KEY, JSON.stringify(site));
+  } catch {
+    // 浏览器禁用持久化存储时，当前页面仍需更新。
+  }
+  applyToDocument(site);
+  listeners.forEach((listener) => {
+    listener();
+  });
+  return site;
+}
+
+/** 保存成功后立即同步页面，并使保存之前的请求失效。 */
+export function updateSiteSettingsFromOptions(
+  options: ReadonlyArray<{ code: string; value?: string | null }>,
+) {
+  revision++;
+  pending = undefined;
+  const site = { ...getSiteSettings() };
+  for (const option of options) {
+    const field = CODE_MAP[option.code];
+    if (field) site[field] = option.value == null ? '' : String(option.value);
+  }
+  return publish(site);
 }
 
 /** 先用上次缓存应用（避免首屏闪默认标题/图标），再异步刷新 */
@@ -71,26 +128,30 @@ export function applyCachedSiteSettings() {
 /**
  * 拉取并注入站点配置。不抛错：站点信息缺失不该阻塞登录页/后台启动。
  */
-export async function loadSiteSettings(): Promise<SiteSettings> {
-  try {
-    const res = await request<{ data?: LabelValue[] }>(
-      'system/common/dict/option/site',
-      { method: 'GET' },
-    );
-    const site: SiteSettings = { ...getSiteSettings() };
-    for (const item of res?.data || []) {
-      const field = CODE_MAP[String(item.label)];
-      if (!field) continue;
-      const value = item.value == null ? '' : String(item.value);
-      if (value) site[field] = value;
+export function loadSiteSettings(force = false): Promise<SiteSettings> {
+  if (pending && !force) return pending;
+  const requestRevision = ++revision;
+  pending = (async () => {
+    try {
+      const res = await request<{ data?: LabelValue[] }>(
+        'system/common/dict/option/site',
+        { method: 'GET' },
+      );
+      if (requestRevision !== revision) return getSiteSettings();
+      if (!Array.isArray(res?.data)) return getSiteSettings();
+      const site: SiteSettings = {};
+      for (const item of res.data) {
+        const field = CODE_MAP[String(item.label)];
+        if (field) site[field] = item.value == null ? '' : String(item.value);
+      }
+      return publish(site);
+    } catch {
+      return getSiteSettings();
+    } finally {
+      if (requestRevision === revision) pending = undefined;
     }
-    cached = site;
-    set(SITE_KEY, JSON.stringify(site));
-    applyToDocument(site);
-    return site;
-  } catch {
-    return getSiteSettings();
-  }
+  })();
+  return pending;
 }
 
 /** 多租户是否开启（`GET /system/common/dict/option/tenant`），决定登录页/请求头是否带租户 */

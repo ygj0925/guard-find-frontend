@@ -27,6 +27,7 @@ import { AvatarDropdown } from '@/components/RightContent/AvatarDropdown';
 import RouteAccess from '@/components/RouteAccess';
 import RouteTabs from '@/components/RouteTabs';
 import UnreadBell from '@/components/UnreadBell';
+import useSiteSettings from '@/hooks/useSiteSettings';
 import { redirectToLogin } from '@/utils/LoginRedirect';
 import { getAuthorizedRoutes, isOfflinePath } from '@/utils/RouteUtils';
 import { isLogin, LayoutSetting, Tenant } from '@/utils/Web';
@@ -105,6 +106,7 @@ const SearchInput = () => {
 
 const BaseLayout: FC<BaseLayoutProps> = () => {
   const location = useLocation();
+  const site = useSiteSettings();
 
   const { initialState, setInitialState } = useModel('@@initialState');
   useModel('authorization');
@@ -182,8 +184,6 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
   return (
     <DictProvider key={`${Tenant.get()}:${user?.id}`}>
       <ProLayout
-        title={defaultSettings.title}
-        logo={defaultSettings.logo}
         location={location}
         appList={[
           {
@@ -332,6 +332,8 @@ const BaseLayout: FC<BaseLayoutProps> = () => {
           }))
         }
         {...initialState?.settings}
+        title={site.title || defaultSettings.title}
+        logo={site.logo || defaultSettings.logo}
       >
         <WaterMark
           content={initialState?.user?.nickname || initialState?.user?.username}
