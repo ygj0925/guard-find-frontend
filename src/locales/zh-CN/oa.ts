@@ -25,6 +25,11 @@ export default {
   'menu.oa.purchase': '采购管理',
   'menu.oa.asset': '资产用品',
   'menu.oa.asset.mine': '我的采购资产',
+  'menu.oa.contract': '合同管理',
+  'menu.oa.seal': '用印管理',
+  'menu.oa.document': '公文知识',
+  'menu.oa.contract.mine': '我的合同用印',
+  'menu.oa.document.inbox': '公文阅读',
   'menu.oa.attendance': '假勤管理',
   'menu.oa.attendance.mine': '我的考勤',
 };

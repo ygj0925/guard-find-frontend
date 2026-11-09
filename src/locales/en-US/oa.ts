@@ -25,6 +25,11 @@ export default {
   'menu.oa.purchase': 'Purchasing',
   'menu.oa.asset': 'Assets & Supplies',
   'menu.oa.asset.mine': 'My Purchases & Assets',
+  'menu.oa.contract': 'Contracts',
+  'menu.oa.seal': 'Seal Usage',
+  'menu.oa.document': 'Documents & Knowledge',
+  'menu.oa.contract.mine': 'My Contracts & Seals',
+  'menu.oa.document.inbox': 'Document Inbox',
   'menu.oa.attendance': 'Attendance Management',
   'menu.oa.attendance.mine': 'My Attendance',
 };

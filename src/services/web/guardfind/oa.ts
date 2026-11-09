@@ -15,7 +15,10 @@ export type OaBusinessType =
   | 'OUTING'
   | 'PURCHASE'
   | 'SUPPLY_REQUEST'
-  | 'ASSET_SCRAP';
+  | 'ASSET_SCRAP'
+  | 'CONTRACT'
+  | 'SEAL_USE'
+  | 'DOCUMENT';
 
 export interface OaProcessModelVo {
   id: number;
@@ -2590,4 +2593,442 @@ export function queryMyOaAssetScraps(params: QueryParam<{ status?: string }>) {
     'system/oa/asset/mine/scraps',
     { method: 'GET', params },
   );
+}
+
+export interface OaBusinessTemplateVo {
+  formId: number;
+  modelId: number;
+  modelKey: string;
+}
+
+export interface OaLinkedFileVo {
+  applicationId: number;
+  fileId: number;
+  name: string;
+  size?: number | null;
+}
+
+export type OaContractStatus =
+  | 'APPROVING'
+  | 'PENDING_SIGN'
+  | 'SIGNED'
+  | 'ARCHIVED'
+  | 'CLOSED';
+
+export interface OaContractVo {
+  id: number;
+  contractNo: string;
+  title: string;
+  counterparty: string;
+  contractType: string;
+  amount: OaDecimal;
+  startDate: string;
+  endDate: string;
+  ownerId: number;
+  ownerName?: string | null;
+  currentVersion: number;
+  currentApplicationId: number;
+  applicationStatus?: string | null;
+  status: OaContractStatus;
+  signedDate?: string | null;
+  signatories?: string | null;
+  signRemark?: string | null;
+  signedBy?: number | null;
+  signedByName?: string | null;
+  signedTime?: string | null;
+  archiveNo?: string | null;
+  archiveLocation?: string | null;
+  archivedBy?: number | null;
+  archivedByName?: string | null;
+  archivedTime?: string | null;
+  createTime?: string;
+  updateTime?: string | null;
+}
+
+export interface OaContractVersionVo {
+  id: number;
+  versionNo: number;
+  applicationId: number;
+  applicationStatus?: string | null;
+  title: string;
+  counterparty: string;
+  contractType: string;
+  amount: OaDecimal;
+  startDate: string;
+  endDate: string;
+  summary: string;
+  changeNote?: string | null;
+  status: string;
+  applicantId: number;
+  applicantName?: string | null;
+  createTime?: string;
+}
+
+export interface OaSealRequestVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  sealId: number;
+  sealCode: string;
+  sealName: string;
+  sealType: string;
+  keeperId: number;
+  keeperName?: string | null;
+  contractId?: number | null;
+  contractNo?: string | null;
+  copies: number;
+  useDate: string;
+  status: string;
+  usedCopies?: number | null;
+  usedDate?: string | null;
+  executorId?: number | null;
+  executorName?: string | null;
+  executedTime?: string | null;
+  executeRemark?: string | null;
+  createTime?: string;
+}
+
+export interface OaContractDetailVo {
+  contract: OaContractVo;
+  versions: OaContractVersionVo[];
+  files: OaLinkedFileVo[];
+  sealRequests: OaSealRequestVo[];
+}
+
+export interface OaContractSignParams {
+  requestId: string;
+  signedDate: string;
+  signatories: string;
+  remark?: string;
+}
+
+export interface OaContractArchiveParams {
+  requestId: string;
+  archiveNo: string;
+  location?: string;
+  remark?: string;
+}
+
+export function queryOaContracts(
+  params: QueryParam<{
+    status?: string;
+    keyword?: string;
+    expiringDays?: number;
+  }>,
+) {
+  return request<R<PageResult<OaContractVo>>>('system/oa/contract', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaContract(id: number | string) {
+  return request<R<OaContractDetailVo>>(`system/oa/contract/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function signOaContract(
+  id: number | string,
+  data: OaContractSignParams,
+) {
+  return request<R<OaContractVo>>(`system/oa/contract/${id}/sign`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function archiveOaContract(
+  id: number | string,
+  data: OaContractArchiveParams,
+) {
+  return request<R<OaContractVo>>(`system/oa/contract/${id}/archive`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function createOaContractTemplate() {
+  return request<R<OaBusinessTemplateVo>>('system/oa/contract/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaContracts(
+  params: QueryParam<{ status?: string; keyword?: string }>,
+) {
+  return request<R<PageResult<OaContractVo>>>(
+    'system/oa/contract/mine/contracts',
+    { method: 'GET', params },
+  );
+}
+
+export function getMyOaContract(id: number | string) {
+  return request<R<OaContractDetailVo>>(
+    `system/oa/contract/mine/contracts/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function queryMyOaSealRequests(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaSealRequestVo>>>(
+    'system/oa/contract/mine/seal-requests',
+    { method: 'GET', params },
+  );
+}
+
+export function queryMyOaSealFiles(id: number | string) {
+  return request<R<OaLinkedFileVo[]>>(
+    `system/oa/contract/mine/seal-requests/${id}/files`,
+    { method: 'GET' },
+  );
+}
+
+export type OaSealType =
+  | 'OFFICIAL'
+  | 'CONTRACT'
+  | 'FINANCE'
+  | 'LEGAL_REP'
+  | 'OTHER';
+
+export interface OaSealVo {
+  id: number;
+  code: string;
+  name: string;
+  sealType: OaSealType;
+  keeperId: number;
+  keeperName?: string | null;
+  status: 'ENABLED' | 'DISABLED';
+  remark?: string | null;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaSealParams {
+  code: string;
+  name: string;
+  sealType: OaSealType;
+  keeperId: number | string;
+  status?: 'ENABLED' | 'DISABLED';
+  remark?: string;
+  version?: number;
+}
+
+export interface OaSealExecuteParams {
+  requestId: string;
+  usedCopies: number;
+  usedDate: string;
+  remark?: string;
+}
+
+export function queryOaSeals(params?: { status?: string }) {
+  return request<R<OaSealVo[]>>('system/oa/seal/seals', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function createOaSeal(data: OaSealParams) {
+  return request<R<OaSealVo>>('system/oa/seal/seals', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaSeal(id: number | string, data: OaSealParams) {
+  return request<R<OaSealVo>>(`system/oa/seal/seals/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaSealRequests(params: QueryParam<{ status?: string }>) {
+  return request<R<PageResult<OaSealRequestVo>>>('system/oa/seal/requests', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function queryOaSealRequestFiles(id: number | string) {
+  return request<R<OaLinkedFileVo[]>>(
+    `system/oa/seal/requests/${id}/files`,
+    { method: 'GET' },
+  );
+}
+
+export function createOaSealTemplate() {
+  return request<R<OaBusinessTemplateVo>>('system/oa/seal/template', {
+    method: 'POST',
+  });
+}
+
+export function queryKeeperOaSealRequests(
+  params: QueryParam<{ status?: string }>,
+) {
+  return request<R<PageResult<OaSealRequestVo>>>(
+    'system/oa/seal/keeper/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function queryKeeperOaSealFiles(id: number | string) {
+  return request<R<OaLinkedFileVo[]>>(
+    `system/oa/seal/keeper/requests/${id}/files`,
+    { method: 'GET' },
+  );
+}
+
+export function executeOaSealRequest(
+  id: number | string,
+  data: OaSealExecuteParams,
+) {
+  return request<R<OaSealRequestVo>>(
+    `system/oa/seal/keeper/requests/${id}/execute`,
+    { method: 'POST', data },
+  );
+}
+
+export type OaDocumentStatus = 'APPROVING' | 'PUBLISHED' | 'CLOSED' | 'REVOKED';
+
+export type OaDocumentType = 'NOTICE' | 'KNOWLEDGE';
+
+export interface OaDocumentVo {
+  id: number;
+  docNo: string;
+  docType: OaDocumentType;
+  title: string;
+  category?: string | null;
+  ownerId: number;
+  ownerName?: string | null;
+  status: OaDocumentStatus;
+  publishedVersion: number;
+  latestVersion: number;
+  pendingApplicationId?: number | null;
+  requireAck: boolean;
+  publishTime?: string | null;
+  revokeBy?: number | null;
+  revokeByName?: string | null;
+  revokeTime?: string | null;
+  revokeReason?: string | null;
+  receiptCount: number;
+  readCount: number;
+  ackCount: number;
+  createTime?: string;
+  updateTime?: string | null;
+}
+
+export interface OaDocumentAudienceVo {
+  all: boolean;
+  depts?: number[] | null;
+  users?: number[] | null;
+}
+
+export interface OaDocumentVersionVo {
+  id: number;
+  versionNo: number;
+  applicationId: number;
+  applicationStatus?: string | null;
+  title: string;
+  category?: string | null;
+  content: string;
+  changeNote?: string | null;
+  audience?: OaDocumentAudienceVo | null;
+  requireAck: boolean;
+  status: string;
+  applicantId: number;
+  applicantName?: string | null;
+  audienceCount: number;
+  publishTime?: string | null;
+  createTime?: string;
+}
+
+export interface OaDocumentReceiptVo {
+  userId: number;
+  userName?: string | null;
+  deptName?: string | null;
+  readTime?: string | null;
+  ackTime?: string | null;
+}
+
+export interface OaDocumentDetailVo {
+  document: OaDocumentVo;
+  versions: OaDocumentVersionVo[];
+  receipts: OaDocumentReceiptVo[];
+  files: OaLinkedFileVo[];
+}
+
+export interface OaDocumentInboxVo {
+  documentId: number;
+  docNo: string;
+  docType: OaDocumentType;
+  title: string;
+  category?: string | null;
+  versionNo: number;
+  ownerName?: string | null;
+  publishTime?: string | null;
+  requireAck: boolean;
+  readTime?: string | null;
+  ackTime?: string | null;
+}
+
+export interface OaDocumentReadVo {
+  item: OaDocumentInboxVo;
+  content: string;
+  changeNote?: string | null;
+  files: OaLinkedFileVo[];
+}
+
+export function queryOaDocuments(
+  params: QueryParam<{ status?: string; docType?: string; keyword?: string }>,
+) {
+  return request<R<PageResult<OaDocumentVo>>>('system/oa/document', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaDocument(id: number | string) {
+  return request<R<OaDocumentDetailVo>>(`system/oa/document/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function revokeOaDocument(
+  id: number | string,
+  data: { reason: string },
+) {
+  return request<R<OaDocumentVo>>(`system/oa/document/${id}/revoke`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function createOaDocumentTemplate() {
+  return request<R<OaBusinessTemplateVo>>('system/oa/document/template', {
+    method: 'POST',
+  });
+}
+
+export function queryOaDocumentInbox(
+  params: QueryParam<{ keyword?: string; pendingOnly?: boolean }>,
+) {
+  return request<R<PageResult<OaDocumentInboxVo>>>(
+    'system/oa/document/inbox',
+    { method: 'GET', params },
+  );
+}
+
+export function readOaDocument(id: number | string) {
+  return request<R<OaDocumentReadVo>>(`system/oa/document/inbox/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function ackOaDocument(id: number | string) {
+  return request<R<OaDocumentInboxVo>>(`system/oa/document/inbox/${id}/ack`, {
+    method: 'POST',
+  });
 }
