@@ -32,4 +32,10 @@ export default {
   'menu.oa.document.inbox': 'Document Inbox',
   'menu.oa.attendance': 'Attendance Management',
   'menu.oa.attendance.mine': 'My Attendance',
+  'menu.oa.meeting': 'Meeting Rooms',
+  'menu.oa.meeting.book': 'Meeting Booking',
+  'menu.oa.vehicle': 'Vehicles',
+  'menu.oa.vehicle.mine': 'My Vehicle Requests',
+  'menu.oa.calendar': 'My Calendar',
+  'menu.oa.report': 'Work Reports',
 };

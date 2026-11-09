@@ -18,7 +18,9 @@ export type OaBusinessType =
   | 'ASSET_SCRAP'
   | 'CONTRACT'
   | 'SEAL_USE'
-  | 'DOCUMENT';
+  | 'DOCUMENT'
+  | 'MEETING_BOOKING'
+  | 'VEHICLE_USE';
 
 export interface OaProcessModelVo {
   id: number;
@@ -3030,5 +3032,674 @@ export function readOaDocument(id: number | string) {
 export function ackOaDocument(id: number | string) {
   return request<R<OaDocumentInboxVo>>(`system/oa/document/inbox/${id}/ack`, {
     method: 'POST',
+  });
+}
+
+export type OaResourceStatus = 'ENABLED' | 'DISABLED';
+
+export interface OaMeetingRoomVo {
+  id: number;
+  code: string;
+  name: string;
+  location?: string | null;
+  capacity: number;
+  needApproval: boolean;
+  status: OaResourceStatus;
+  remark?: string | null;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaMeetingRoomParams {
+  code: string;
+  name: string;
+  location?: string;
+  capacity: number;
+  needApproval: boolean;
+  status: OaResourceStatus;
+  remark?: string;
+  version?: number;
+}
+
+export interface OaMeetingBookingVo {
+  id: number;
+  roomId: number;
+  roomCode: string;
+  roomName: string;
+  location?: string | null;
+  applicationId?: number | null;
+  applicationStatus?: string | null;
+  bookerId: number | string;
+  bookerName?: string | null;
+  subject: string;
+  startTime: string;
+  endTime: string;
+  attendees: number;
+  status: string;
+  cancelBy?: number | string | null;
+  cancelByName?: string | null;
+  cancelTime?: string | null;
+  cancelReason?: string | null;
+  createTime?: string | null;
+}
+
+export interface OaMeetingBookParams {
+  requestId: string;
+  roomId: number;
+  subject: string;
+  startTime: string;
+  endTime: string;
+  attendees: number;
+}
+
+export interface OaResourceCancelParams {
+  reason?: string;
+}
+
+export function queryOaMeetingRooms(params?: { status?: string }) {
+  return request<R<OaMeetingRoomVo[]>>('system/oa/meeting/rooms', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function createOaMeetingRoom(data: OaMeetingRoomParams) {
+  return request<R<OaMeetingRoomVo>>('system/oa/meeting/rooms', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaMeetingRoom(
+  id: number | string,
+  data: OaMeetingRoomParams,
+) {
+  return request<R<OaMeetingRoomVo>>(`system/oa/meeting/rooms/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaMeetingBookings(
+  params: QueryParam<{ status?: string; roomId?: number; date?: string }>,
+) {
+  return request<R<PageResult<OaMeetingBookingVo>>>(
+    'system/oa/meeting/bookings',
+    { method: 'GET', params },
+  );
+}
+
+export function cancelOaMeetingBooking(
+  id: number | string,
+  data: OaResourceCancelParams,
+) {
+  return request<R<OaMeetingBookingVo>>(
+    `system/oa/meeting/bookings/${id}/cancel`,
+    { method: 'POST', data },
+  );
+}
+
+export function createOaMeetingTemplate() {
+  return request<R<OaBusinessTemplateVo>>('system/oa/meeting/template', {
+    method: 'POST',
+  });
+}
+
+export function queryBookableOaMeetingRooms() {
+  return request<R<OaMeetingRoomVo[]>>('system/oa/meeting/book/rooms', {
+    method: 'GET',
+  });
+}
+
+export function queryOaMeetingSchedule(params: { date?: string }) {
+  return request<R<OaMeetingBookingVo[]>>('system/oa/meeting/book/schedule', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function queryMyOaMeetingBookings(
+  params: QueryParam<{ status?: string }>,
+) {
+  return request<R<PageResult<OaMeetingBookingVo>>>(
+    'system/oa/meeting/book/bookings',
+    { method: 'GET', params },
+  );
+}
+
+export function bookOaMeetingRoom(data: OaMeetingBookParams) {
+  return request<R<OaMeetingBookingVo>>('system/oa/meeting/book/bookings', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function cancelMyOaMeetingBooking(
+  id: number | string,
+  data: OaResourceCancelParams,
+) {
+  return request<R<OaMeetingBookingVo>>(
+    `system/oa/meeting/book/bookings/${id}/cancel`,
+    { method: 'POST', data },
+  );
+}
+
+export interface OaVehicleVo {
+  id: number;
+  plateNo: string;
+  model: string;
+  seats: number;
+  mileage: number;
+  status: OaResourceStatus;
+  remark?: string | null;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaVehicleParams {
+  plateNo: string;
+  model: string;
+  seats: number;
+  mileage?: number;
+  status: OaResourceStatus;
+  remark?: string;
+  version?: number;
+}
+
+export interface OaDriverVo {
+  id: number;
+  name: string;
+  phone?: string | null;
+  userId?: number | string | null;
+  userName?: string | null;
+  status: OaResourceStatus;
+  remark?: string | null;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaDriverParams {
+  name: string;
+  phone?: string;
+  userId?: string;
+  status: OaResourceStatus;
+  remark?: string;
+  version?: number;
+}
+
+export type OaVehicleMaintType = 'MAINTENANCE' | 'REPAIR' | 'INSPECTION';
+
+export interface OaVehicleMaintenanceVo {
+  id: number;
+  vehicleId: number;
+  plateNo: string;
+  maintType: OaVehicleMaintType;
+  startTime: string;
+  endTime: string;
+  status: 'ACTIVE' | 'DONE';
+  cost?: OaDecimal | null;
+  remark?: string | null;
+  createUser: number | string;
+  createUserName?: string | null;
+  createTime?: string | null;
+  completeTime?: string | null;
+}
+
+export interface OaVehicleMaintenanceParams {
+  requestId: string;
+  vehicleId: number;
+  maintType: OaVehicleMaintType;
+  startTime: string;
+  endTime: string;
+  remark?: string;
+}
+
+export interface OaVehicleRequestVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number | string;
+  applicantName?: string | null;
+  purpose: string;
+  destination: string;
+  passengers: number;
+  needDriver: boolean;
+  startTime: string;
+  endTime: string;
+  status: string;
+  vehicleId?: number | null;
+  plateNo?: string | null;
+  vehicleModel?: string | null;
+  driverId?: number | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  dispatchByName?: string | null;
+  dispatchTime?: string | null;
+  dispatchRemark?: string | null;
+  departTime?: string | null;
+  startMileage?: number | null;
+  returnTime?: string | null;
+  endMileage?: number | null;
+  fuelCost?: OaDecimal | null;
+  tollCost?: OaDecimal | null;
+  otherCost?: OaDecimal | null;
+  returnRemark?: string | null;
+  cancelReason?: string | null;
+  cancelTime?: string | null;
+  createTime?: string | null;
+}
+
+export interface OaVehicleCandidatesVo {
+  vehicles: OaVehicleVo[];
+  drivers: OaDriverVo[];
+}
+
+export function queryOaVehicles(params?: { status?: string }) {
+  return request<R<OaVehicleVo[]>>('system/oa/vehicle/vehicles', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function createOaVehicle(data: OaVehicleParams) {
+  return request<R<OaVehicleVo>>('system/oa/vehicle/vehicles', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaVehicle(id: number | string, data: OaVehicleParams) {
+  return request<R<OaVehicleVo>>(`system/oa/vehicle/vehicles/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaDrivers(params?: { status?: string }) {
+  return request<R<OaDriverVo[]>>('system/oa/vehicle/drivers', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function createOaDriver(data: OaDriverParams) {
+  return request<R<OaDriverVo>>('system/oa/vehicle/drivers', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaDriver(id: number | string, data: OaDriverParams) {
+  return request<R<OaDriverVo>>(`system/oa/vehicle/drivers/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaVehicleMaintenances(params?: {
+  vehicleId?: number;
+  status?: string;
+}) {
+  return request<R<OaVehicleMaintenanceVo[]>>(
+    'system/oa/vehicle/maintenances',
+    { method: 'GET', params },
+  );
+}
+
+export function createOaVehicleMaintenance(data: OaVehicleMaintenanceParams) {
+  return request<R<OaVehicleMaintenanceVo>>('system/oa/vehicle/maintenances', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function completeOaVehicleMaintenance(
+  id: number | string,
+  data: { cost?: number; remark?: string },
+) {
+  return request<R<OaVehicleMaintenanceVo>>(
+    `system/oa/vehicle/maintenances/${id}/complete`,
+    { method: 'POST', data },
+  );
+}
+
+export function queryOaVehicleRequests(
+  params: QueryParam<{ status?: string; vehicleId?: number }>,
+) {
+  return request<R<PageResult<OaVehicleRequestVo>>>(
+    'system/oa/vehicle/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function getOaVehicleRequest(id: number | string) {
+  return request<R<OaVehicleRequestVo>>(`system/oa/vehicle/requests/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryOaVehicleCandidates(id: number | string) {
+  return request<R<OaVehicleCandidatesVo>>(
+    `system/oa/vehicle/requests/${id}/candidates`,
+    { method: 'GET' },
+  );
+}
+
+export function dispatchOaVehicleRequest(
+  id: number | string,
+  data: {
+    requestId: string;
+    vehicleId: number;
+    driverId?: number;
+    remark?: string;
+  },
+) {
+  return request<R<OaVehicleRequestVo>>(
+    `system/oa/vehicle/requests/${id}/dispatch`,
+    { method: 'POST', data },
+  );
+}
+
+export function departOaVehicleRequest(
+  id: number | string,
+  data: { requestId: string; startMileage: number },
+) {
+  return request<R<OaVehicleRequestVo>>(
+    `system/oa/vehicle/requests/${id}/depart`,
+    { method: 'POST', data },
+  );
+}
+
+export function returnOaVehicleRequest(
+  id: number | string,
+  data: {
+    requestId: string;
+    endMileage: number;
+    fuelCost?: number;
+    tollCost?: number;
+    otherCost?: number;
+    remark?: string;
+  },
+) {
+  return request<R<OaVehicleRequestVo>>(
+    `system/oa/vehicle/requests/${id}/return`,
+    { method: 'POST', data },
+  );
+}
+
+export function cancelOaVehicleRequest(
+  id: number | string,
+  data: OaResourceCancelParams,
+) {
+  return request<R<OaVehicleRequestVo>>(
+    `system/oa/vehicle/requests/${id}/cancel`,
+    { method: 'POST', data },
+  );
+}
+
+export function createOaVehicleTemplate() {
+  return request<R<OaBusinessTemplateVo>>('system/oa/vehicle/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaVehicleRequests(
+  params: QueryParam<{ status?: string }>,
+) {
+  return request<R<PageResult<OaVehicleRequestVo>>>(
+    'system/oa/vehicle/mine/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function getMyOaVehicleRequest(id: number | string) {
+  return request<R<OaVehicleRequestVo>>(
+    `system/oa/vehicle/mine/requests/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function cancelMyOaVehicleRequest(
+  id: number | string,
+  data: OaResourceCancelParams,
+) {
+  return request<R<OaVehicleRequestVo>>(
+    `system/oa/vehicle/mine/requests/${id}/cancel`,
+    { method: 'POST', data },
+  );
+}
+
+export type OaCalendarScope = 'PERSONAL' | 'DEPT';
+
+export interface OaCalendarMemberVo {
+  eventId: number;
+  userId: number | string;
+  userName?: string | null;
+}
+
+export interface OaCalendarEventVo {
+  id: number;
+  ownerId: number | string;
+  ownerName?: string | null;
+  scope: OaCalendarScope;
+  deptId?: number | null;
+  deptName?: string | null;
+  title: string;
+  location?: string | null;
+  description?: string | null;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  remindMinutes?: number | null;
+  remindAt?: string | null;
+  status: 'ACTIVE' | 'CANCELLED';
+  version: number;
+  updateTime?: string | null;
+  members?: OaCalendarMemberVo[] | null;
+}
+
+export interface OaCalendarEventParams {
+  requestId?: string;
+  title: string;
+  location?: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  scope: OaCalendarScope;
+  deptId?: number;
+  remindMinutes?: number;
+  memberIds: string[];
+  version?: number;
+}
+
+export function queryOaCalendarEvents(params: { from: string; to: string }) {
+  return request<R<OaCalendarEventVo[]>>('system/oa/calendar', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaCalendarEvent(id: number | string) {
+  return request<R<OaCalendarEventVo>>(`system/oa/calendar/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function queryOaCalendarDepts() {
+  return request<R<OaDeptOptionVo[]>>('system/oa/calendar/depts', {
+    method: 'GET',
+  });
+}
+
+export function createOaCalendarEvent(data: OaCalendarEventParams) {
+  return request<R<OaCalendarEventVo>>('system/oa/calendar', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaCalendarEvent(
+  id: number | string,
+  data: OaCalendarEventParams,
+) {
+  return request<R<OaCalendarEventVo>>(`system/oa/calendar/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function cancelOaCalendarEvent(id: number | string) {
+  return request<R<OaCalendarEventVo>>(`system/oa/calendar/${id}/cancel`, {
+    method: 'POST',
+  });
+}
+
+export type OaWorkReportType = 'DAILY' | 'WEEKLY';
+
+export interface OaWorkReportVo {
+  id: number;
+  authorId: number | string;
+  authorName?: string | null;
+  deptId?: number | null;
+  deptName?: string | null;
+  reportType: OaWorkReportType;
+  periodStart: string;
+  periodEnd: string;
+  doneContent: string;
+  planContent?: string | null;
+  issueContent?: string | null;
+  status: 'DRAFT' | 'SUBMITTED';
+  submitTime?: string | null;
+  late: boolean;
+  commentCount: number;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaWorkReportSaveParams {
+  reportType: OaWorkReportType;
+  date: string;
+  doneContent: string;
+  planContent?: string;
+  issueContent?: string;
+  submit: boolean;
+  version?: number;
+}
+
+export interface OaWorkReportCommentVo {
+  id: number;
+  userId: number | string;
+  userName?: string | null;
+  content: string;
+  createTime: string;
+}
+
+export interface OaWorkReportDetailVo {
+  report: OaWorkReportVo;
+  comments: OaWorkReportCommentVo[];
+}
+
+export interface OaWorkReportMemberStatVo {
+  userId: number | string;
+  userName?: string | null;
+  deptId?: number | null;
+  deptName?: string | null;
+  reportId?: number | null;
+  status: 'DRAFT' | 'SUBMITTED' | 'MISSING';
+  submitTime?: string | null;
+  late: boolean;
+}
+
+export interface OaWorkReportSummaryVo {
+  reportType: OaWorkReportType;
+  periodStart: string;
+  periodEnd: string;
+  total: number;
+  submitted: number;
+  late: number;
+  members: OaWorkReportMemberStatVo[];
+}
+
+export function queryMyOaWorkReports(params: QueryParam<{ type?: string }>) {
+  return request<R<PageResult<OaWorkReportVo>>>('system/oa/report/mine', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getMyOaWorkReportForPeriod(params: {
+  type: OaWorkReportType;
+  date: string;
+}) {
+  return request<R<OaWorkReportVo | null>>('system/oa/report/mine/period', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function saveMyOaWorkReport(data: OaWorkReportSaveParams) {
+  return request<R<OaWorkReportVo>>('system/oa/report/mine', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function deleteMyOaWorkReport(id: number | string) {
+  return request<R<void>>(`system/oa/report/mine/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function queryTeamOaWorkReports(
+  params: QueryParam<{
+    type?: string;
+    date?: string;
+    deptId?: number;
+    authorId?: string;
+  }>,
+) {
+  return request<R<PageResult<OaWorkReportVo>>>('system/oa/report/team', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function getOaWorkReport(id: number | string) {
+  return request<R<OaWorkReportDetailVo>>(`system/oa/report/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function commentOaWorkReport(
+  id: number | string,
+  data: { content: string },
+) {
+  return request<R<OaWorkReportCommentVo>>(`system/oa/report/${id}/comments`, {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaWorkReportSummary(params: {
+  type: OaWorkReportType;
+  date: string;
+  deptId?: number;
+}) {
+  return request<R<OaWorkReportSummaryVo>>('system/oa/report/summary', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function remindOaWorkReport(data: {
+  reportType: OaWorkReportType;
+  date: string;
+  deptId?: number;
+}) {
+  return request<R<{ reminded: number }>>('system/oa/report/remind', {
+    method: 'POST',
+    data,
   });
 }

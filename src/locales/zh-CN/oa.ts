@@ -32,4 +32,10 @@ export default {
   'menu.oa.document.inbox': '公文阅读',
   'menu.oa.attendance': '假勤管理',
   'menu.oa.attendance.mine': '我的考勤',
+  'menu.oa.meeting': '会议室管理',
+  'menu.oa.meeting.book': '会议预订',
+  'menu.oa.vehicle': '车辆管理',
+  'menu.oa.vehicle.mine': '我的用车',
+  'menu.oa.calendar': '我的日程',
+  'menu.oa.report': '工作报告',
 };

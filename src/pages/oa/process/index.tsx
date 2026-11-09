@@ -71,6 +71,8 @@ const OA_BUSINESS_TYPE_META: Record<
   CONTRACT: { text: '合同', color: 'geekblue' },
   SEAL_USE: { text: '用印', color: 'magenta' },
   DOCUMENT: { text: '公文', color: 'purple' },
+  MEETING_BOOKING: { text: '会议室', color: 'cyan' },
+  VEHICLE_USE: { text: '用车', color: 'blue' },
 };
 
 const RELEASE_STATUS_META: Record<string, { text: string; color: string }> = {
