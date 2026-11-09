@@ -28,6 +28,7 @@ const TYPE_LABELS: Record<OaFormFieldType, string> = {
   textarea: '多行文本',
   number: '数字',
   date: '日期',
+  datetime: '日期时间',
   radio: '单选',
   checkbox: '多选',
   attachment: '附件',

@@ -60,6 +60,11 @@ const OA_BUSINESS_TYPE_META: Record<
   GENERIC: { text: '通用', color: 'default' },
   LEAVE: { text: '请假', color: 'blue' },
   EXPENSE: { text: '报销', color: 'gold' },
+  TRAVEL: { text: '出差', color: 'cyan' },
+  LOAN: { text: '借款', color: 'orange' },
+  ATTENDANCE_CORRECTION: { text: '补卡', color: 'purple' },
+  OVERTIME: { text: '加班', color: 'magenta' },
+  OUTING: { text: '外出', color: 'geekblue' },
 };
 
 const RELEASE_STATUS_META: Record<string, { text: string; color: string }> = {

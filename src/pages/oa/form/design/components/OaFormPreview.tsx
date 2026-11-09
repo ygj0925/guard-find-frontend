@@ -65,6 +65,17 @@ function PreviewControl({
           aria-label={field.label}
         />
       );
+    case 'datetime':
+      return (
+        <DatePicker
+          showTime={{ format: 'HH:mm' }}
+          format="YYYY-MM-DD HH:mm"
+          style={{ width: '100%' }}
+          placeholder={placeholder}
+          disabled={disabled}
+          aria-label={field.label}
+        />
+      );
     case 'radio':
       return (
         <Radio.Group

@@ -10,6 +10,7 @@ export const OA_FORM_FIELD_TYPES = [
   { type: 'textarea', label: '多行文本', hint: '事由、说明等长文本' },
   { type: 'number', label: '数字', hint: '金额、数量等数值' },
   { type: 'date', label: '日期', hint: '按天选择的日期' },
+  { type: 'datetime', label: '日期时间', hint: '精确到分钟的时间点' },
   { type: 'radio', label: '单选', hint: '一组选项中选一个' },
   { type: 'checkbox', label: '多选', hint: '一组选项中选多个' },
   { type: 'attachment', label: '附件', hint: '上传证明材料' },

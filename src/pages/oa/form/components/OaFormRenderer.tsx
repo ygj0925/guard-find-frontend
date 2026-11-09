@@ -284,6 +284,20 @@ const OaFormRenderer: React.FC<OaFormRendererProps> = ({
             onChange={(next) => update(next ?? undefined)}
           />
         );
+      case 'datetime':
+        return (
+          <DatePicker
+            id={id}
+            showTime={{ format: 'HH:mm' }}
+            format="YYYY-MM-DD HH:mm"
+            style={{ width: '100%' }}
+            aria-label={field.label}
+            placeholder={placeholder}
+            value={(value ?? null) as Dayjs | null}
+            disabled={fieldDisabled}
+            onChange={(next) => update(next ?? undefined)}
+          />
+        );
       case 'radio':
         return (
           <Radio.Group

@@ -4,7 +4,15 @@ import type { FileUploadResp } from '../file/typings';
 
 export type OaProcessStatus = 'DRAFT' | 'PUBLISHED' | 'DISABLED';
 
-export type OaBusinessType = 'GENERIC' | 'LEAVE' | 'EXPENSE';
+export type OaBusinessType =
+  | 'GENERIC'
+  | 'LEAVE'
+  | 'EXPENSE'
+  | 'TRAVEL'
+  | 'LOAN'
+  | 'ATTENDANCE_CORRECTION'
+  | 'OVERTIME'
+  | 'OUTING';
 
 export interface OaProcessModelVo {
   id: number;
@@ -1665,4 +1673,281 @@ export function getMyOaLoan(id: number | string) {
   return request<R<OaLoanDetailVo>>(`system/oa/travel/mine/loans/${id}`, {
     method: 'GET',
   });
+}
+
+export type OaShiftStatus = 'ENABLED' | 'DISABLED';
+
+export interface OaShiftVo {
+  id: number;
+  code: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  graceMinutes: number;
+  status: OaShiftStatus | string;
+  remark?: string | null;
+  version: number;
+  updateTime?: string | null;
+}
+
+export interface OaShiftParams {
+  code?: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  graceMinutes?: number;
+  status?: OaShiftStatus;
+  remark?: string;
+  version?: number;
+}
+
+export interface OaScheduleVo {
+  userId: number;
+  userName?: string | null;
+  workDate: string;
+  shiftId?: number | null;
+  shiftCode?: string | null;
+  shiftName?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+}
+
+export interface OaScheduleSaveParams {
+  userIds: string[];
+  startDate: string;
+  endDate: string;
+  /** ISO 星期，1=周一 … 7=周日；为空表示每天 */
+  weekdays?: number[];
+  shiftId?: number;
+  clear?: boolean;
+}
+
+export interface OaAttendanceRangeQuery {
+  start: string;
+  end: string;
+  userId?: string;
+}
+
+export interface OaAttendanceRecordVo {
+  id: number;
+  userId: number;
+  userName?: string | null;
+  employeeNo?: string | null;
+  workDate: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  checkInSource?: string | null;
+  checkOutSource?: string | null;
+  importId?: number | null;
+  updateTime?: string | null;
+}
+
+export interface OaAttendanceImportRow {
+  employeeNo: string;
+  workDate: string;
+  checkIn?: string;
+  checkOut?: string;
+}
+
+export interface OaAttendanceImportParams {
+  requestId?: string;
+  fileName?: string;
+  rows: OaAttendanceImportRow[];
+}
+
+export interface OaAttendanceImportVo {
+  valid: boolean;
+  replayed: boolean;
+  importId?: number | null;
+  totalRows: number;
+  insertedRows: number;
+  updatedRows: number;
+  keptCorrections: number;
+  errors: string[];
+}
+
+export interface OaAttendanceDailyVo {
+  userId: number;
+  userName?: string | null;
+  workDate: string;
+  shiftName?: string | null;
+  shiftStart?: string | null;
+  shiftEnd?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  checkInSource?: string | null;
+  checkOutSource?: string | null;
+  status: string;
+  late: boolean;
+  early: boolean;
+  overtimeHours: OaDecimal;
+  note?: string | null;
+}
+
+export interface OaAttendanceSummaryVo {
+  userId: number;
+  userName?: string | null;
+  employeeNo?: string | null;
+  scheduledDays: number;
+  normalDays: number;
+  lateCount: number;
+  earlyCount: number;
+  missingCount: number;
+  absentDays: number;
+  leaveDays: number;
+  travelDays: number;
+  outingCount: number;
+  overtimeHours: OaDecimal;
+  correctionCount: number;
+}
+
+export type OaAttendanceRequestKind = 'CORRECTION' | 'OVERTIME' | 'OUTING';
+
+export interface OaAttendanceRequestVo {
+  id: number;
+  applicationId: number;
+  title?: string | null;
+  applicationStatus?: string | null;
+  applicantId: number;
+  applicantName?: string | null;
+  kind: OaAttendanceRequestKind | string;
+  workDate: string;
+  startTime: string;
+  endTime: string;
+  hours: OaDecimal;
+  checkType?: string | null;
+  destination?: string | null;
+  status: string;
+  createTime?: string | null;
+}
+
+export interface OaAttendanceRequestQuery {
+  kind?: string;
+  status?: string;
+  keyword?: string;
+}
+
+export interface OaAttendanceTemplateVo {
+  correctionFormId: number;
+  correctionModelId: number;
+  correctionModelKey: string;
+  overtimeFormId: number;
+  overtimeModelId: number;
+  overtimeModelKey: string;
+  outingFormId: number;
+  outingModelId: number;
+  outingModelKey: string;
+}
+
+export function queryOaShifts(status?: string) {
+  return request<R<OaShiftVo[]>>('system/oa/attendance/shifts', {
+    method: 'GET',
+    params: { status },
+  });
+}
+
+export function createOaShift(data: OaShiftParams) {
+  return request<R<OaShiftVo>>('system/oa/attendance/shifts', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function updateOaShift(id: number | string, data: OaShiftParams) {
+  return request<R<OaShiftVo>>(`system/oa/attendance/shifts/${id}`, {
+    method: 'PUT',
+    data,
+  });
+}
+
+export function queryOaSchedules(params: OaAttendanceRangeQuery) {
+  return request<R<OaScheduleVo[]>>('system/oa/attendance/schedules', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function saveOaSchedules(data: OaScheduleSaveParams) {
+  return request<R<number>>('system/oa/attendance/schedules', {
+    method: 'POST',
+    data,
+  });
+}
+
+export function queryOaAttendanceRecords(
+  params: QueryParam<OaAttendanceRangeQuery>,
+) {
+  return request<R<PageResult<OaAttendanceRecordVo>>>(
+    'system/oa/attendance/records',
+    { method: 'GET', params },
+  );
+}
+
+export function previewOaAttendanceImport(data: OaAttendanceImportParams) {
+  return request<R<OaAttendanceImportVo>>(
+    'system/oa/attendance/import/preview',
+    { method: 'POST', data },
+  );
+}
+
+export function commitOaAttendanceImport(data: OaAttendanceImportParams) {
+  return request<R<OaAttendanceImportVo>>(
+    'system/oa/attendance/import/commit',
+    { method: 'POST', data },
+  );
+}
+
+export function queryOaAttendanceDaily(params: {
+  userId: string;
+  start: string;
+  end: string;
+}) {
+  return request<R<OaAttendanceDailyVo[]>>('system/oa/attendance/daily', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function queryOaAttendanceSummary(params: {
+  month: string;
+  keyword?: string;
+}) {
+  return request<R<OaAttendanceSummaryVo[]>>('system/oa/attendance/summary', {
+    method: 'GET',
+    params,
+  });
+}
+
+export function queryOaAttendanceRequests(
+  params: QueryParam<OaAttendanceRequestQuery>,
+) {
+  return request<R<PageResult<OaAttendanceRequestVo>>>(
+    'system/oa/attendance/requests',
+    { method: 'GET', params },
+  );
+}
+
+export function createOaAttendanceTemplate() {
+  return request<R<OaAttendanceTemplateVo>>('system/oa/attendance/template', {
+    method: 'POST',
+  });
+}
+
+export function queryMyOaAttendanceDaily(params: {
+  start: string;
+  end: string;
+}) {
+  return request<R<OaAttendanceDailyVo[]>>(
+    'system/oa/attendance/mine/daily',
+    { method: 'GET', params },
+  );
+}
+
+export function queryMyOaAttendanceRequests(
+  params: QueryParam<{ kind?: string; status?: string }>,
+) {
+  return request<R<PageResult<OaAttendanceRequestVo>>>(
+    'system/oa/attendance/mine/requests',
+    { method: 'GET', params },
+  );
 }

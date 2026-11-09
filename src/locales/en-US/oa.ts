@@ -20,4 +20,8 @@ export default {
   'menu.oa.leave.mine': 'My Leave',
   'menu.oa.expense': 'Expense Management',
   'menu.oa.expense.mine': 'My Expenses',
+  'menu.oa.travel': 'Travel & Loans',
+  'menu.oa.travel.mine': 'My Travel & Loans',
+  'menu.oa.attendance': 'Attendance Management',
+  'menu.oa.attendance.mine': 'My Attendance',
 };

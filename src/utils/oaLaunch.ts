@@ -26,6 +26,9 @@ export const EMPTY_OA_LAUNCH_SCOPE: OaLaunchScopeValue = {
   roles: [],
 };
 
+/** 与服务端 OaFormValueValidator.DATE_TIME_FORMAT 一致 */
+export const OA_DATETIME_FORMAT = 'YYYY-MM-DD HH:mm';
+
 export const OA_ASSIGNEE_TYPE_OPTIONS = [
   { value: 'DEPT_LEADER', label: '部门负责人' },
   { value: 'SUPERVISOR', label: '直属主管' },
@@ -131,6 +134,13 @@ export function toOaSubmitFormData(
           }
           break;
         }
+        case 'datetime': {
+          const time = value as Dayjs;
+          if (typeof time?.format === 'function') {
+            formData[field.key] = time.format(OA_DATETIME_FORMAT);
+          }
+          break;
+        }
         case 'attachment': {
           const files = (value as UploadFile[]).flatMap((file) => {
             const fileId = oaAttachmentFileId(file);
@@ -223,7 +233,8 @@ export function fromOaSubmitFormData(
       const value = formData[field.key];
       if (value === undefined || value === null || value === '') return;
       switch (field.type) {
-        case 'date': {
+        case 'date':
+        case 'datetime': {
           const date = dayjs(String(value));
           if (date.isValid()) values[field.key] = date;
           break;

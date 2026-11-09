@@ -20,4 +20,8 @@ export default {
   'menu.oa.leave.mine': '我的假期',
   'menu.oa.expense': '报销管理',
   'menu.oa.expense.mine': '我的报销',
+  'menu.oa.travel': '出差借款',
+  'menu.oa.travel.mine': '我的出差借款',
+  'menu.oa.attendance': '假勤管理',
+  'menu.oa.attendance.mine': '我的考勤',
 };
