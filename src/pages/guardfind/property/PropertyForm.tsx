@@ -15,7 +15,7 @@ import {
   Upload,
 } from 'antd';
 import dayjs from 'dayjs';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type {
   PropertyInput,
   PropertyVo,
@@ -24,6 +24,7 @@ import {
   saveProperty,
   uploadPropertyImage,
 } from '@/services/web/guardfind/property';
+import { getPriceUnit, RENTAL_MODE_LABELS } from './propertyPricing';
 
 type ImageFile = UploadFile<{ url: string }>;
 type PropertyFormValues = Omit<PropertyInput, 'images'> & {
@@ -48,6 +49,8 @@ export default function PropertyForm({
   const imageFiles: ImageFile[] = Form.useWatch('imageFiles', form) || [];
   const uploading = imageFiles.some((file) => file.status === 'uploading');
   const priceType = Form.useWatch('priceType', form);
+  const rentalMode = Form.useWatch('rentalMode', form);
+  const dailyRent = getPriceUnit(priceType, rentalMode) === 'day';
   const beforeUpload: UploadProps['beforeUpload'] = (file) => {
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       message.warning('请上传 JPG 或 PNG 格式的图片');
@@ -89,12 +92,16 @@ export default function PropertyForm({
         ownerId: record ? undefined : ownerId?.trim() || undefined,
         images: files.map((file) => file.url || file.response?.url || ''),
         availableFrom: values.availableFrom || null,
-        rentalMode: values.priceType === 'rent' ? values.rentalMode : null,
+        rentalMode:
+          values.priceType === 'rent' ? values.rentalMode || null : null,
+        priceUnit: getPriceUnit(values.priceType, values.rentalMode),
         facilities: values.facilities || [],
       });
       message.success('房源已保存');
       onSaved();
       onClose();
+    } catch {
+      message.error('房源保存失败，请重试');
     } finally {
       setSaving(false);
     }
@@ -123,10 +130,22 @@ export default function PropertyForm({
       <Form
         form={form}
         layout="vertical"
+        onValuesChange={(changed, values) => {
+          if ('priceType' in changed || 'rentalMode' in changed) {
+            form.setFieldsValue({
+              rentalMode:
+                values.priceType === 'rent' ? values.rentalMode : null,
+              priceUnit: getPriceUnit(values.priceType, values.rentalMode),
+            });
+          }
+        }}
         initialValues={
           record
             ? {
                 ...record,
+                rentalMode:
+                  record.priceType === 'rent' ? record.rentalMode : null,
+                priceUnit: getPriceUnit(record.priceType, record.rentalMode),
                 imageFiles: record.images.map(
                   (url, index): ImageFile => ({
                     uid: `saved-${index}`,
@@ -139,12 +158,17 @@ export default function PropertyForm({
             : {
                 propertyType: 'house',
                 priceType: 'rent',
+                priceUnit: 'month',
+                rentalMode: null,
                 status: 1,
                 facilities: [],
                 imageFiles: [],
               }
         }
       >
+        <Form.Item name="priceUnit" hidden>
+          <Input />
+        </Form.Item>
         {!record && (
           <Form.Item
             name="ownerId"
@@ -213,12 +237,25 @@ export default function PropertyForm({
           <Col xs={24} sm={8}>
             <Form.Item
               name="price"
-              label={priceType === 'rent' ? '月租（元）' : '总价（元）'}
+              label={
+                priceType === 'rent'
+                  ? dailyRent
+                    ? '日租（元）'
+                    : '月租（元）'
+                  : '总价（元）'
+              }
               rules={[{ required: true }]}
             >
               <InputNumber
                 placeholder={
-                  priceType === 'rent' ? '请输入每月租金' : '请输入出售总价'
+                  priceType === 'rent'
+                    ? dailyRent
+                      ? '请输入每日租金'
+                      : '请输入每月租金'
+                    : '请输入出售总价'
+                }
+                addonAfter={
+                  priceType === 'rent' ? (dailyRent ? '元/天' : '元/月') : '元'
                 }
                 min={1}
                 max={9999999999.99}
@@ -242,12 +279,11 @@ export default function PropertyForm({
             <Col xs={24} sm={8}>
               <Form.Item name="rentalMode" label="租赁方式">
                 <Select
-                  placeholder="请选择整租或合租（选填）"
+                  placeholder="请选择租赁方式（选填）"
                   allowClear
-                  options={[
-                    { value: 'whole', label: '整租' },
-                    { value: 'shared', label: '合租' },
-                  ]}
+                  options={Object.entries(RENTAL_MODE_LABELS).map(
+                    ([value, label]) => ({ value, label }),
+                  )}
                 />
               </Form.Item>
             </Col>

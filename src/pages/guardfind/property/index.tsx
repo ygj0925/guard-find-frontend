@@ -11,7 +11,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Tag } from 'antd';
-import React, { lazy, Suspense, useRef } from 'react';
+import React, { lazy, Suspense, useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import DialogHost, { useDialog } from '@/components/DialogHost';
 import {
@@ -19,11 +19,14 @@ import {
   type PropertyVo,
   queryPropertyPage,
   setManager,
+  updatePropertyRecommended,
   updatePropertyStatus,
 } from '@/services/web/guardfind/property';
+import { formatPropertyPrice } from './propertyPricing';
 
 const PropertyDetails = lazy(() => import('./PropertyDetails'));
 const PropertyForm = lazy(() => import('./PropertyForm'));
+const HomeOperations = lazy(() => import('./HomeOperations'));
 
 const STATUS_META: Record<number, { text: string; color: string }> = {
   1: { text: '草稿', color: 'default' },
@@ -41,7 +44,29 @@ const TYPE_LABEL: Record<string, string> = {
 const PropertyPage: React.FC = () => {
   const details = useDialog<PropertyVo>();
   const editor = useDialog<PropertyVo | undefined>();
+  const operations = useDialog();
   const actionRef = useRef<ActionType>(null);
+  const pendingRecommended = useRef(new Set<string>());
+  const [recommendedLoading, setRecommendedLoading] = useState(
+    new Set<string>(),
+  );
+
+  const handleRecommended = async (record: PropertyVo) => {
+    const key = String(record.id);
+    if (pendingRecommended.current.has(key)) return;
+    pendingRecommended.current.add(key);
+    setRecommendedLoading(new Set(pendingRecommended.current));
+    try {
+      await updatePropertyRecommended(record.id, !record.recommended);
+      message.success(record.recommended ? '已取消推荐' : '已设为首页推荐');
+      actionRef.current?.reload();
+    } catch {
+      message.error('推荐设置失败，请重试');
+    } finally {
+      pendingRecommended.current.delete(key);
+      setRecommendedLoading(new Set(pendingRecommended.current));
+    }
+  };
 
   const handleStatus = async (record: PropertyVo, status: number) => {
     await updatePropertyStatus(record.id, status);
@@ -65,6 +90,14 @@ const PropertyPage: React.FC = () => {
       width: 200,
       ellipsis: true,
       hideInSearch: true,
+    },
+    {
+      title: '推荐',
+      dataIndex: 'recommended',
+      width: 90,
+      hideInSearch: true,
+      render: (_, record) =>
+        record.recommended ? <Tag color="gold">推荐</Tag> : '—',
     },
     {
       title: '房东',
@@ -95,8 +128,7 @@ const PropertyPage: React.FC = () => {
       dataIndex: 'price',
       width: 120,
       hideInSearch: true,
-      render: (_, record) =>
-        `¥${record.price}${record.priceType === 'rent' ? '/月' : ''}`,
+      render: (_, record) => formatPropertyPrice(record),
     },
     {
       title: '城市',
@@ -151,6 +183,16 @@ const PropertyPage: React.FC = () => {
           <AccessControl permission="system:property:update">
             <Button type="link" onClick={() => editor.open(record)}>
               编辑
+            </Button>
+          </AccessControl>
+          <AccessControl permission="system:property:status">
+            <Button
+              type="link"
+              size="small"
+              loading={recommendedLoading.has(String(record.id))}
+              onClick={() => void handleRecommended(record)}
+            >
+              {record.recommended ? '取消推荐' : '设为推荐'}
             </Button>
           </AccessControl>
           {record.status !== 2 ? (
@@ -233,6 +275,9 @@ const PropertyPage: React.FC = () => {
           };
         }}
         toolBarRender={() => [
+          <AccessControl key="home" permission="system:property:list">
+            <Button onClick={() => operations.open(undefined)}>首页运营</Button>
+          </AccessControl>,
           <AccessControl key="create" permission="system:property:create">
             <Button type="primary" onClick={() => editor.open(undefined)}>
               新增房源
@@ -241,6 +286,13 @@ const PropertyPage: React.FC = () => {
         ]}
       />
 
+      <DialogHost dialog={operations}>
+        {({ visible }) => (
+          <Suspense fallback={null}>
+            <HomeOperations open={visible} onClose={operations.close} />
+          </Suspense>
+        )}
+      </DialogHost>
       <DialogHost dialog={details}>
         {({ visible, data }) => (
           <Suspense fallback={null}>

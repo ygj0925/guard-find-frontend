@@ -1,5 +1,6 @@
 import { Descriptions, Image, Modal, Tag } from 'antd';
 import type { PropertyVo } from '@/services/web/guardfind/property';
+import { formatPropertyPrice, RENTAL_MODE_LABELS } from './propertyPricing';
 
 export default function PropertyDetails({
   record,
@@ -17,7 +18,8 @@ export default function PropertyDetails({
         ? '未绑定房东，由后台管理'
         : `${record.ownerNickname || ''}（${record.userId}）`,
     ],
-    ['价格', `¥${record.price}${record.priceType === 'rent' ? '/月' : ''}`],
+    ['价格', formatPropertyPrice(record)],
+    ['首页推荐', record.recommended ? '推荐' : '未推荐'],
     ['小区', record.community],
     [
       '地址',
@@ -30,11 +32,9 @@ export default function PropertyDetails({
     ['装修', record.decoration],
     [
       '租赁方式',
-      record.rentalMode === 'whole'
-        ? '整租'
-        : record.rentalMode === 'shared'
-          ? '合租'
-          : '',
+      record.priceType === 'rent' && record.rentalMode
+        ? RENTAL_MODE_LABELS[record.rentalMode]
+        : '',
     ],
     ['可入住日期', record.availableFrom],
     ['联系人', record.contactName],

@@ -12,12 +12,14 @@ import {
   uploadPropertyImage,
 } from '@/services/web/guardfind/property';
 
+type PropertyVo = import('@/services/web/guardfind/property').PropertyVo;
+
 jest.mock('@/services/web/guardfind/property', () => ({
   saveProperty: jest.fn(async () => ({ data: null })),
   uploadPropertyImage: jest.fn(),
 }));
 
-const record = {
+const record: PropertyVo = {
   id: '12',
   userId: '3',
   ownerNickname: '房东',
@@ -32,6 +34,8 @@ const record = {
   decoration: null,
   price: 3000,
   priceType: 'rent',
+  priceUnit: 'month',
+  recommended: false,
   community: null,
   availableFrom: '2026-12-08',
   rentalMode: 'whole',

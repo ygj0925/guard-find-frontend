@@ -1,6 +1,9 @@
 import { request } from 'umi';
 import type { PageResult, QueryParam, R } from '@/typings';
 
+export type RentalMode = 'whole' | 'shared' | 'room' | 'short';
+export type PriceUnit = 'month' | 'day' | null;
+
 export interface PropertyVo {
   id: string | number;
   userId?: string | number | null;
@@ -16,9 +19,11 @@ export interface PropertyVo {
   decoration: string | null;
   price: number;
   priceType: string;
+  priceUnit: PriceUnit;
+  recommended: boolean;
   community: string | null;
   availableFrom: string | null;
-  rentalMode: string | null;
+  rentalMode: RentalMode | null;
   address: string;
   district: string | null;
   city: string | null;
@@ -58,6 +63,52 @@ export async function updatePropertyStatus(id: string | number, status: number) 
   });
 }
 
+export function updatePropertyRecommended(
+  id: string | number,
+  recommended: boolean,
+) {
+  return request<R<void>>(`system/property/${id}/recommended`, {
+    method: 'POST',
+    params: { recommended },
+  });
+}
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  imageUrl: string | null;
+  targetType: 'all' | 'recommended' | 'activity' | 'property';
+  targetId: string | null;
+  enabled: boolean;
+}
+
+export interface Activity {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  enabled: boolean;
+  propertyIds: (string | number)[];
+}
+
+export interface PropertyHome {
+  supportPhone: string | null;
+  serviceHours: string | null;
+  banners: Banner[];
+  activities: Activity[];
+}
+
+export function queryPropertyHome() {
+  return request<R<PropertyHome>>('system/property/home', { method: 'GET' });
+}
+
+export function savePropertyHome(data: PropertyHome) {
+  return request<R<void>>('system/property/home', { method: 'PUT', data });
+}
+
 export async function deleteProperty(id: string | number) {
   return request<R<any>>(`system/property/${id}`, {
     method: 'DELETE',
@@ -78,7 +129,7 @@ export async function setManager(userId: string | number, isManager: boolean) {
   });
 }
 
-export type PropertyInput = Pick<PropertyVo, 'title' | 'description' | 'propertyType' | 'layout' | 'areaSqm' | 'floorInfo' | 'orientation' | 'decoration' | 'price' | 'priceType' | 'community' | 'availableFrom' | 'rentalMode' | 'address' | 'district' | 'city' | 'facilities' | 'contactName' | 'contactPhone' | 'status' | 'images'>;
+export type PropertyInput = Pick<PropertyVo, 'title' | 'description' | 'propertyType' | 'layout' | 'areaSqm' | 'floorInfo' | 'orientation' | 'decoration' | 'price' | 'priceType' | 'priceUnit' | 'community' | 'availableFrom' | 'rentalMode' | 'address' | 'district' | 'city' | 'facilities' | 'contactName' | 'contactPhone' | 'status' | 'images'>;
 export function saveProperty(id: string | number | undefined, data: PropertyInput & { ownerId?: string }) {
   if (id) return request<R<void>>(`system/property/${id}`, { method: 'PUT', data });
   return request<R<string>>('system/property', { method: 'POST', data });
