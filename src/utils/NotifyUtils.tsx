@@ -1,9 +1,10 @@
 import { Modal } from 'antd';
 import { history } from 'umi';
 import { cacheRoutes } from './RouteUtils';
-import { clearAuthStorage, login_uri, Token } from './Web';
+import { clearAuthStorage, login_uri, Tenant, Token } from './Web';
 
 let logoutModal: any;
+let logoutIdentity: { token: string; tenant: string } | undefined;
 let cleanCache: () => void = () => {};
 
 const clearSession = () => {
@@ -11,6 +12,7 @@ const clearSession = () => {
   cacheRoutes([]);
   cleanCache();
   logoutModal = undefined;
+  logoutIdentity = undefined;
   Modal.destroyAll();
 };
 
@@ -27,7 +29,27 @@ const Notify = {
   setCleanCache: (clean: any) => {
     cleanCache = clean;
   },
-  logout: () => {
+  logout: (
+    expected = { token: Token.get() || '', tenant: Tenant.get() || '' },
+  ) => {
+    const stillCurrent = () =>
+      expected.token === (Token.get() || '') &&
+      expected.tenant === (Tenant.get() || '');
+    if (!stillCurrent()) return;
+    if (
+      logoutIdentity &&
+      (logoutIdentity.token !== expected.token ||
+        logoutIdentity.tenant !== expected.tenant)
+    ) {
+      logoutModal?.destroy();
+      logoutModal = undefined;
+    }
+    const confirmLogout = () => {
+      if (!stillCurrent()) return;
+      logoutModal = undefined;
+      logoutIdentity = undefined;
+      logoutHandler();
+    };
     // 未登录页不提示
     if (history.location.pathname === login_uri) {
       return;
@@ -41,6 +63,7 @@ const Notify = {
     }
 
     if (!logoutModal) {
+      logoutIdentity = expected;
       Modal.destroyAll();
       logoutModal = Modal.info({
         title: '系统提示',
@@ -48,8 +71,8 @@ const Notify = {
         closable: false,
         keyboard: false,
         okText: '重新登录',
-        onOk: () => logoutHandler(),
-        onCancel: () => logoutHandler(),
+        onOk: confirmLogout,
+        onCancel: confirmLogout,
         zIndex: 99999999,
       });
     }

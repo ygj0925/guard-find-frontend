@@ -23,6 +23,7 @@ import {
   updatePropertyStatus,
 } from '@/services/web/guardfind/property';
 import { formatPropertyPrice } from './propertyPricing';
+import ReceptionModal from './ReceptionModal';
 
 const PropertyDetails = lazy(() => import('./PropertyDetails'));
 const PropertyForm = lazy(() => import('./PropertyForm'));
@@ -43,6 +44,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 const PropertyPage: React.FC = () => {
   const details = useDialog<PropertyVo>();
+  const [receptionId, setReceptionId] = useState<string>();
   const editor = useDialog<PropertyVo | undefined>();
   const operations = useDialog();
   const actionRef = useRef<ActionType>(null);
@@ -83,6 +85,16 @@ const PropertyPage: React.FC = () => {
   };
 
   const columns: ProColumns<PropertyVo>[] = [
+    {
+      title: '接待运营',
+      valueType: 'option',
+      width: 110,
+      render: (_, row) => (
+        <Button type="link" onClick={() => setReceptionId(String(row.id))}>
+          管家与接待
+        </Button>
+      ),
+    },
     { title: 'ID', dataIndex: 'id', width: 80, hideInSearch: true },
     {
       title: '标题',
@@ -286,6 +298,12 @@ const PropertyPage: React.FC = () => {
         ]}
       />
 
+      {receptionId && (
+        <ReceptionModal
+          id={receptionId}
+          onClose={() => setReceptionId(undefined)}
+        />
+      )}
       <DialogHost dialog={operations}>
         {({ visible }) => (
           <Suspense fallback={null}>

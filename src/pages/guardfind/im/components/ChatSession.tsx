@@ -3,6 +3,7 @@ import { Alert, Avatar, Button, Empty, Input, message, Skeleton } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { AdminConversationVo } from '@/services/web/guardfind/im';
+import SupportWorkflow from '../../components/SupportWorkflow';
 import useSupportMessages from '../hooks/useSupportMessages';
 import styles from '../index.less';
 
@@ -55,6 +56,7 @@ export default function ChatSession({
   const nickname = conversation.nickname || `用户 ${conversation.userId}`;
   return (
     <>
+      <SupportWorkflow userId={userKey} />
       <header className={styles.chatHeader}>
         <Avatar src={conversation.avatar || undefined}>
           {nickname.slice(0, 1)}

@@ -17,7 +17,7 @@ export default {
    */
   dev: {
     '/dev-api/': {
-      target: 'http://localhost:8000',
+      target: 'http://localhost:9090',
       changeOrigin: true,
       secure: false,
       pathRewrite: { '^/dev-api': '' },

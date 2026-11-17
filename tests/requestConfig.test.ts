@@ -9,6 +9,7 @@
 import { message, notification } from 'antd';
 import Notify from '@/utils/NotifyUtils';
 import { requestConfig } from '@/utils/RequestConfig';
+import { Tenant, Token } from '@/utils/Web';
 
 jest.mock('antd', () => ({
   message: { error: jest.fn(), warning: jest.fn(), success: jest.fn() },
@@ -19,8 +20,8 @@ jest.mock('@/utils/NotifyUtils', () => ({
   default: { logout: jest.fn() },
 }));
 jest.mock('@/utils/Web', () => ({
-  Token: { get: () => 'tok' },
-  Tenant: { get: () => '1' },
+  Token: { get: jest.fn(() => 'tok') },
+  Tenant: { get: jest.fn(() => '1') },
 }));
 
 type Interceptor = (response: any) => Promise<any>;
@@ -31,7 +32,10 @@ const jsonResponse = (data: unknown) => ({
   status: 200,
   data,
   headers: { 'content-type': 'application/json' },
-  config: { url: '/dev-api/system/user' },
+  config: {
+    url: '/dev-api/system/user',
+    authIdentity: { token: 'tok', tenant: '1' },
+  },
 });
 
 const ok = {
@@ -44,6 +48,8 @@ const ok = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (Token.get as jest.Mock).mockReturnValue('tok');
+  (Tenant.get as jest.Mock).mockReturnValue('1');
   // 去重窗口 1.5s，测试之间必须隔离
   jest.useFakeTimers({ now: Date.now() + 10_000 });
 });
@@ -167,7 +173,11 @@ describe('响应拦截器：下载接口的 JSON 错误', () => {
 describe('silent 静默请求（秒传查重、未读轮询等可选能力）', () => {
   const silentResponse = (data: unknown) => ({
     ...jsonResponse(data),
-    config: { url: '/dev-api/system/file/check', silent: true },
+    config: {
+      url: '/dev-api/system/file/check',
+      silent: true,
+      authIdentity: { token: 'tok', tenant: '1' },
+    },
   });
 
   it('业务失败不弹提示，但仍抛错让调用方降级', async () => {
@@ -237,8 +247,35 @@ describe('errorHandler：不重复提示', () => {
   });
 
   it('HTTP 401（真 401，非信封）走登出', () => {
-    handler()({ response: { status: 401, data: {} } });
+    handler()({
+      config: { authIdentity: { token: 'tok', tenant: '1' } },
+      response: { status: 401, data: {} },
+    });
     expect(Notify.logout).toHaveBeenCalledTimes(1);
     expect(message.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('late unauthorized responses', () => {
+  it('ignores a business 401 from a previous account', async () => {
+    const response = jsonResponse({ code: '401', success: false });
+    (Token.get as jest.Mock).mockReturnValue('new-token');
+    await expect(intercept()(response)).rejects.toThrow();
+    expect(Notify.logout).not.toHaveBeenCalled();
+  });
+  it('ignores HTTP 401 after switching tenants', () => {
+    (Tenant.get as jest.Mock).mockReturnValue('2');
+    (requestConfig as any).errorConfig.errorHandler({
+      config: { authIdentity: { token: 'tok', tenant: '1' } },
+      response: { status: 401 },
+    });
+    expect(Notify.logout).not.toHaveBeenCalled();
+  });
+  it('stamps requests with the issuing identity', () => {
+    const configure = (requestConfig.requestInterceptors as any[])[0];
+    expect(configure({ url: '/system/user' }).authIdentity).toEqual({
+      token: 'tok',
+      tenant: '1',
+    });
   });
 });

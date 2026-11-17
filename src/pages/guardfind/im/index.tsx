@@ -15,12 +15,13 @@ import {
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import type { AdminConversationVo } from '@/services/web/guardfind/im';
+import { ticket } from '@/services/web/guardfind/operations';
 import ChatSession from './components/ChatSession';
 import useSupportConversations from './hooks/useSupportConversations';
 import styles from './index.less';
 
 export default function AdminImPage() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [visible, setVisible] = useState(() => !document.hidden);
   const active = visible && pathname.replace(/\/$/, '') === '/guardfind/im';
   const [selected, setSelected] = useState<AdminConversationVo | null>(null);
@@ -41,6 +42,30 @@ export default function AdminImPage() {
     markRead,
   } = useSupportConversations(active, keyword, onlyUnread);
   const drafts = useRef(new Map<string, string>());
+  useEffect(() => {
+    let alive = true;
+    const id = new URLSearchParams(search).get('userId');
+    if (!id || !/^\d+$/.test(id)) return;
+    ticket(id)
+      .then((r) => {
+        if (alive)
+          setSelected({
+            userId: id,
+            nickname:
+              (r.data as typeof r.data & { nickname?: string }).nickname ||
+              '用户',
+            avatar: null,
+            lastMessage: null,
+            lastMessageId: '0',
+            lastTime: '',
+            unreadCount: 0,
+          });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [search]);
   useEffect(() => {
     const changed = () => setVisible(!document.hidden);
     document.addEventListener('visibilitychange', changed);

@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import AccessControl from '@/components/AccessControl';
 import type { ManagerVo } from '@/services/web/guardfind/property';
 import { queryManagers, setManager } from '@/services/web/guardfind/property';
+import CustomerSelect from '../components/CustomerSelect';
 
 export default function ManagersPage() {
   const actionRef = useRef<ActionType>(null);
@@ -109,13 +110,13 @@ export default function ManagersPage() {
           <Form.Item
             name="userId"
             label="小程序用户 ID"
-            extra="可在小程序「我的」页面查看用户 ID。"
+            extra="按昵称或用户 ID 搜索并选择需要认证的用户。"
             rules={[
               { required: true, message: '请输入用户 ID' },
               { pattern: /^[1-9]\d*$/, message: '请输入有效用户 ID' },
             ]}
           >
-            <Input placeholder="输入需要设为管家的用户 ID" disabled={saving} />
+            <CustomerSelect disabled={saving} />
           </Form.Item>
         </Form>
       </Modal>

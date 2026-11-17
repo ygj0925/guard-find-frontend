@@ -123,11 +123,33 @@ function showOnce(
 /**
  * 按后端 `code` 分派界面行为。`silent` 时只做开发期告警、不提示用户。
  */
+interface RequestIdentity {
+  token: string;
+  tenant: string;
+}
+const currentIdentity = (): RequestIdentity => ({
+  token: Token.get() || '',
+  tenant: Tenant.get() || '',
+});
+const isCurrentRequest = (config: object | undefined) => {
+  // Axios clones config, so keep a serializable identity on it as well.
+  const identity = (config as { authIdentity?: RequestIdentity } | undefined)
+    ?.authIdentity;
+  if (!identity) return false;
+  const current = currentIdentity();
+  return (
+    !!identity.token &&
+    identity.token === current.token &&
+    identity.tenant === current.tenant
+  );
+};
+
 function dispatchByCode(
   code: string,
   msg: string,
   url?: string,
   silent?: boolean,
+  config?: object,
 ): void {
   // 契约漂移：接口不存在或 HTTP 方法不匹配，开发期显式告警（静默请求也要报，否则排查不到）
   if ((code === '404' || code === '405') && isDev()) {
@@ -137,7 +159,8 @@ function dispatchByCode(
   }
   if (code === '401') {
     // 主动退出由调用方清理会话，避免再弹出“登录过期”提示。
-    if (!url?.endsWith('/auth/logout')) Notify.logout();
+    if (!url?.endsWith('/auth/logout') && isCurrentRequest(config))
+      Notify.logout(currentIdentity());
     return;
   }
   if (code === '403' && !url?.includes('/auth/user/')) {
@@ -246,6 +269,7 @@ export const requestConfig: RequestConfig = {
 
       return {
         ...config,
+        authIdentity: currentIdentity(),
         url: `${cleanPrefix}/${cleanUrl}`,
         headers,
       };
@@ -269,7 +293,13 @@ export const requestConfig: RequestConfig = {
         if (isEnvelope(envelope) && !isSuccess(envelope)) {
           // 下载失败同样兼容 message / errorMessage / error 文案
           const blobMessage = getResponseMessage(envelope) ?? '';
-          dispatchByCode(String(envelope.code), blobMessage, url, silent);
+          dispatchByCode(
+            String(envelope.code),
+            blobMessage,
+            url,
+            silent,
+            response.config,
+          );
           throw new BizError(blobMessage || '下载失败', envelope);
         }
         return response;
@@ -288,7 +318,13 @@ export const requestConfig: RequestConfig = {
       const responseMessage = getResponseMessage(data) ?? '';
 
       if (!isSuccess(data)) {
-        dispatchByCode(String(data.code), responseMessage, url, silent);
+        dispatchByCode(
+          String(data.code),
+          responseMessage,
+          url,
+          silent,
+          response.config,
+        );
         throw new BizError(responseMessage || '业务处理失败', data);
       }
 
@@ -315,7 +351,8 @@ export const requestConfig: RequestConfig = {
       if (error?.response) {
         const status = error.response.status;
         if (status === 401) {
-          Notify.logout();
+          if (isCurrentRequest(error.config || error.response.config))
+            Notify.logout(currentIdentity());
           return;
         }
         if (status === 403 && !error.config?.url?.includes('/auth/user/')) {

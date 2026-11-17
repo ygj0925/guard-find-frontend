@@ -14,6 +14,27 @@ import {
 
 type PropertyVo = import('@/services/web/guardfind/property').PropertyVo;
 
+jest.mock('@/pages/guardfind/components/CustomerSelect', () => ({
+  __esModule: true,
+  default: ({
+    id,
+    value,
+    onChange,
+  }: {
+    id?: string;
+    value?: string;
+    onChange: (value: string) => void;
+  }) => (
+    <select
+      id={id}
+      value={value || ''}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">选择用户</option>
+      <option value="123">测试房东</option>
+    </select>
+  ),
+}));
 jest.mock('@/services/web/guardfind/property', () => ({
   saveProperty: jest.fn(async () => ({ data: null })),
   uploadPropertyImage: jest.fn(),
@@ -203,12 +224,17 @@ test('admin can create a property without binding a miniapp owner', async () => 
   );
 });
 
-test('an optional owner still rejects invalid IDs before saving', async () => {
+test('a searched owner is saved using the selected user ID', async () => {
   createForm();
-  fireEvent.change(screen.getByLabelText('房东的小程序用户 ID'), {
-    target: { value: 'invalid' },
-  });
+  fireEvent.change(
+    screen.getByRole('combobox', { name: '房东的小程序用户 ID' }),
+    { target: { value: '123' } },
+  );
   fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }));
-  expect(await screen.findByText('请输入有效用户 ID')).toBeTruthy();
-  expect(saveProperty).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(saveProperty).toHaveBeenCalledWith(
+      undefined,
+      expect.objectContaining({ ownerId: '123' }),
+    ),
+  );
 });

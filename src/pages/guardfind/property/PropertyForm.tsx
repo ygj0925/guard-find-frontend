@@ -24,6 +24,7 @@ import {
   saveProperty,
   uploadPropertyImage,
 } from '@/services/web/guardfind/property';
+import CustomerSelect from '../components/CustomerSelect';
 import { getPriceUnit, RENTAL_MODE_LABELS } from './propertyPricing';
 
 type ImageFile = UploadFile<{ url: string }>;
@@ -173,10 +174,10 @@ export default function PropertyForm({
           <Form.Item
             name="ownerId"
             label="房东的小程序用户 ID"
-            extra="选填，可在小程序「我的」查看；留空由后台管理，填写后房源和预约将归属该用户。"
+            extra="选填，搜索并选择小程序用户；留空由后台管理。房东归属与服务管家独立配置。"
             rules={[{ pattern: /^[1-9]\d*$/, message: '请输入有效用户 ID' }]}
           >
-            <Input allowClear placeholder="选填，请输入房东的小程序用户 ID" />
+            <CustomerSelect />
           </Form.Item>
         )}
         <Form.Item
