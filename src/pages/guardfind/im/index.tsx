@@ -140,8 +140,8 @@ export default function AdminImPage() {
               </div>
             ) : conversations.length ? (
               conversations.map((item) => (
-                <button
-                  type="button"
+                <Button
+                  type="text"
                   key={item.userId}
                   className={`${styles.conversation} ${String(item.userId) === String(selected?.userId) ? styles.selected : ''}`}
                   aria-pressed={
@@ -169,7 +169,7 @@ export default function AdminImPage() {
                       {item.lastMessage || '暂无消息'}
                     </span>
                   </span>
-                </button>
+                </Button>
               ))
             ) : (
               <Empty

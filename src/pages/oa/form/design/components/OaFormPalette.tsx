@@ -10,7 +10,7 @@ import {
   TableOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Card, Tooltip } from 'antd';
+import { Button, Card, Tooltip } from 'antd';
 import React from 'react';
 import { OA_FORM_FIELD_TYPES, type OaFormFieldType } from '@/utils/oaForm';
 
@@ -36,8 +36,8 @@ const OaFormPalette: React.FC<OaFormPaletteProps> = ({ onAdd }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {OA_FORM_FIELD_TYPES.map((item) => (
         <Tooltip key={item.type} title={`${item.hint}；可点击或拖入画布`}>
-          <button
-            type="button"
+          <Button
+            type="default"
             draggable
             aria-label={`添加${item.label}`}
             onClick={() => onAdd(item.type)}
@@ -46,6 +46,8 @@ const OaFormPalette: React.FC<OaFormPaletteProps> = ({ onAdd }) => (
               event.dataTransfer.effectAllowed = 'copy';
             }}
             style={{
+              height: 'auto',
+              justifyContent: 'flex-start',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
@@ -61,7 +63,7 @@ const OaFormPalette: React.FC<OaFormPaletteProps> = ({ onAdd }) => (
           >
             <span style={{ color: '#1677ff' }}>{TYPE_ICONS[item.type]}</span>
             <span>{item.label}</span>
-          </button>
+          </Button>
         </Tooltip>
       ))}
     </div>

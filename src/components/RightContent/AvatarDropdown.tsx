@@ -6,7 +6,7 @@ import {
 } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import type { MenuProps } from 'antd';
-import { Avatar, message, Spin } from 'antd';
+import { Avatar, Button, message, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useRef, useState } from 'react';
 import { logout } from '@/services/web/login';
@@ -147,8 +147,8 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       onOpenChange={setOpen}
       menu={{ selectedKeys: [], onClick: onMenuClick, items: menuItems }}
     >
-      <button
-        type="button"
+      <Button
+        type="text"
         className={cx(
           styles.action,
           sider && styles.siderAction,
@@ -188,7 +188,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
         ) : (
           <DownOutlined style={{ fontSize: 10 }} />
         )}
-      </button>
+      </Button>
     </HeaderDropdown>
   );
 };

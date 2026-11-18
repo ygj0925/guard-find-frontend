@@ -13,6 +13,10 @@ import {
 } from '@/services/web/guardfind/property';
 
 type PropertyVo = import('@/services/web/guardfind/property').PropertyVo;
+jest.mock('@/services/web/guardfind/propertyLocation', () => ({
+  queryRegions: jest.fn(async () => ({ data: [] })),
+  queryRegionSource: jest.fn(async () => ({ data: { version: '2024-12-31' } })),
+}));
 
 jest.mock('@/pages/guardfind/components/CustomerSelect', () => ({
   __esModule: true,

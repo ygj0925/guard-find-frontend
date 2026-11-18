@@ -191,6 +191,7 @@ const config: ReturnType<typeof defineConfig> = defineConfig({
       } as any)
     : {},
   define: {
+    'process.env.TENCENT_MAP_KEY': process.env.TENCENT_MAP_KEY || '',
     'process.env.CI': process.env.CI,
     'process.env.loginMode': isProd ? 'sso' : 'password',
     // 以下为可选覆盖项：未设置时由使用处回落到默认值（见 utils/Encrypt.ts、utils/Web.ts）

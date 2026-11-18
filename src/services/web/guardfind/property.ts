@@ -25,6 +25,10 @@ export interface PropertyVo {
   availableFrom: string | null;
   rentalMode: RentalMode | null;
   address: string;
+  publicLatitude?: number | null;
+  publicLongitude?: number | null;
+  locationLabel?: string | null;
+  regionCode?: string | null;
   district: string | null;
   city: string | null;
   facilities: string[];
@@ -129,7 +133,7 @@ export async function setManager(userId: string | number, isManager: boolean) {
   });
 }
 
-export type PropertyInput = Pick<PropertyVo, 'title' | 'description' | 'propertyType' | 'layout' | 'areaSqm' | 'floorInfo' | 'orientation' | 'decoration' | 'price' | 'priceType' | 'priceUnit' | 'community' | 'availableFrom' | 'rentalMode' | 'address' | 'district' | 'city' | 'facilities' | 'contactName' | 'contactPhone' | 'status' | 'images'>;
+export type PropertyInput = Pick<PropertyVo, 'title' | 'description' | 'propertyType' | 'layout' | 'areaSqm' | 'floorInfo' | 'orientation' | 'decoration' | 'price' | 'priceType' | 'priceUnit' | 'community' | 'availableFrom' | 'rentalMode' | 'address' | 'district' | 'city' | 'facilities' | 'contactName' | 'contactPhone' | 'status' | 'images' | 'publicLatitude' | 'publicLongitude' | 'locationLabel' | 'regionCode'>;
 export function saveProperty(id: string | number | undefined, data: PropertyInput & { ownerId?: string }) {
   if (id) return request<R<void>>(`system/property/${id}`, { method: 'PUT', data });
   return request<R<string>>('system/property', { method: 'POST', data });

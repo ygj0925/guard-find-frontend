@@ -10,6 +10,7 @@ import {
   Spin,
 } from 'antd';
 import { useEffect, useState } from 'react';
+import DateInput from '@/components/DateInput';
 import { useAccess } from '@/hooks/useAccess';
 import {
   availabilityLabels,
@@ -129,7 +130,7 @@ export default function ReceptionModal({
             <Input.TextArea maxLength={500} showCount />
           </Form.Item>
           <Form.Item name="reopenDate" label="预计重新开放日期">
-            <Input type="date" />
+            <DateInput />
           </Form.Item>
           <Space align="start">
             <Form.Item name="latitude" label="纬度（GCJ-02）">

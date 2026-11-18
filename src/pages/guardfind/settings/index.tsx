@@ -13,6 +13,7 @@ import {
   Tabs,
 } from 'antd';
 import { useEffect, useState } from 'react';
+import DateInput from '@/components/DateInput';
 import {
   notificationRecords,
   type Settings,
@@ -89,7 +90,7 @@ export default function SettingsPage() {
                     <Input maxLength={40} placeholder="如 2026-11-v1" />
                   </Form.Item>
                   <Form.Item name="effectiveDate" label="生效日期">
-                    <Input type="date" />
+                    <DateInput />
                   </Form.Item>
                 </Space>
                 <Form.Item name="userAgreement" label="用户协议正文">

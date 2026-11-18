@@ -107,8 +107,8 @@ const OaFormCanvas: React.FC<OaFormCanvasProps> = ({
                   background: selectedId === field.id ? '#e6f4ff' : '#fff',
                 }}
               >
-                <button
-                  type="button"
+                <Button
+                  type="text"
                   draggable
                   onClick={() => onSelect(field.id)}
                   onDragStart={(event) => {
@@ -116,6 +116,8 @@ const OaFormCanvas: React.FC<OaFormCanvasProps> = ({
                     event.dataTransfer.effectAllowed = 'move';
                   }}
                   style={{
+                    height: 'auto',
+                    justifyContent: 'flex-start',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12,
@@ -142,7 +144,7 @@ const OaFormCanvas: React.FC<OaFormCanvasProps> = ({
                       </Typography.Text>
                     </span>
                   </span>
-                </button>
+                </Button>
                 <Button
                   type="text"
                   danger

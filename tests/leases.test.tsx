@@ -7,6 +7,7 @@ import {
 import {
   actOnLease,
   queryLease,
+  queryLeasePdf,
   queryLeaseSettings,
   updateLease,
   updateLeaseSettings,
@@ -15,6 +16,7 @@ import {
 type LeaseDetail = import('@/services/web/guardfind/leases').LeaseDetail;
 
 const mockPermissions = new Set<string>();
+jest.mock('@/pages/guardfind/leases/LeaseLifecyclePanel', () => () => null);
 jest.mock('@/hooks/useAccess', () => ({
   useAccess: () => ({
     hasPermission: (permission: string) => mockPermissions.has(permission),
@@ -29,6 +31,7 @@ jest.mock('@/services/web/guardfind/leases', () => ({
   createLease: jest.fn(),
   updateLease: jest.fn(),
   queryLease: jest.fn(),
+  queryLeasePdf: jest.fn(),
   queryLeases: jest.fn(),
   queryLeaseSettings: jest.fn(),
   updateLeaseSettings: jest.fn(),
@@ -94,11 +97,73 @@ beforeEach(() => {
       remindersEnabled: false,
       reminderDays: [30, 7, 1, 0],
       renewalWindowDays: 90,
+      signatureWindowDays: 7,
     },
   });
   (updateLease as jest.Mock).mockResolvedValue({});
   (updateLeaseSettings as jest.Mock).mockResolvedValue({});
   (actOnLease as jest.Mock).mockResolvedValue({ data: {} });
+  (queryLeasePdf as jest.Mock).mockResolvedValue({
+    data: { filename: '合同.pdf', base64: 'JVBERi0=' },
+  });
+});
+
+it('allows recall only before either party signs and reminds with the loaded version', async () => {
+  (queryLease as jest.Mock).mockResolvedValue({
+    data: {
+      ...lease,
+      status: 'PENDING_SIGNATURE',
+      tenantSignedAt: '2026-11-18 10:00:00',
+    },
+  });
+  render(
+    <LeaseDetailDrawer
+      id={lease.id}
+      onClose={jest.fn()}
+      onChanged={jest.fn()}
+    />,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: '提醒未签方' }));
+  expect(screen.queryByRole('button', { name: '撤回修改' })).toBeNull();
+  expect(actOnLease).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '确认处理' }));
+  await waitFor(() =>
+    expect(actOnLease).toHaveBeenCalledWith(
+      lease.id,
+      expect.objectContaining({ action: 'REMIND_SIGN', version: 5 }),
+    ),
+  );
+});
+
+it('offers recall for unsigned contracts but requires a reason', async () => {
+  (queryLease as jest.Mock).mockResolvedValue({
+    data: { ...lease, status: 'PENDING_SIGNATURE' },
+  });
+  render(
+    <LeaseDetailDrawer
+      id={lease.id}
+      onClose={jest.fn()}
+      onChanged={jest.fn()}
+    />,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: '撤回修改' }));
+  fireEvent.click(screen.getByRole('button', { name: '确认处理' }));
+  await screen.findByText('请填写此项');
+  expect(actOnLease).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('处理说明'), {
+    target: { value: '双方信息需核实' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: '确认处理' }));
+  await waitFor(() =>
+    expect(actOnLease).toHaveBeenCalledWith(
+      lease.id,
+      expect.objectContaining({
+        action: 'RECALL',
+        reason: '双方信息需核实',
+        version: 5,
+      }),
+    ),
+  );
 });
 
 it('saves a draft using its loaded version and preserves the contract terms', async () => {
@@ -204,6 +269,7 @@ it('keeps disabled reminder settings disabled when saving and sends all threshol
       remindersEnabled: false,
       reminderDays: [30, 7, 1, 0],
       renewalWindowDays: 90,
+      signatureWindowDays: 7,
     }),
   );
 });
@@ -226,6 +292,7 @@ it('opens the linked renewal draft from the original contract', async () => {
       onOpenLease={openLease}
     />,
   );
+  fireEvent.click(await screen.findByRole('tab', { name: '租约信息与申请' }));
   fireEvent.click(await screen.findByRole('button', { name: '9000000000002' }));
   expect(openLease).toHaveBeenCalledWith('9000000000002');
 });

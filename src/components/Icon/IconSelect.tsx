@@ -162,8 +162,8 @@ const IconSelect = ({ id, value, onChange, disabled }: IconSelectProps) => {
           />
           <fieldset className="icon-picker-grid" aria-label="可选图标">
             {filteredIcons.map((name) => (
-              <button
-                type="button"
+              <Button
+                type="text"
                 key={name}
                 className="icon-picker-option"
                 title={name}
@@ -176,7 +176,7 @@ const IconSelect = ({ id, value, onChange, disabled }: IconSelectProps) => {
                 {draft === name && (
                   <Icon className="icon-picker-check" type="check-circle" />
                 )}
-              </button>
+              </Button>
             ))}
           </fieldset>
           {filteredIcons.length === 0 && (

@@ -1,4 +1,13 @@
-import { Button, Checkbox, Modal, message, Select, Spin, Table } from 'antd';
+import {
+  Button,
+  Checkbox,
+  Input,
+  Modal,
+  message,
+  Select,
+  Spin,
+  Table,
+} from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getFieldConfig, saveFieldConfig } from '@/services/web/code/generator';
@@ -118,17 +127,12 @@ const FieldConfig: React.FC<FieldConfigProps> = ({
         dataIndex: 'comment',
         width: 140,
         render: (text, _, index) => (
-          <input
+          <Input
             value={text}
             onChange={(e) =>
               handleFieldChange(index, 'comment', e.target.value)
             }
-            style={{
-              width: '100%',
-              border: '1px solid #d9d9d9',
-              borderRadius: 4,
-              padding: '4px 8px',
-            }}
+            aria-label="字段注释"
           />
         ),
       },

@@ -17,6 +17,7 @@ import {
   Select,
   Space,
   Spin,
+  Steps,
   Switch,
   Tabs,
   Tag,
@@ -25,6 +26,7 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
+import DateInput from '@/components/DateInput';
 import { useAccess } from '@/hooks/useAccess';
 import {
   actOnLease,
@@ -40,6 +42,7 @@ import {
   moveOutLabels,
   queryLease,
   queryLeaseCustomers,
+  queryLeasePdf,
   queryLeaseProperties,
   queryLeaseReminders,
   queryLeaseSettings,
@@ -48,9 +51,15 @@ import {
   updateLease,
   updateLeaseSettings,
 } from '@/services/web/guardfind/leases';
+import styles from './index.less';
+import LeaseContractPreview, { SigningProgress } from './LeaseContractPreview';
+import LeaseLifecyclePanel from './LeaseLifecyclePanel';
+import LeaseReviewPanel from './LeaseReviewPanel';
 
 const actionLabels: Record<LeaseAction, string> = {
   PUBLISH: '发布待签合同',
+  RECALL: '撤回修改',
+  REMIND_SIGN: '提醒未签方',
   VOID: '作废合同',
   TERMINATE: '终止合同',
   RENEW_APPROVE: '同意续租并生成草稿',
@@ -58,6 +67,32 @@ const actionLabels: Record<LeaseAction, string> = {
   MOVE_OUT_RESOLVE: '处理退租申请',
 };
 const logLabels: Record<string, string> = {
+  REVIEW_CREATE: '提出审阅意见',
+  REVIEW_REPLY: '回复审阅意见',
+  REVIEW_CONFIRM: '确认意见已解决',
+  REVIEW_REOPEN: '继续反馈审阅意见',
+  BILL_CREATE: '创建费用账单',
+  BILL_GENERATE: '生成周期账单',
+  BILL_SUBMIT: '登记线下付款',
+  BILL_WITHDRAW: '撤回付款登记',
+  BILL_CONFIRM: '确认收到款项',
+  BILL_REJECT: '退回付款登记',
+  BILL_VOID: '作废费用账单',
+  CHECK_IN_CREATE: '发起入住交接',
+  CHECK_IN_CONFIRM: '确认入住交接',
+  CHECK_IN_DISPUTE: '入住交接异议',
+  CHECK_IN_VOID: '作废入住交接',
+  CHECK_OUT_CREATE: '发起退租交接',
+  CHECK_OUT_CONFIRM: '确认退租交接',
+  CHECK_OUT_DISPUTE: '退租交接异议',
+  CHECK_OUT_VOID: '作废退租交接',
+  SETTLEMENT_CREATE: '发起押金结算',
+  SETTLEMENT_CONFIRM: '确认押金结算',
+  SETTLEMENT_DISPUTE: '押金结算异议',
+  SETTLEMENT_VOID: '作废押金结算',
+  SETTLEMENT_REFUND: '登记押金退款',
+  SETTLEMENT_RECEIVED: '承租人确认押金到账',
+  PROPERTY_REOPEN: '确认房源重新开放',
   ...actionLabels,
   CREATE: '创建草稿',
   UPDATE: '修改草稿',
@@ -69,6 +104,8 @@ const logLabels: Record<string, string> = {
   MOVE_OUT_REQUEST: '申请退租',
   EXPIRE: '合同到期',
   REMIND: '到期提醒',
+  SIGNING_EXPIRED: '签署超时失效',
+  MOVE_OUT_CANCEL: '撤回退租意向',
 };
 const required = [{ required: true, message: '请填写此项' }];
 
@@ -172,6 +209,8 @@ export function LeaseEditor({
   onSaved: () => void;
 }) {
   const [form] = Form.useForm<LeaseInput>();
+  const [preview, setPreview] = useState(false);
+  const [property, setProperty] = useState<LeasePropertyOption>();
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const initial: Partial<LeaseInput> = record
@@ -209,8 +248,18 @@ export function LeaseEditor({
     <Modal
       open
       title={record ? '编辑合同草稿' : '创建合同草稿'}
-      width={850}
-      onCancel={onClose}
+      width={960}
+      style={{ top: 24 }}
+      styles={{
+        body: {
+          maxHeight: 'calc(100dvh - 170px)',
+          overflowY: 'auto',
+          paddingRight: 8,
+        },
+      }}
+      onCancel={() => !saving && onClose()}
+      cancelButtonProps={{ disabled: saving }}
+      closable={!saving}
       onOk={() => void save()}
       okText="保存合同草稿"
       confirmLoading={saving}
@@ -219,10 +268,19 @@ export function LeaseEditor({
       <Alert
         type="info"
         showIcon
-        message="发布后合同内容固定，双方在小程序确认签署。请填写真实主体信息及双方认可的完整条款。"
+        message="保存草稿后可预览完整合同。发送签署后，由出租方与承租方分别阅读、核对信息并手写签名。"
         style={{ marginBottom: 16 }}
       />
-      <Form form={form} layout="vertical" initialValues={initial}>
+      <Button onClick={() => setPreview(true)} style={{ marginBottom: 8 }}>
+        预览完整合同
+      </Button>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={initial}
+        disabled={saving}
+      >
+        <div className={styles.editorSection}>01 · 房源与合同</div>
         <Form.Item name="propertyId" label="出租房源" rules={required}>
           <SearchSelect
             kind="property"
@@ -232,9 +290,10 @@ export function LeaseEditor({
                 ? { value: record.propertyId, label: record.propertyTitle }
                 : undefined
             }
-            onProperty={(p) =>
-              form.setFieldsValue({ landlordId: p.userId || undefined })
-            }
+            onProperty={(p) => {
+              setProperty(p);
+              form.setFieldsValue({ landlordId: p.userId || undefined });
+            }}
           />
         </Form.Item>
         <Form.Item
@@ -244,7 +303,8 @@ export function LeaseEditor({
         >
           <Input maxLength={200} />
         </Form.Item>
-        <Space align="start" wrap>
+        <div className={styles.editorSection}>02 · 签约双方</div>
+        <div className={styles.editorGrid}>
           <Form.Item
             name="landlordId"
             label="出租方小程序账号"
@@ -291,8 +351,8 @@ export function LeaseEditor({
               }
             />
           </Form.Item>
-        </Space>
-        <Space align="start" wrap>
+        </div>
+        <div className={styles.editorGrid}>
           <Form.Item
             name="landlordName"
             label="出租方签署姓名"
@@ -307,10 +367,11 @@ export function LeaseEditor({
           >
             <Input maxLength={100} />
           </Form.Item>
-        </Space>
-        <Space align="start" wrap>
+        </div>
+        <div className={styles.editorSection}>03 · 租期与费用</div>
+        <div className={styles.editorGrid}>
           <Form.Item name="startDate" label="起租日期" rules={required}>
-            <Input type="date" />
+            <DateInput />
           </Form.Item>
           <Form.Item
             name="endDate"
@@ -328,15 +389,26 @@ export function LeaseEditor({
               }),
             ]}
           >
-            <Input type="date" />
+            <DateInput />
           </Form.Item>
           <Form.Item name="monthlyRent" label="月租金（元）" rules={required}>
-            <InputNumber min={0.01} max={99999999.99} precision={2} />
+            <InputNumber
+              min={0.01}
+              max={99999999.99}
+              precision={2}
+              style={{ width: '100%' }}
+            />
           </Form.Item>
           <Form.Item name="deposit" label="押金（元）" rules={required}>
-            <InputNumber min={0} max={99999999.99} precision={2} />
+            <InputNumber
+              min={0}
+              max={99999999.99}
+              precision={2}
+              style={{ width: '100%' }}
+            />
           </Form.Item>
-        </Space>
+        </div>
+        <div className={styles.editorSection}>04 · 合同正文</div>
         <Form.Item
           name="terms"
           label="完整合同条款"
@@ -351,37 +423,40 @@ export function LeaseEditor({
           />
         </Form.Item>
       </Form>
+      <Drawer
+        open={preview}
+        title="合同预览 · 保存后发送双方签署"
+        width={920}
+        onClose={() => setPreview(false)}
+      >
+        {preview ? (
+          <LeaseContractPreview
+            lease={{
+              ...record,
+              ...form.getFieldsValue(true),
+              propertyTitle: property?.title || record?.propertyTitle,
+              propertyAddress: property?.address || record?.propertyAddress,
+              status: 'DRAFT',
+            }}
+          />
+        ) : null}
+      </Drawer>
     </Modal>
   );
 }
 
-function downloadLease(record: LeaseDetail) {
-  const text = [
-    `${record.title}`,
-    `合同编号：${record.id}`,
-    `房源：${record.propertyTitle}`,
-    `地址：${record.propertyAddress}`,
-    `出租方：${record.landlordName}`,
-    `承租方：${record.tenantName}`,
-    `租期：${record.startDate} 至 ${record.endDate}`,
-    `月租金：${record.monthlyRent} 元；押金：${record.deposit} 元`,
-    `状态：${leaseStatusLabels[record.status]}`,
-    '',
-    record.terms,
-    '',
-    `出租方确认：${record.landlordSignedName || '未签署'} ${record.landlordSignedAt || ''}`,
-    `承租方确认：${record.tenantSignedName || '未签署'} ${record.tenantSignedAt || ''}`,
-    `内容校验值：${record.contentHash || '草稿尚未发布'}`,
-    '签署方式：小程序账号登录后由双方确认签署；未接入第三方实名认证或 CA 认证。',
-  ].join('\n');
+function savePdf(file: { filename: string; base64: string }) {
+  const bytes = Uint8Array.from(atob(file.base64), (char) =>
+    char.charCodeAt(0),
+  );
   const url = URL.createObjectURL(
-    new Blob([text], { type: 'text/plain;charset=utf-8' }),
+    new Blob([bytes], { type: 'application/pdf' }),
   );
   const link = document.createElement('a');
   link.href = url;
-  link.download = `租赁合同-${record.id}.txt`;
+  link.download = file.filename;
   link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 export function LeaseDetailDrawer({
@@ -401,6 +476,26 @@ export function LeaseDetailDrawer({
   const [failed, setFailed] = useState(false);
   const [revision, setRevision] = useState(0);
   const [editing, setEditing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const download = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const result = await queryLeasePdf(id);
+      if (alive.current) savePdf(result.data);
+    } catch {
+      /* 统一请求层显示错误 */
+    } finally {
+      if (alive.current) setDownloading(false);
+    }
+  };
   const [action, setAction] = useState<LeaseAction>();
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<LeaseActionInput>();
@@ -470,12 +565,22 @@ export function LeaseDetailDrawer({
   const available: LeaseAction[] = [];
   if (detail) {
     if (
+      detail.status === 'PENDING_SIGNATURE' &&
+      hasPermission('system:property:lease:publish')
+    ) {
+      available.push('REMIND_SIGN');
+      if (!detail.tenantSignedAt && !detail.landlordSignedAt)
+        available.push('RECALL');
+    }
+    if (
       detail.status === 'DRAFT' &&
       hasPermission('system:property:lease:publish')
     )
       available.push('PUBLISH');
     if (
-      ['DRAFT', 'PENDING_SIGNATURE'].includes(detail.status) &&
+      ['DRAFT', 'PENDING_SIGNATURE', 'SIGNING_EXPIRED'].includes(
+        detail.status,
+      ) &&
       hasPermission('system:property:lease:terminate')
     )
       available.push('VOID');
@@ -502,7 +607,7 @@ export function LeaseDetailDrawer({
   }
   return (
     <>
-      <Drawer title="租赁合同详情" open width={850} onClose={onClose}>
+      <Drawer title="合同工作台" open width={1080} onClose={onClose}>
         {loading ? (
           <Spin />
         ) : failed ? (
@@ -515,6 +620,23 @@ export function LeaseDetailDrawer({
           />
         ) : detail ? (
           <>
+            <div className={styles.detailHeader}>
+              <Tag
+                color={
+                  detail.status === 'SIGNED'
+                    ? 'success'
+                    : detail.status === 'PENDING_SIGNATURE'
+                      ? 'processing'
+                      : 'default'
+                }
+              >
+                {leaseStatusLabels[detail.status]}
+              </Tag>
+              <h2>{detail.title}</h2>
+              <p>
+                {detail.propertyTitle} · {detail.propertyAddress}
+              </p>
+            </div>
             <Space wrap style={{ marginBottom: 16 }}>
               {detail.status === 'DRAFT' &&
               hasPermission('system:property:lease:update') ? (
@@ -523,180 +645,221 @@ export function LeaseDetailDrawer({
               {available.map((item) => (
                 <Button
                   key={item}
+                  type={item === 'PUBLISH' ? 'primary' : 'default'}
                   danger={item === 'VOID' || item === 'TERMINATE'}
                   onClick={() => openAction(item)}
                 >
                   {actionLabels[item]}
                 </Button>
               ))}
-              <Button onClick={() => downloadLease(detail)}>
-                导出合同文本
+              <Button loading={downloading} onClick={() => void download()}>
+                下载合同 PDF
               </Button>
               <Button onClick={() => setRevision((v) => v + 1)}>刷新</Button>
             </Space>
             <Alert
               type="info"
-              message="发布后的正文不可修改。续租会生成一份新合同草稿，由双方重新确认签署。"
+              message="双方签署前可撤回修改；已有签名时正文锁定。续租生成新合同，双方需重新手写签署。"
               style={{ marginBottom: 16 }}
             />
-            <Descriptions
-              bordered
-              column={2}
+            <SigningProgress lease={detail} />
+            <Tabs
+              defaultActiveKey="contract"
               items={[
-                { key: 'id', label: '合同编号', children: detail.id },
                 {
-                  key: 'state',
-                  label: '状态',
-                  children: leaseStatusLabels[detail.status],
+                  key: 'contract',
+                  label: '合同正文与签署',
+                  children: <LeaseContractPreview lease={detail} />,
                 },
                 {
-                  key: 'title',
-                  label: '合同标题',
-                  children: detail.title,
-                  span: 2,
-                },
-                {
-                  key: 'property',
-                  label: '房源',
-                  children: `${detail.propertyTitle} · ${detail.propertyAddress}`,
-                  span: 2,
-                },
-                {
-                  key: 'landlord',
-                  label: '出租方',
-                  children: `${detail.landlordName}（${detail.landlordId}）`,
-                },
-                {
-                  key: 'tenant',
-                  label: '承租方',
-                  children: `${detail.tenantName}（${detail.tenantId}）`,
-                },
-                {
-                  key: 'term',
-                  label: '租期',
-                  children: `${detail.startDate} 至 ${detail.endDate}`,
-                  span: 2,
-                },
-                {
-                  key: 'rent',
-                  label: '月租金',
-                  children: `¥${detail.monthlyRent}`,
-                },
-                {
-                  key: 'deposit',
-                  label: '押金',
-                  children: `¥${detail.deposit}`,
-                },
-                {
-                  key: 'signed1',
-                  label: '出租方签署',
-                  children: detail.landlordSignedAt
-                    ? `${detail.landlordSignedName || detail.landlordName} · ${detail.landlordSignedAt}`
-                    : '未签署',
-                },
-                {
-                  key: 'signed2',
-                  label: '承租方签署',
-                  children: detail.tenantSignedAt
-                    ? `${detail.tenantSignedName || detail.tenantName} · ${detail.tenantSignedAt}`
-                    : '未签署',
-                },
-                {
-                  key: 'renew',
-                  label: '续租申请',
-                  children: renewalLabels[detail.renewalStatus],
-                },
-                {
-                  key: 'move',
-                  label: '退租申请',
-                  children: moveOutLabels[detail.moveOutStatus],
-                },
-                {
-                  key: 'requested',
-                  label: '希望续租至',
-                  children: detail.requestedEndDate || '—',
-                },
-                {
-                  key: 'days',
-                  label: '距租期结束',
-                  children:
-                    detail.daysRemaining < 0
-                      ? `已过期 ${-detail.daysRemaining} 天`
-                      : `${detail.daysRemaining} 天`,
-                },
-                {
-                  key: 'reason',
-                  label: '续租说明',
-                  children: detail.renewalReason || '—',
-                  span: 2,
-                },
-                {
-                  key: 'previous',
-                  label: '原合同编号',
-                  children: detail.previousLeaseId ? (
-                    <Button
-                      type="link"
-                      onClick={() => {
-                        if (detail.previousLeaseId)
-                          onOpenLease?.(detail.previousLeaseId);
-                      }}
-                      disabled={!onOpenLease}
-                    >
-                      {detail.previousLeaseId}
-                    </Button>
-                  ) : (
-                    '—'
+                  key: 'review',
+                  label: `合同审阅${detail.unresolvedReviews ? ` (${detail.unresolvedReviews})` : ''}`,
+                  children: (
+                    <LeaseReviewPanel lease={detail} onChanged={changed} />
                   ),
                 },
                 {
-                  key: 'next',
-                  label: '续租合同编号',
-                  children: detail.renewalLeaseId ? (
-                    <Button
-                      type="link"
-                      onClick={() => {
-                        if (detail.renewalLeaseId)
-                          onOpenLease?.(detail.renewalLeaseId);
-                      }}
-                      disabled={!onOpenLease}
-                    >
-                      {detail.renewalLeaseId}
-                    </Button>
-                  ) : (
-                    '—'
+                  key: 'details',
+                  label: '租约信息与申请',
+                  children: (
+                    <Descriptions
+                      bordered
+                      column={2}
+                      items={[
+                        { key: 'id', label: '合同编号', children: detail.id },
+                        {
+                          key: 'state',
+                          label: '状态',
+                          children: leaseStatusLabels[detail.status],
+                        },
+                        {
+                          key: 'title',
+                          label: '合同标题',
+                          children: detail.title,
+                          span: 2,
+                        },
+                        {
+                          key: 'deadline',
+                          label: '签署截止时间',
+                          children: detail.signatureDeadline || '发布时确定',
+                          span: 2,
+                        },
+                        {
+                          key: 'property',
+                          label: '房源',
+                          children: `${detail.propertyTitle} · ${detail.propertyAddress}`,
+                          span: 2,
+                        },
+                        {
+                          key: 'landlord',
+                          label: '出租方',
+                          children: `${detail.landlordName}（${detail.landlordId}）`,
+                        },
+                        {
+                          key: 'tenant',
+                          label: '承租方',
+                          children: `${detail.tenantName}（${detail.tenantId}）`,
+                        },
+                        {
+                          key: 'term',
+                          label: '租期',
+                          children: `${detail.startDate} 至 ${detail.endDate}`,
+                          span: 2,
+                        },
+                        {
+                          key: 'rent',
+                          label: '月租金',
+                          children: `¥${detail.monthlyRent}`,
+                        },
+                        {
+                          key: 'deposit',
+                          label: '押金',
+                          children: `¥${detail.deposit}`,
+                        },
+                        {
+                          key: 'signed1',
+                          label: '出租方签署',
+                          children: detail.landlordSignedAt
+                            ? `${detail.landlordSignedName || detail.landlordName} · ${detail.landlordSignedAt}`
+                            : '未签署',
+                        },
+                        {
+                          key: 'signed2',
+                          label: '承租方签署',
+                          children: detail.tenantSignedAt
+                            ? `${detail.tenantSignedName || detail.tenantName} · ${detail.tenantSignedAt}`
+                            : '未签署',
+                        },
+                        {
+                          key: 'renew',
+                          label: '续租申请',
+                          children: renewalLabels[detail.renewalStatus],
+                        },
+                        {
+                          key: 'move',
+                          label: '退租申请',
+                          children: moveOutLabels[detail.moveOutStatus],
+                        },
+                        {
+                          key: 'requested',
+                          label: '希望续租至',
+                          children: detail.requestedEndDate || '—',
+                        },
+                        {
+                          key: 'days',
+                          label: '距租期结束',
+                          children:
+                            detail.daysRemaining < 0
+                              ? `已过期 ${-detail.daysRemaining} 天`
+                              : `${detail.daysRemaining} 天`,
+                        },
+                        {
+                          key: 'reason',
+                          label: '续租说明',
+                          children: detail.renewalReason || '—',
+                          span: 2,
+                        },
+                        {
+                          key: 'previous',
+                          label: '原合同编号',
+                          children: detail.previousLeaseId ? (
+                            <Button
+                              type="link"
+                              onClick={() => {
+                                if (detail.previousLeaseId)
+                                  onOpenLease?.(detail.previousLeaseId);
+                              }}
+                              disabled={!onOpenLease}
+                            >
+                              {detail.previousLeaseId}
+                            </Button>
+                          ) : (
+                            '—'
+                          ),
+                        },
+                        {
+                          key: 'next',
+                          label: '续租合同编号',
+                          children: detail.renewalLeaseId ? (
+                            <Button
+                              type="link"
+                              onClick={() => {
+                                if (detail.renewalLeaseId)
+                                  onOpenLease?.(detail.renewalLeaseId);
+                              }}
+                              disabled={!onOpenLease}
+                            >
+                              {detail.renewalLeaseId}
+                            </Button>
+                          ) : (
+                            '—'
+                          ),
+                        },
+                      ]}
+                    />
+                  ),
+                },
+                ...(['SIGNED', 'EXPIRED', 'TERMINATED'].includes(detail.status)
+                  ? [
+                      {
+                        key: 'lifecycle',
+                        label: '账单、交接与结算',
+                        children: (
+                          <LeaseLifecyclePanel
+                            lease={detail}
+                            onChanged={changed}
+                          />
+                        ),
+                      },
+                    ]
+                  : []),
+                {
+                  key: 'logs',
+                  label: '处理记录',
+                  children: (
+                    <Timeline
+                      items={(detail.logs || []).map((log) => ({
+                        key: log.id,
+                        children: (
+                          <>
+                            <div>
+                              {log.createTime} ·{' '}
+                              {logLabels[log.action] || log.action} ·{' '}
+                              {{
+                                ADMIN: '管理员',
+                                TENANT: '承租方',
+                                LANDLORD: '出租方',
+                                SYSTEM: '系统',
+                              }[log.actorType] || log.actorType}
+                            </div>
+                            <div>{log.reason}</div>
+                          </>
+                        ),
+                      }))}
+                    />
                   ),
                 },
               ]}
-            />
-            <Typography.Title level={5}>合同正文</Typography.Title>
-            <Typography.Paragraph
-              style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
-            >
-              {detail.terms}
-            </Typography.Paragraph>
-            <Typography.Paragraph
-              type="secondary"
-              style={{ overflowWrap: 'anywhere' }}
-            >
-              内容校验值：{detail.contentHash || '草稿尚未发布'}
-            </Typography.Paragraph>
-            <Typography.Paragraph type="secondary">
-              签署方式：小程序双方确认签署，未接入第三方实名认证或 CA 认证。
-            </Typography.Paragraph>
-            <Typography.Title level={5}>处理记录</Typography.Title>
-            <Timeline
-              items={(detail.logs || []).map((log) => ({
-                key: log.id,
-                children: (
-                  <>
-                    <div>
-                      {log.createTime} · {logLabels[log.action] || log.action} ·{' '}
-                      {log.actorType}
-                    </div>
-                    <div>{log.reason}</div>
-                  </>
-                ),
-              }))}
             />
           </>
         ) : null}
@@ -722,6 +885,20 @@ export function LeaseDetailDrawer({
           <Alert
             type="warning"
             message="请核对双方账号、姓名、房源、租期、金额和完整条款。发布后正文固定，双方可在小程序签署。"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+        {action === 'RECALL' ? (
+          <Alert
+            type="warning"
+            message="仅双方均未签署时可以撤回。撤回后将停止本次签约，修改完成需重新发送。"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+        {action === 'REMIND_SIGN' ? (
+          <Alert
+            type="info"
+            message="向尚未签署的一方发送站内提醒，10分钟内不重复发送，不延长签署期限。"
             style={{ marginBottom: 16 }}
           />
         ) : null}
@@ -752,7 +929,7 @@ export function LeaseDetailDrawer({
                 label="续租开始日期"
                 rules={required}
               >
-                <Input type="date" />
+                <DateInput />
               </Form.Item>
               <Form.Item
                 name="renewalEndDate"
@@ -768,17 +945,27 @@ export function LeaseDetailDrawer({
                   }),
                 ]}
               >
-                <Input type="date" />
+                <DateInput />
               </Form.Item>
               <Form.Item
                 name="monthlyRent"
                 label="续租月租金（元）"
                 rules={required}
               >
-                <InputNumber min={0.01} max={99999999.99} precision={2} />
+                <InputNumber
+                  min={0.01}
+                  max={99999999.99}
+                  precision={2}
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
               <Form.Item name="deposit" label="续租押金（元）" rules={required}>
-                <InputNumber min={0} max={99999999.99} precision={2} />
+                <InputNumber
+                  min={0}
+                  max={99999999.99}
+                  precision={2}
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </>
           ) : null}
@@ -786,7 +973,9 @@ export function LeaseDetailDrawer({
             name="reason"
             label="处理说明"
             rules={
-              action === 'PUBLISH' ? [] : [...required, { whitespace: true }]
+              ['PUBLISH', 'REMIND_SIGN'].includes(action || '')
+                ? []
+                : [...required, { whitespace: true }]
             }
           >
             <Input.TextArea rows={3} maxLength={1000} showCount />
@@ -890,6 +1079,15 @@ export function LeaseReminderSettings() {
           />
         </Form.Item>
         <Form.Item
+          name="signatureWindowDays"
+          label="发布后签署有效天数"
+          initialValue={7}
+          rules={required}
+          extra="1至90天，最晚不超过租期结束日。仅影响以后发布的合同；关闭到期提醒仍会处理签署超时。"
+        >
+          <InputNumber min={1} max={90} precision={0} />
+        </Form.Item>
+        <Form.Item
           name="renewalWindowDays"
           label="允许提前申请续租的天数"
           rules={required}
@@ -909,6 +1107,17 @@ export default function LeasesPage() {
   const table = useRef<ActionType | undefined>(undefined);
   const [selected, setSelected] = useState<string>();
   const [creating, setCreating] = useState(false);
+  const [queue, setQueue] = useState('all');
+  const queues: Record<string, Record<string, unknown>> = {
+    all: {},
+    draft: { status: 'DRAFT' },
+    signing: { status: 'PENDING_SIGNATURE' },
+    review: { status: 'REVIEW_PENDING' },
+    signed: { status: 'SIGNED' },
+    renewal: { renewalStatus: 'PENDING' },
+    moveout: { moveOutStatus: 'PENDING' },
+    expiring: { expiringDays: 30 },
+  };
   const columns: ProColumns<LeaseDetail>[] = [
     {
       title: '搜索',
@@ -916,10 +1125,40 @@ export default function LeasesPage() {
       hideInTable: true,
       fieldProps: { placeholder: '合同标题、编号或房源' },
     },
-    { title: '合同编号', dataIndex: 'id', hideInSearch: true, copyable: true },
-    { title: '合同标题', dataIndex: 'title', hideInSearch: true },
-    { title: '房源', dataIndex: 'propertyTitle', hideInSearch: true },
-    { title: '承租方', dataIndex: 'tenantName', hideInSearch: true },
+    {
+      title: '房源与合同',
+      dataIndex: 'title',
+      hideInSearch: true,
+      width: 260,
+      render: (_, row) => (
+        <>
+          <div className={styles.rowTitle}>{row.propertyTitle}</div>
+          <div>{row.title}</div>
+          <Typography.Text copyable className={styles.muted}>
+            {row.id}
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      title: '双方签署进度',
+      key: 'signatureProgress',
+      hideInSearch: true,
+      width: 220,
+      render: (_, row) => (
+        <>
+          <div>
+            出租方 {row.landlordName} · {row.landlordSignedAt ? '已签' : '待签'}
+          </div>
+          <div>
+            承租方 {row.tenantName} · {row.tenantSignedAt ? '已签' : '待签'}
+          </div>
+          {Boolean(row.unresolvedReviews) && (
+            <Tag color="orange">{row.unresolvedReviews} 条审阅待处理</Tag>
+          )}
+        </>
+      ),
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -935,7 +1174,20 @@ export default function LeasesPage() {
       valueType: 'select',
       valueEnum: { 7: '7天内到期', 30: '30天内到期', 90: '90天内到期' },
     },
-    { title: '租期结束', dataIndex: 'endDate', hideInSearch: true },
+    {
+      title: '租期 / 月租',
+      dataIndex: 'endDate',
+      hideInSearch: true,
+      width: 205,
+      render: (_, row) => (
+        <>
+          <div>
+            {row.startDate} 至 {row.endDate}
+          </div>
+          <span className={styles.muted}>¥{row.monthlyRent} / 月</span>
+        </>
+      ),
+    },
     {
       title: '续租申请',
       dataIndex: 'renewalStatus',
@@ -969,44 +1221,83 @@ export default function LeasesPage() {
     },
   ];
   return (
-    <PageContainer>
+    <PageContainer className={styles.workspace}>
+      <div className={styles.intro}>
+        <div>
+          <h2>合同签约与履行</h2>
+          <p>从合同草稿到双方签署，集中处理租期、费用与交接。</p>
+        </div>
+      </div>
+      <Steps
+        className={styles.workflow}
+        size="small"
+        current={-1}
+        items={['拟定合同', '发送双方', '手写签署', '履行与结算'].map(
+          (title) => ({ title }),
+        )}
+      />
       <Tabs
         items={[
           {
             key: 'leases',
-            label: '合同与续租',
+            label: '合同工作台',
             children: (
-              <ProTable<LeaseDetail>
-                rowKey="id"
-                actionRef={table}
-                columns={columns}
-                pagination={{ defaultPageSize: 10 }}
-                request={async ({ current, pageSize, ...params }) => {
-                  const result = await queryLeases({
-                    ...params,
-                    page: current || 1,
-                    size: pageSize || 10,
-                  });
-                  return {
-                    data: result.data.list,
-                    total: result.data.total,
-                    success: true,
-                  };
-                }}
-                toolBarRender={() =>
-                  hasPermission('system:property:lease:create')
-                    ? [
-                        <Button
-                          key="create"
-                          type="primary"
-                          onClick={() => setCreating(true)}
-                        >
-                          创建合同草稿
-                        </Button>,
-                      ]
-                    : []
-                }
-              />
+              <>
+                <Tabs
+                  className={styles.queue}
+                  activeKey={queue}
+                  onChange={setQueue}
+                  items={Object.entries({
+                    all: '全部合同',
+                    draft: '草稿',
+                    signing: '待签署',
+                    review: '审阅待处理',
+                    signed: '已签署',
+                    renewal: '续租待审核',
+                    moveout: '退租待处理',
+                    expiring: '30天内到期',
+                  }).map(([key, label]) => ({ key, label }))}
+                />
+                <ProTable<LeaseDetail>
+                  params={{ queue }}
+                  scroll={{ x: 1100 }}
+                  rowKey="id"
+                  actionRef={table}
+                  columns={columns}
+                  pagination={{ defaultPageSize: 10 }}
+                  request={async ({
+                    current,
+                    pageSize,
+                    queue: selectedQueue,
+                    ...params
+                  }) => {
+                    const result = await queryLeases({
+                      ...params,
+                      ...queues[String(selectedQueue || 'all')],
+                      page: current || 1,
+                      size: pageSize || 10,
+                    });
+                    return {
+                      data: result.data.list,
+                      total: result.data.total,
+                      success: true,
+                    };
+                  }}
+                  toolBarRender={() =>
+                    hasPermission('system:property:lease:create')
+                      ? [
+                          <Button
+                            key="create"
+                            type="primary"
+                            onClick={() => setCreating(true)}
+                          >
+                            创建合同草稿
+                          </Button>,
+                        ]
+                      : []
+                  }
+                />
+              </>
             ),
           },
           {

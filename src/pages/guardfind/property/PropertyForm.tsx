@@ -25,6 +25,7 @@ import {
   uploadPropertyImage,
 } from '@/services/web/guardfind/property';
 import CustomerSelect from '../components/CustomerSelect';
+import LocationFields from './LocationFields';
 import { getPriceUnit, RENTAL_MODE_LABELS } from './propertyPricing';
 
 type ImageFile = UploadFile<{ url: string }>;
@@ -112,6 +113,10 @@ export default function PropertyForm({
       title={record ? '编辑房源' : '新增房源'}
       open={open}
       width={800}
+      style={{ top: 24 }}
+      styles={{
+        body: { maxHeight: 'calc(100dvh - 170px)', overflowY: 'auto' },
+      }}
       onCancel={onClose}
       footer={
         <>
@@ -132,6 +137,8 @@ export default function PropertyForm({
         form={form}
         layout="vertical"
         onValuesChange={(changed, values) => {
+          if ('city' in changed || 'district' in changed)
+            form.setFieldValue('regionCode', null);
           if ('priceType' in changed || 'rentalMode' in changed) {
             form.setFieldsValue({
               rentalMode:
@@ -379,6 +386,7 @@ export default function PropertyForm({
             placeholder="请输入详细地址，包括街道、门牌号及房间号"
           />
         </Form.Item>
+        <LocationFields />
         <Form.Item name="facilities" label="设施">
           <Select
             placeholder="请选择或输入设施，多个设施可用逗号分隔"
@@ -443,14 +451,14 @@ export default function PropertyForm({
             }}
           >
             {imageFiles.length < 9 && (
-              <button
-                type="button"
+              <Button
+                type="text"
                 disabled={uploading || saving}
-                style={{ border: 0, background: 'none', cursor: 'pointer' }}
+                style={{ height: 'auto', display: 'block', padding: 8 }}
               >
                 <PlusOutlined />
                 <div style={{ marginTop: 8 }}>上传图片</div>
-              </button>
+              </Button>
             )}
           </Upload>
         </Form.Item>
