@@ -51,6 +51,7 @@ import {
   updateLease,
   updateLeaseSettings,
 } from '@/services/web/guardfind/leases';
+import IdentityVerificationPanel from './IdentityVerificationPanel';
 import styles from './index.less';
 import LeaseContractPreview, { SigningProgress } from './LeaseContractPreview';
 import LeaseLifecyclePanel from './LeaseLifecyclePanel';
@@ -1340,6 +1341,16 @@ export default function LeasesPage() {
               />
             ),
           },
+          ...(hasPermission('system:property:identity:list') ||
+          hasPermission('system:property:identity:update')
+            ? [
+                {
+                  key: 'identity',
+                  label: '实名认证',
+                  children: <IdentityVerificationPanel />,
+                },
+              ]
+            : []),
         ]}
       />
       {creating ? (
