@@ -2,6 +2,17 @@
 
 defaultConfig.hashed = false;
 
+// jsdom exposes its own typed-array constructor. Umi's esbuild bridge checks
+// Buffer against Node's Uint8Array while it is loaded.
+const nodeUint8Array = Object.getPrototypeOf(Buffer.from('')).constructor;
+if (!(Buffer.from('') instanceof Uint8Array)) {
+  Object.defineProperty(global, 'Uint8Array', {
+    configurable: true,
+    writable: true,
+    value: nodeUint8Array,
+  });
+}
+
 const localStorageMock = {
   getItem: jest.fn(),
   setItem: jest.fn(),
