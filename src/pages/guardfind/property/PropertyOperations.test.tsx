@@ -29,6 +29,10 @@ jest.mock('@/services/web/guardfind/property', () => ({
   setManager: jest.fn(),
   queryPropertyPage: jest.fn(),
 }));
+jest.mock('@/services/web/guardfind/propertyLocation', () => ({
+  queryRegions: jest.fn(async () => ({ data: [] })),
+  queryRegionSource: jest.fn(async () => ({ data: { version: 'test' } })),
+}));
 const mockReload = jest.fn();
 let mockRow: PropertyVo;
 jest.mock('@ant-design/pro-components', () => ({
