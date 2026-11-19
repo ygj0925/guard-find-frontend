@@ -131,7 +131,7 @@ export default function PropertyForm({
           </Button>
         </>
       }
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}
@@ -262,7 +262,7 @@ export default function PropertyForm({
                       : '请输入每月租金'
                     : '请输入出售总价'
                 }
-                addonAfter={
+                suffix={
                   priceType === 'rent' ? (dailyRent ? '元/天' : '元/月') : '元'
                 }
                 min={1}

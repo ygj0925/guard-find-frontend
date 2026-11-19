@@ -197,7 +197,7 @@ export default function LocationFields() {
         width={900}
         footer={null}
         onCancel={() => setPicker(false)}
-        destroyOnClose
+        destroyOnHidden
       >
         <iframe
           ref={iframe}

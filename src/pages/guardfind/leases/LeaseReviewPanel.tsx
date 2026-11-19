@@ -166,7 +166,7 @@ export default function LeaseReviewPanel({
         cancelText="取消"
         confirmLoading={saving}
         cancelButtonProps={{ disabled: saving }}
-        destroyOnClose
+        destroyOnHidden
       >
         <Typography.Paragraph>
           {review?.clauseLabel}：{review?.content}

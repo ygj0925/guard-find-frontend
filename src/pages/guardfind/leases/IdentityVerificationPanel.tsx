@@ -270,7 +270,7 @@ export default function IdentityVerificationPanel() {
         cancelText="取消"
         confirmLoading={reviewSaving}
         maskClosable={false}
-        destroyOnClose
+        destroyOnHidden
       >
         <Alert
           type="warning"
