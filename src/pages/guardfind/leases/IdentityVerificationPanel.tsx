@@ -13,7 +13,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccess } from '@/hooks/useAccess';
 import {
   type IdentityStatus,
@@ -42,6 +42,8 @@ const statusColors: Partial<Record<IdentityStatus, string>> = {
   EXPIRED: 'default',
 };
 
+const pageSize = 20;
+
 export default function IdentityVerificationPanel() {
   const { hasPermission } = useAccess();
   const editable = hasPermission('system:property:identity:update');
@@ -58,39 +60,68 @@ export default function IdentityVerificationPanel() {
     action: 'VERIFY' | 'REJECT';
     reason: string;
   }>();
-  const epoch = useRef(0);
-
-  const load = async () => {
-    const current = ++epoch.current;
-    setLoading(true);
-    setFailed(false);
-    try {
-      const [settingsResponse, statusResponse] = await Promise.all([
-        queryIdentitySettings(),
-        queryIdentityVerifications({ page: 1, size: 20 }),
-      ]);
-      if (current !== epoch.current) return;
-      const nextSettings = { ...defaultSettings, ...settingsResponse.data };
-      setSettings(nextSettings);
-      form.setFieldsValue(nextSettings);
-      setRows(statusResponse.data.list || []);
-    } catch {
-      if (current === epoch.current) setFailed(true);
-    } finally {
-      if (current === epoch.current) setLoading(false);
-    }
-  };
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [queue, setQueue] = useState<'AWAITING_REVIEW' | 'ALL'>(
+    'AWAITING_REVIEW',
+  );
+  const [settingsRevision, setSettingsRevision] = useState(0);
+  const [queueRevision, setQueueRevision] = useState(0);
+  const [queueLoading, setQueueLoading] = useState(true);
+  const [queueFailed, setQueueFailed] = useState(false);
 
   useEffect(() => {
     if (!viewable) {
       setLoading(false);
       return;
     }
-    void load();
+    let active = true;
+    setLoading(true);
+    setFailed(false);
+    void queryIdentitySettings()
+      .then(({ data }) => {
+        if (!active) return;
+        const nextSettings = { ...defaultSettings, ...data };
+        setSettings(nextSettings);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
-      epoch.current++;
+      active = false;
     };
-  }, [viewable]);
+  }, [viewable, settingsRevision]);
+
+  useEffect(() => {
+    if (!viewable) return;
+    let active = true;
+    setQueueLoading(true);
+    setQueueFailed(false);
+    void queryIdentityVerifications({
+      page,
+      size: pageSize,
+      ...(queue === 'ALL' ? {} : { status: queue }),
+    })
+      .then(({ data }) => {
+        if (!active) return;
+        setRows(data.list);
+        setTotal(data.total);
+        const lastPage = Math.max(1, Math.ceil(data.total / pageSize));
+        if (page > lastPage) setPage(lastPage);
+      })
+      .catch(() => {
+        if (active) setQueueFailed(true);
+      })
+      .finally(() => {
+        if (active) setQueueLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [viewable, page, queue, queueRevision]);
 
   const save = async () => {
     if (!editable || saving) return;
@@ -123,7 +154,7 @@ export default function IdentityVerificationPanel() {
       });
       message.success('人工核验结果已记录');
       setReviewing(undefined);
-      await load();
+      setQueueRevision((value) => value + 1);
     } catch {
       // 请求层统一提示，保留复核内容。
     } finally {
@@ -142,7 +173,11 @@ export default function IdentityVerificationPanel() {
       <Alert
         type="error"
         message="实名认证配置加载失败"
-        action={<Button onClick={() => void load()}>重试</Button>}
+        action={
+          <Button onClick={() => setSettingsRevision((value) => value + 1)}>
+            重试
+          </Button>
+        }
       />
     );
 
@@ -163,7 +198,7 @@ export default function IdentityVerificationPanel() {
         layout="vertical"
         disabled={!editable}
         style={{ maxWidth: 680 }}
-        initialValues={defaultSettings}
+        initialValues={settings}
       >
         <Form.Item name="enabled" label="启用实名认证" valuePropName="checked">
           <Switch />
@@ -203,64 +238,97 @@ export default function IdentityVerificationPanel() {
           </Button>
         ) : null}
       </Form>
-      <Table<IdentityVerificationStatus>
-        rowKey="id"
-        dataSource={rows}
-        pagination={false}
-        scroll={{ x: 900 }}
-        locale={{ emptyText: '暂无身份核验记录' }}
-        columns={[
-          { title: '用户', dataIndex: 'userName' },
-          {
-            title: '签约角色',
-            dataIndex: 'role',
-            render: (role: IdentityVerificationStatus['role']) =>
-              role === 'TENANT'
-                ? '承租方'
-                : role === 'LANDLORD'
-                  ? '出租方'
-                  : '签约用户',
-          },
-          {
-            title: '身份证号',
-            dataIndex: 'maskedIdNumber',
-            render: (value) => value || '未提供',
-          },
-          {
-            title: '状态',
-            dataIndex: 'status',
-            render: (status: IdentityStatus) => (
-              <Tag color={statusColors[status]}>
-                {identityStatusLabels[status]}
-              </Tag>
-            ),
-          },
-          {
-            title: '核验时间',
-            dataIndex: 'verifiedAt',
-            render: (value) => value || '—',
-          },
-          {
-            title: '操作',
-            render: (_, row) =>
-              editable &&
-              (row.status === 'PENDING' || row.status === 'REVIEW_REQUIRED') ? (
-                <Button
-                  type="link"
-                  onClick={() => {
-                    reviewForm.resetFields();
-                    reviewForm.setFieldsValue({ action: 'VERIFY' });
-                    setReviewing(row);
-                  }}
-                >
-                  人工复核
-                </Button>
-              ) : (
-                '—'
-              ),
-          },
+      <Select
+        aria-label="审核记录范围"
+        value={queue}
+        options={[
+          { value: 'AWAITING_REVIEW', label: '待复核' },
+          { value: 'ALL', label: '全部记录' },
         ]}
+        onChange={(value) => {
+          setPage(1);
+          setQueue(value);
+        }}
       />
+      {queueFailed ? (
+        <Alert
+          type="error"
+          message="核验记录加载失败"
+          action={
+            <Button onClick={() => setQueueRevision((value) => value + 1)}>
+              重试
+            </Button>
+          }
+        />
+      ) : (
+        <Table<IdentityVerificationStatus>
+          rowKey="id"
+          dataSource={rows}
+          loading={queueLoading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: false,
+            onChange: setPage,
+          }}
+          scroll={{ x: 900 }}
+          locale={{ emptyText: '暂无身份核验记录' }}
+          columns={[
+            { title: '用户', dataIndex: 'userName' },
+            {
+              title: '签约角色',
+              dataIndex: 'role',
+              render: (role: IdentityVerificationStatus['role']) =>
+                role === 'TENANT'
+                  ? '承租方'
+                  : role === 'LANDLORD'
+                    ? '出租方'
+                    : '签约用户',
+            },
+            {
+              title: '身份证号',
+              dataIndex: 'maskedIdNumber',
+              render: (value) => value || '未提供',
+            },
+            {
+              title: '状态',
+              dataIndex: 'status',
+              render: (status: IdentityStatus) => (
+                <Tag color={statusColors[status]}>
+                  {identityStatusLabels[status]}
+                </Tag>
+              ),
+            },
+            {
+              title: '核验时间',
+              dataIndex: 'verifiedAt',
+              render: (value) => value || '—',
+            },
+            {
+              title: '操作',
+              render: (_, row) =>
+                editable &&
+                (!row.provider || row.provider === 'MANUAL') &&
+                (row.status === 'PENDING' ||
+                  row.status === 'REVIEW_REQUIRED') ? (
+                  <Button
+                    type="link"
+                    onClick={() => {
+                      reviewForm.resetFields();
+                      reviewForm.setFieldsValue({ action: 'VERIFY' });
+                      setReviewing(row);
+                    }}
+                  >
+                    人工复核
+                  </Button>
+                ) : (
+                  '—'
+                ),
+            },
+          ]}
+        />
+      )}
       <Modal
         open={Boolean(reviewing)}
         title="人工核验"

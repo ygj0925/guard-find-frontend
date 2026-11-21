@@ -87,3 +87,34 @@ it('saves the configured verification requirement', async () => {
     ),
   );
 });
+
+it('loads older pending applications from the server without replacing unsaved settings', async () => {
+  (queryIdentityVerifications as jest.Mock).mockImplementation(
+    async ({ page }) => ({
+      data: {
+        list: [
+          {
+            id: String(page),
+            userName: page === 1 ? '新申请人' : '早期申请人',
+            status: 'PENDING',
+          },
+        ],
+        total: 21,
+      },
+    }),
+  );
+  render(<IdentityVerificationPanel />);
+  await screen.findByText('新申请人');
+  fireEvent.click(screen.getByLabelText('启用实名认证'));
+  fireEvent.click(screen.getByTitle('2'));
+  await screen.findByText('早期申请人');
+  expect(queryIdentityVerifications).toHaveBeenCalledWith({
+    status: 'AWAITING_REVIEW',
+    page: 2,
+    size: 20,
+  });
+  expect(
+    screen.getByLabelText('启用实名认证').getAttribute('aria-checked'),
+  ).toBe('true');
+  expect(queryIdentitySettings).toHaveBeenCalledTimes(1);
+});
